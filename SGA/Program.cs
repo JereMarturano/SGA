@@ -15,6 +15,17 @@ builder.Services.AddScoped<IVentaService, VentaService>();
 builder.Services.AddScoped<IReporteService, ReporteService>();
 builder.Services.AddControllers();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        builder =>
+        {
+            builder.AllowAnyOrigin()
+                   .AllowAnyMethod()
+                   .AllowAnyHeader();
+        });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -22,6 +33,8 @@ if (app.Environment.IsDevelopment())
 {
     // Swagger/OpenAPI can be added here if needed
 }
+
+app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
 
