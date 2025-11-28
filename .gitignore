@@ -102,3 +102,8 @@ yarn-error.log
 # Denote all files that are truly binary and should not be modified.
 *.png binary
 *.jpg binary
+
+# Docker
+.dockerignore
+docker-compose.yml
+Dockerfile
