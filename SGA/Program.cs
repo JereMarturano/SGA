@@ -12,6 +12,7 @@ builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IGastoVehiculoService, GastoVehiculoService>();
 builder.Services.AddScoped<IInventarioService, InventarioService>();
 builder.Services.AddScoped<IVentaService, VentaService>();
+builder.Services.AddScoped<IReporteService, ReporteService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
