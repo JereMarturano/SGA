@@ -58,8 +58,11 @@ export default function Dashboard() {
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <h2 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white mb-2">
-                Hola Santiago, la temperatura hoy en Molinari es:
+                Hola Santiago
               </h2>
+              <p className="text-slate-500 dark:text-slate-400 mb-4 font-medium">
+                Aquí tienes toda la información del día en Molinari:
+              </p>
               <div className="mt-4">
                 <WeatherWidget />
               </div>
