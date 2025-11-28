@@ -23,4 +23,12 @@ public class Producto
 
     [MaxLength(50)]
     public string UnidadDeMedida { get; set; } = string.Empty;
+
+    // Propiedades específicas para Huevos
+    public bool EsHuevo { get; set; }
+    public TamanoHuevo? Tamano { get; set; }
+    public ColorHuevo? Color { get; set; }
+    
+    // Cantidad de unidades por bulto (ej. 30 para Maple, 360 para Cajón)
+    public int UnidadesPorBulto { get; set; } = 1;
 }

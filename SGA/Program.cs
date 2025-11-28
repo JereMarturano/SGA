@@ -9,6 +9,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IClienteService, ClienteService>();
+builder.Services.AddScoped<IGastoVehiculoService, GastoVehiculoService>();
+builder.Services.AddScoped<IInventarioService, InventarioService>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
