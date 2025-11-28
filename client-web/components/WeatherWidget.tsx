@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Cloud, Sun, CloudRain, CloudSnow, CloudLightning, Wind } from 'lucide-react';
+import { Cloud, Sun, CloudRain, CloudSnow, CloudLightning } from 'lucide-react';
 
 export default function WeatherWidget() {
     const [temp, setTemp] = useState<number | null>(null);
@@ -27,25 +27,22 @@ export default function WeatherWidget() {
     }, []);
 
     const getWeatherIcon = (code: number) => {
-        if (code === 0 || code === 1) return <Sun className="text-yellow-500" size={28} />;
-        if (code === 2 || code === 3) return <Cloud className="text-gray-400" size={28} />;
-        if (code >= 51 && code <= 67) return <CloudRain className="text-blue-400" size={28} />;
-        if (code >= 71 && code <= 77) return <CloudSnow className="text-blue-200" size={28} />;
-        if (code >= 95) return <CloudLightning className="text-purple-500" size={28} />;
-        return <Sun className="text-yellow-500" size={28} />;
+        if (code === 0 || code === 1) return <Sun className="text-yellow-500" size={40} />;
+        if (code === 2 || code === 3) return <Cloud className="text-slate-400" size={40} />;
+        if (code >= 51 && code <= 67) return <CloudRain className="text-blue-400" size={40} />;
+        if (code >= 71 && code <= 77) return <CloudSnow className="text-blue-200" size={40} />;
+        if (code >= 95) return <CloudLightning className="text-purple-500" size={40} />;
+        return <Sun className="text-yellow-500" size={40} />;
     };
 
-    if (loading) return <div className="animate-pulse h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>;
+    if (loading) return <div className="animate-pulse h-12 w-32 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>;
 
     return (
-        <div className="flex items-center gap-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/20 shadow-sm">
+        <div className="inline-flex items-center gap-4 bg-blue-50 dark:bg-slate-700/50 px-6 py-3 rounded-2xl border border-blue-100 dark:border-slate-600">
             {weatherCode !== null && getWeatherIcon(weatherCode)}
-            <div>
-                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Molinari</p>
-                <p className="text-xl font-bold text-gray-900 dark:text-white">
-                    {temp}°C
-                </p>
-            </div>
+            <span className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter">
+                {temp}°
+            </span>
         </div>
     );
 }
