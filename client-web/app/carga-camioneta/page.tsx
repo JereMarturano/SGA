@@ -250,9 +250,9 @@ export default function CargaCamionetaPage() {
 
                         {/* Resumen de Carga (Sticky) */}
                         <div className={`transition-all duration-500 ${items.length > 0 ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-4 pointer-events-none grayscale'}`}>
-                            <div className="bg-slate-900 dark:bg-blue-600 rounded-[2rem] p-6 shadow-2xl text-white sticky top-24 border border-slate-700 dark:border-blue-500 overflow-hidden relative">
+                            <div className="bg-slate-900/95 backdrop-blur-xl dark:bg-blue-600/90 rounded-[2rem] p-6 shadow-2xl text-white sticky top-24 border border-slate-700 dark:border-blue-500 overflow-hidden relative z-20">
                                 {/* Decorative background */}
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
 
                                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2 relative z-10">
                                     <Package size={20} className="text-blue-400 dark:text-blue-200" /> Resumen Total

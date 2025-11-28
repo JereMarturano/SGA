@@ -51,16 +51,19 @@ export default function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
 
         {/* Hero / Welcome Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 relative overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 md:p-10 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 relative overflow-hidden group">
           {/* Decorative background blob */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-blue-500/20 transition-all duration-700"></div>
 
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white mb-2">
-                Hola Santiago, la temperatura hoy en Molinari es:
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="space-y-4">
+              <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight">
+                Hola Santiago
+                <span className="block text-xl md:text-2xl font-medium text-slate-500 dark:text-slate-400 mt-1">
+                  la temperatura hoy en Molinari es:
+                </span>
               </h2>
-              <div className="mt-4">
+              <div>
                 <WeatherWidget />
               </div>
             </div>
