@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { ShoppingCart, User, CreditCard, Check, ArrowLeft, Search, Plus } from 'lucide-react';
 import Link from 'next/link';
+import NotificationBell from '@/components/NotificationBell';
 
 // Mock data
 const clientes = [
@@ -50,8 +51,11 @@ export default function PuntoVentaPage() {
                     <ArrowLeft size={24} className="text-gray-600 dark:text-gray-300" />
                 </Link>
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">Nueva Venta</h1>
-                <div className="ml-auto flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Paso {step}/3</span>
+                <div className="ml-auto flex items-center gap-4">
+                    <NotificationBell />
+                    <div className="bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
+                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Paso {step}/3</span>
+                    </div>
                 </div>
             </div>
 

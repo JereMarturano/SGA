@@ -9,10 +9,12 @@ namespace SGA.Services;
 public class VentaService : IVentaService
 {
     private readonly AppDbContext _context;
+    private readonly INotificacionService _notificacionService;
 
-    public VentaService(AppDbContext context)
+    public VentaService(AppDbContext context, INotificacionService notificacionService)
     {
         _context = context;
+        _notificacionService = notificacionService;
     }
 
     public async Task<Venta> RegistrarVentaAsync(RegistrarVentaRequest request)
@@ -81,6 +83,21 @@ public class VentaService : IVentaService
             // Actualizar total de la venta
             venta.Total = totalVenta;
             await _context.SaveChangesAsync();
+
+            // Registrar Notificación y Auditoría
+            await _notificacionService.RegistrarAccionAsync(
+                "Registrar Venta", 
+                "Venta", 
+                venta.VentaId.ToString(), 
+                request.UsuarioId, 
+                $"Venta registrada por ${totalVenta}"
+            );
+
+            await _notificacionService.CrearNotificacionAsync(
+                $"Nueva venta registrada por ${totalVenta}", 
+                "Venta", 
+                request.UsuarioId
+            );
 
             await transaction.CommitAsync();
 
