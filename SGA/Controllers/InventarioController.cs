@@ -72,8 +72,8 @@ public class InventarioController : ControllerBase
 
         try
         {
-            await _inventarioService.RegistrarCompraAsync(request.ProductoId, request.Cantidad, request.UsuarioId, request.Observaciones);
-            return Ok(new { message = "Compra registrada exitosamente. Stock actualizado." });
+            await _inventarioService.RegistrarCompraAsync(request);
+            return Ok(new { message = "Compra registrada exitosamente. Stock actualizado y comprobante generado." });
         }
         catch (Exception ex)
         {

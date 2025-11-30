@@ -20,6 +20,8 @@ public class AppDbContext : DbContext
     public DbSet<DetalleVenta> DetallesVenta { get; set; }
     public DbSet<Notificacion> Notificaciones { get; set; }
     public DbSet<HistorialAccion> HistorialAcciones { get; set; }
+    public DbSet<Compra> Compras { get; set; }
+    public DbSet<DetalleCompra> DetallesCompra { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

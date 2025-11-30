@@ -24,8 +24,15 @@ public class MermaRequest
 
 public class CompraRequest
 {
+    public int UsuarioId { get; set; }
+    public string? Proveedor { get; set; }
+    public string Observaciones { get; set; } = string.Empty;
+    public List<ItemCompra> Items { get; set; } = new();
+}
+
+public class ItemCompra
+{
     public int ProductoId { get; set; }
     public decimal Cantidad { get; set; }
-    public int UsuarioId { get; set; }
-    public string Observaciones { get; set; } = string.Empty;
+    public decimal CostoUnitario { get; set; }
 }
