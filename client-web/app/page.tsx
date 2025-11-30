@@ -1,52 +1,18 @@
 'use client';
 
-import { LayoutDashboard, TrendingUp, Truck, DollarSign, Package, Bell, Menu } from 'lucide-react';
+import { TrendingUp, Truck, DollarSign, Package } from 'lucide-react';
 import KPICard from '@/components/KPICard';
 import SalesChart from '@/components/SalesChart';
 import Link from 'next/link';
 import WeatherWidget from '@/components/WeatherWidget';
+import Header from '@/components/Header';
 
 export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
 
       {/* Navbar / Header */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
-              <LayoutDashboard className="text-white" size={24} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-800 dark:text-white leading-none tracking-tight">SGA</h1>
-              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 tracking-widest uppercase">Torre de Control</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex items-center gap-4">
-              {/* Weather Widget is now in the main content area per request context, but keeping a small one here or removing it? 
-                   The user asked for the text "Hola Santiago..." to include the temperature. 
-                   I will move the main weather display to the hero section. */}
-            </div>
-
-            <button className="relative p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
-            </button>
-
-            <div className="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-700">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-slate-700 dark:text-white">Santiago</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Administrador</p>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800">
-                S
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
 
