@@ -61,4 +61,23 @@ public class InventarioController : ControllerBase
             return StatusCode(500, new { message = "Error al registrar la merma.", error = ex.Message });
         }
     }
+
+    [HttpPost("compra")]
+    public async Task<IActionResult> RegistrarCompra([FromBody] CompraRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            await _inventarioService.RegistrarCompraAsync(request.ProductoId, request.Cantidad, request.UsuarioId, request.Observaciones);
+            return Ok(new { message = "Compra registrada exitosamente. Stock actualizado." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al registrar la compra.", error = ex.Message });
+        }
+    }
 }

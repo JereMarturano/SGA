@@ -36,4 +36,32 @@ public class ReportesController : ControllerBase
             return StatusCode(500, new { message = "Error al generar el reporte.", error = ex.Message });
         }
     }
+
+    [HttpGet("stock-calle")]
+    public async Task<ActionResult<List<StockEnCalleDTO>>> ObtenerStockEnCalle()
+    {
+        try
+        {
+            var reporte = await _reporteService.ObtenerStockEnCalleAsync();
+            return Ok(reporte);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al obtener stock en calle.", error = ex.Message });
+        }
+    }
+
+    [HttpGet("mermas-historial")]
+    public async Task<ActionResult<List<MermaReporteDTO>>> ObtenerHistorialMermas()
+    {
+        try
+        {
+            var reporte = await _reporteService.ObtenerHistorialMermasAsync();
+            return Ok(reporte);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al obtener historial de mermas.", error = ex.Message });
+        }
+    }
 }

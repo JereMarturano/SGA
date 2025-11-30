@@ -1,13 +1,53 @@
 'use client';
 
-import { TrendingUp, Truck, DollarSign, Package } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { TrendingUp, Truck, DollarSign, Package, Warehouse } from 'lucide-react';
 import KPICard from '@/components/KPICard';
 import SalesChart from '@/components/SalesChart';
 import Link from 'next/link';
 import WeatherWidget from '@/components/WeatherWidget';
 import Header from '@/components/Header';
+import api from '@/lib/axios';
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({
+    ventasDia: 0,
+    margenNeto: 0,
+    vehiculosEnRuta: 0,
+    mermasCount: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // Fetch Financial Report for Today
+        const financieroRes = await api.get(`/reportes/financiero?inicio=${today}&fin=${today}`);
+        const financiero = financieroRes.data;
+
+        // Fetch Stock en Calle to count vehicles
+        const stockRes = await api.get('/reportes/stock-calle');
+        const stock = stockRes.data;
+        const enRuta = stock.filter((v: any) => v.enRuta).length;
+
+        // Fetch Mermas (maybe count recent ones? or just link)
+        // For now we just link, maybe fetch count later if needed
+
+        setStats({
+          ventasDia: financiero.totalVentas,
+          margenNeto: financiero.margenGananciaPorcentaje,
+          vehiculosEnRuta: enRuta,
+          mermasCount: 0 // Placeholder
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
 
@@ -41,6 +81,14 @@ export default function Dashboard() {
                 </div>
                 Cargar Camioneta
               </Link>
+
+              <Link href="/inventario-general" className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3">
+                <div className="bg-white dark:bg-slate-600 p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                  <Warehouse size={20} className="text-blue-500 dark:text-blue-400" />
+                </div>
+                Cargar Inv. General
+              </Link>
+
               <Link href="/punto-venta" className="group bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-1 flex items-center gap-3">
                 <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-12 transition-transform">
                   <DollarSign size={20} />
@@ -55,7 +103,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <KPICard
             title="Ventas del Día"
-            value="$ 1,250,000"
+            value={`$ ${stats.ventasDia.toLocaleString()}`}
             icon={DollarSign}
             trend="+12.5%"
             trendUp={true}
@@ -63,7 +111,7 @@ export default function Dashboard() {
           />
           <KPICard
             title="Margen Neto"
-            value="10.2%"
+            value={`${stats.margenNeto.toFixed(1)}%`}
             icon={TrendingUp}
             trend="-0.5%"
             trendUp={false}
@@ -71,15 +119,17 @@ export default function Dashboard() {
           />
           <KPICard
             title="Stock en Calle"
-            value="450 Maples"
+            value={`${stats.vehiculosEnRuta} En Ruta`}
             icon={Truck}
             color="orange"
+            href="/stock-calle"
           />
           <KPICard
             title="Mermas (Roturas)"
-            value="12 Unidades"
+            value="Ver Historial"
             icon={Package}
             color="red"
+            href="/mermas"
           />
         </div>
 

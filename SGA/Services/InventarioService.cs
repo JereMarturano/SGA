@@ -21,20 +21,32 @@ public class InventarioService : IInventarioService
         {
             foreach (var item in items)
             {
-                // 1. Registrar el Movimiento (Auditoría)
+                // 0. Validar Stock General
+                var producto = await _context.Productos.FindAsync(item.ProductoId);
+                if (producto == null) throw new Exception($"Producto {item.ProductoId} no encontrado");
+                
+                if (producto.StockActual < item.Cantidad)
+                {
+                    throw new Exception($"Stock insuficiente en depósito para el producto {producto.Nombre}. Disponible: {producto.StockActual}, Solicitado: {item.Cantidad}");
+                }
+
+                // 1. Descontar del Stock General (Depósito)
+                producto.StockActual -= item.Cantidad;
+
+                // 2. Registrar el Movimiento (Auditoría) - Salida de Depósito a Vehículo
                 var movimiento = new MovimientoStock
                 {
                     Fecha = DateTime.UtcNow,
-                    TipoMovimiento = TipoMovimientoStock.CargaInicial, // Asumimos carga, podría ser Recarga según lógica de negocio
+                    TipoMovimiento = TipoMovimientoStock.CargaInicial, 
                     VehiculoId = vehiculoId,
                     ProductoId = item.ProductoId,
                     Cantidad = item.Cantidad,
                     UsuarioId = usuarioId,
-                    Observaciones = "Carga de vehículo por Administrador"
+                    Observaciones = "Carga de vehículo desde Depósito Central"
                 };
                 _context.MovimientosStock.Add(movimiento);
 
-                // 2. Actualizar el Stock Físico en el Vehículo
+                // 3. Actualizar el Stock Físico en el Vehículo
                 var stockVehiculo = await _context.StockVehiculos
                     .FirstOrDefaultAsync(s => s.VehiculoId == vehiculoId && s.ProductoId == item.ProductoId);
 
@@ -58,6 +70,40 @@ public class InventarioService : IInventarioService
             await transaction.CommitAsync();
         }
         catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task RegistrarCompraAsync(int productoId, decimal cantidad, int usuarioId, string observaciones)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var producto = await _context.Productos.FindAsync(productoId);
+            if (producto == null) throw new Exception("Producto no encontrado");
+
+            // 1. Aumentar Stock General
+            producto.StockActual += cantidad;
+
+            // 2. Registrar Movimiento (Ingreso por Compra)
+            var movimiento = new MovimientoStock
+            {
+                Fecha = DateTime.UtcNow,
+                TipoMovimiento = TipoMovimientoStock.AjusteInventario, // O crear un TipoMovimiento.Compra si existe
+                ProductoId = productoId,
+                Cantidad = cantidad,
+                UsuarioId = usuarioId,
+                Observaciones = observaciones ?? "Compra de mercadería"
+            };
+            // Nota: VehiculoId es null porque entra al depósito general
+            
+            _context.MovimientosStock.Add(movimiento);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch
         {
             await transaction.RollbackAsync();
             throw;

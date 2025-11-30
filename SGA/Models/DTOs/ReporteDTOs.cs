@@ -44,3 +44,27 @@ public class GastoPorTipoDTO
     public decimal Total { get; set; }
     public int CantidadRegistros { get; set; }
 }
+
+public class StockEnCalleDTO
+{
+    public int VehiculoId { get; set; }
+    public string VehiculoNombre { get; set; } = string.Empty;
+    public bool EnRuta { get; set; }
+    public List<StockVehiculoDetalleDTO> Stock { get; set; } = new();
+}
+
+public class StockVehiculoDetalleDTO
+{
+    public string Producto { get; set; } = string.Empty;
+    public decimal Cantidad { get; set; }
+}
+
+public class MermaReporteDTO
+{
+    public DateTime Fecha { get; set; }
+    public string Usuario { get; set; } = string.Empty;
+    public string Vehiculo { get; set; } = string.Empty;
+    public string Producto { get; set; } = string.Empty;
+    public decimal Cantidad { get; set; }
+    public string Motivo { get; set; } = string.Empty;
+}

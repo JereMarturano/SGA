@@ -21,3 +21,11 @@ public class MermaRequest
     public int UsuarioId { get; set; }
     public string Motivo { get; set; } = string.Empty;
 }
+
+public class CompraRequest
+{
+    public int ProductoId { get; set; }
+    public decimal Cantidad { get; set; }
+    public int UsuarioId { get; set; }
+    public string Observaciones { get; set; } = string.Empty;
+}

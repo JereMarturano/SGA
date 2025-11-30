@@ -28,4 +28,6 @@ public class Vehiculo
 
     [ForeignKey("ID_Chofer_Asignado")]
     public Usuario? ChoferAsignado { get; set; }
+
+    public bool EnRuta { get; set; }
 }

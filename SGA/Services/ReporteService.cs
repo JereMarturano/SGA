@@ -104,4 +104,59 @@ public class ReporteService : IReporteService
 
         return reporte;
     }
+    public async Task<List<StockEnCalleDTO>> ObtenerStockEnCalleAsync()
+    {
+        var vehiculos = await _context.Vehiculos
+            .Include(v => v.ChoferAsignado) // Si queremos mostrar el chofer
+            .ToListAsync();
+
+        var stockVehiculos = await _context.StockVehiculos
+            .Include(s => s.Producto)
+            .ToListAsync();
+
+        var resultado = new List<StockEnCalleDTO>();
+
+        foreach (var vehiculo in vehiculos)
+        {
+            var stockDelVehiculo = stockVehiculos
+                .Where(s => s.VehiculoId == vehiculo.VehiculoId && s.Cantidad > 0)
+                .Select(s => new StockVehiculoDetalleDTO
+                {
+                    Producto = s.Producto?.Nombre ?? "Desconocido",
+                    Cantidad = s.Cantidad
+                })
+                .ToList();
+
+            resultado.Add(new StockEnCalleDTO
+            {
+                VehiculoId = vehiculo.VehiculoId,
+                VehiculoNombre = $"{vehiculo.Marca} {vehiculo.Modelo} ({vehiculo.Patente})",
+                EnRuta = vehiculo.EnRuta,
+                Stock = stockDelVehiculo
+            });
+        }
+
+        return resultado;
+    }
+
+    public async Task<List<MermaReporteDTO>> ObtenerHistorialMermasAsync()
+    {
+        var mermas = await _context.MovimientosStock
+            .Include(m => m.Usuario)
+            .Include(m => m.Vehiculo)
+            .Include(m => m.Producto)
+            .Where(m => m.TipoMovimiento == Models.Enums.TipoMovimientoStock.Merma)
+            .OrderByDescending(m => m.Fecha)
+            .ToListAsync();
+
+        return mermas.Select(m => new MermaReporteDTO
+        {
+            Fecha = m.Fecha,
+            Usuario = m.Usuario?.Nombre ?? "Desconocido",
+            Vehiculo = m.Vehiculo != null ? $"{m.Vehiculo.Marca} ({m.Vehiculo.Patente})" : "Depósito/General",
+            Producto = m.Producto?.Nombre ?? "Desconocido",
+            Cantidad = Math.Abs(m.Cantidad), // Cantidad en positivo
+            Motivo = m.Observaciones
+        }).ToList();
+    }
 }

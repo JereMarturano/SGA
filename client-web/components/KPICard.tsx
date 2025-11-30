@@ -1,5 +1,7 @@
 import { LucideIcon } from 'lucide-react';
 
+import Link from 'next/link';
+
 interface KPICardProps {
     title: string;
     value: string;
@@ -7,6 +9,8 @@ interface KPICardProps {
     trend?: string;
     trendUp?: boolean;
     color?: "blue" | "green" | "orange" | "red" | "purple";
+    href?: string;
+    onClick?: () => void;
 }
 
 const colorStyles = {
@@ -25,9 +29,12 @@ const iconStyles = {
     purple: "bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400",
 };
 
-export default function KPICard({ title, value, icon: Icon, trend, trendUp, color = "blue" }: KPICardProps) {
-    return (
-        <div className="group relative bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 overflow-hidden">
+export default function KPICard({ title, value, icon: Icon, trend, trendUp, color = "blue", href, onClick }: KPICardProps) {
+    const Content = (
+        <div
+            onClick={onClick}
+            className={`group relative bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-700 overflow-hidden ${onClick || href ? 'cursor-pointer' : ''}`}
+        >
             {/* Background decoration */}
             <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${colorStyles[color]} opacity-5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110`} />
 
@@ -51,4 +58,10 @@ export default function KPICard({ title, value, icon: Icon, trend, trendUp, colo
             )}
         </div>
     );
+
+    if (href) {
+        return <Link href={href}>{Content}</Link>;
+    }
+
+    return Content;
 }
