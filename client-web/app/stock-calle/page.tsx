@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import { Truck, ArrowLeft, MapPin } from 'lucide-react';
+import { Truck, ArrowLeft, CheckCircle, X } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/axios';
 
@@ -18,21 +18,201 @@ interface StockEnCalle {
     stock: StockDetalle[];
 }
 
+interface StockVehiculoItem {
+    id: number;
+    vehiculoId: number;
+    productoId: number;
+    cantidad: number;
+    producto: {
+        productoId: number;
+        nombre: string;
+    };
+}
+
+interface CerrarRepartoModalProps {
+    vehiculo: StockEnCalle;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModalProps) => {
+    const [kilometraje, setKilometraje] = useState<string>('');
+    const [stockItems, setStockItems] = useState<{ productoId: number; nombre: string; cantidadTeorica: number; cantidadFisica: string }[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [fetchingStock, setFetchingStock] = useState(true);
+
+    useEffect(() => {
+        const fetchStock = async () => {
+            try {
+                // Fetch detailed stock with IDs
+                const response = await api.get<StockVehiculoItem[]>(`/inventario/stock-vehiculo/${vehiculo.vehiculoId}`);
+                const items = response.data.map(item => ({
+                    productoId: item.productoId,
+                    nombre: item.producto.nombre,
+                    cantidadTeorica: item.cantidad,
+                    cantidadFisica: item.cantidad.toString()
+                }));
+                setStockItems(items);
+            } catch (error) {
+                console.error('Error fetching vehicle stock details:', error);
+                alert('Error al cargar detalle del stock.');
+                onClose();
+            } finally {
+                setFetchingStock(false);
+            }
+        };
+        fetchStock();
+    }, [vehiculo.vehiculoId, onClose]);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!kilometraje) {
+            alert('Por favor ingrese el nuevo kilometraje.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // TODO: In a real app, get the logged-in user ID from AuthContext.
+            // For now, defaulting to 1 (Admin) as per current prototype state.
+            const currentUserId = 1;
+
+            const payload = {
+                vehiculoId: vehiculo.vehiculoId,
+                usuarioId: currentUserId,
+                nuevoKilometraje: parseFloat(kilometraje),
+                stockRetorno: stockItems.map(item => ({
+                    productoId: item.productoId,
+                    cantidadFisica: parseFloat(item.cantidadFisica) || 0
+                }))
+            };
+
+            await api.post('/inventario/cerrar-reparto', payload);
+            alert('Reparto cerrado correctamente.');
+            onSuccess();
+        } catch (error: any) {
+            console.error('Error closing route:', error);
+            alert('Error al cerrar reparto: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleQuantityChange = (index: number, value: string) => {
+        const newItems = [...stockItems];
+        newItems[index].cantidadFisica = value;
+        setStockItems(newItems);
+    };
+
+    if (fetchingStock) return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg text-center">
+                <p>Cargando información del vehículo...</p>
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
+                <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">Cerrar Reparto - {vehiculo.vehiculoNombre}</h2>
+                    <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                            Nuevo Kilometraje
+                        </label>
+                        <input
+                            type="number"
+                            step="0.1"
+                            value={kilometraje}
+                            onChange={(e) => setKilometraje(e.target.value)}
+                            className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                            placeholder="Ingrese Km actual del vehículo"
+                            required
+                        />
+                    </div>
+
+                    <div className="mb-4">
+                        <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Control de Stock (Retorno)</h3>
+                        <p className="text-sm text-slate-500 mb-4">Verifique el stock físico que regresa en la camioneta. Cualquier diferencia será registrada.</p>
+
+                        <div className="space-y-3">
+                            {stockItems.map((item, idx) => (
+                                <div key={item.productoId} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                                    <div className="flex-1">
+                                        <div className="font-medium text-slate-800 dark:text-white">{item.nombre}</div>
+                                        <div className="text-xs text-slate-500">Teórico: {item.cantidadTeorica}</div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-sm text-slate-600 dark:text-slate-300">Físico:</label>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={item.cantidadFisica}
+                                            onChange={(e) => handleQuantityChange(idx, e.target.value)}
+                                            className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                            {stockItems.length === 0 && (
+                                <p className="text-center text-slate-500 italic">No hay stock registrado en el vehículo.</p>
+                            )}
+                        </div>
+                    </div>
+                </form>
+
+                <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                        disabled={loading}
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    >
+                        {loading ? 'Procesando...' : (
+                            <>
+                                <CheckCircle size={18} />
+                                Confirmar Cierre
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function StockCallePage() {
     const [data, setData] = useState<StockEnCalle[]>([]);
     const [loading, setLoading] = useState(true);
+    const [selectedVehiculo, setSelectedVehiculo] = useState<StockEnCalle | null>(null);
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/reportes/stock-calle');
+            setData(response.data);
+        } catch (error) {
+            console.error('Error fetching stock en calle:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await api.get('/reportes/stock-calle');
-                setData(response.data);
-            } catch (error) {
-                console.error('Error fetching stock en calle:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchData();
     }, []);
 
@@ -73,7 +253,7 @@ export default function StockCallePage() {
                                     </span>
                                 </div>
 
-                                <div className="flex-1 space-y-3">
+                                <div className="flex-1 space-y-3 mb-6">
                                     {vehiculo.stock.length > 0 ? (
                                         vehiculo.stock.map((item, idx) => (
                                             <div key={idx} className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-700/50 last:border-0 pb-2 last:pb-0">
@@ -85,11 +265,31 @@ export default function StockCallePage() {
                                         <div className="text-slate-400 text-sm italic text-center py-4">Sin stock cargado</div>
                                     )}
                                 </div>
+
+                                {vehiculo.enRuta && (
+                                    <button
+                                        onClick={() => setSelectedVehiculo(vehiculo)}
+                                        className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
+                                    >
+                                        Cerrar Reparto
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>
                 )}
             </main>
+
+            {selectedVehiculo && (
+                <CerrarRepartoModal
+                    vehiculo={selectedVehiculo}
+                    onClose={() => setSelectedVehiculo(null)}
+                    onSuccess={() => {
+                        setSelectedVehiculo(null);
+                        fetchData();
+                    }}
+                />
+            )}
         </div>
     );
 }

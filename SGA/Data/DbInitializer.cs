@@ -1,5 +1,6 @@
 using SGA.Models;
 using SGA.Models.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace SGA.Data;
 
@@ -9,6 +10,17 @@ public static class DbInitializer
     {
         // Ensure database is created
         context.Database.EnsureCreated();
+
+        // Check if Kilometraje column exists in Vehiculos table and add it if missing
+        try
+        {
+            var command = "IF COL_LENGTH('Vehiculos', 'Kilometraje') IS NULL BEGIN ALTER TABLE Vehiculos ADD Kilometraje decimal(18,2) NOT NULL DEFAULT 0 END";
+            context.Database.ExecuteSqlRaw(command);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating schema: {ex.Message}");
+        }
 
         // Seed Productos if missing
         if (!context.Productos.Any())

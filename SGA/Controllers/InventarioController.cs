@@ -123,4 +123,50 @@ public class InventarioController : ControllerBase
         var usuarios = await _context.Usuarios.ToListAsync();
         return Ok(usuarios);
     }
+
+    [HttpPost("cerrar-reparto")]
+    public async Task<IActionResult> CerrarReparto([FromBody] CerrarRepartoDTO request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            // Mapeamos DTO a modelo interno
+            var internalRequest = new CerrarRepartoRequest
+            {
+                VehiculoId = request.VehiculoId,
+                UsuarioId = request.UsuarioId,
+                NuevoKilometraje = request.NuevoKilometraje,
+                StockRetorno = request.StockRetorno.Select(s => new StockRetornoItem
+                {
+                    ProductoId = s.ProductoId,
+                    CantidadFisica = s.CantidadFisica
+                }).ToList()
+            };
+
+            await _inventarioService.CerrarRepartoAsync(internalRequest);
+            return Ok(new { message = "Reparto cerrado exitosamente. Stock retornado a depósito." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al cerrar reparto.", error = ex.Message });
+        }
+    }
+}
+
+public class CerrarRepartoDTO
+{
+    public int VehiculoId { get; set; }
+    public int UsuarioId { get; set; }
+    public decimal NuevoKilometraje { get; set; }
+    public List<StockRetornoItemDTO> StockRetorno { get; set; } = new();
+}
+
+public class StockRetornoItemDTO
+{
+    public int ProductoId { get; set; }
+    public decimal CantidadFisica { get; set; }
 }

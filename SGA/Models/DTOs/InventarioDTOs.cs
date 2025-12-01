@@ -37,3 +37,17 @@ public class ItemCompra
     public decimal Cantidad { get; set; }
     public decimal CostoUnitario { get; set; }
 }
+
+public class CerrarRepartoRequest
+{
+    public int VehiculoId { get; set; }
+    public int UsuarioId { get; set; }
+    public decimal NuevoKilometraje { get; set; }
+    public List<StockRetornoItem> StockRetorno { get; set; } = new();
+}
+
+public class StockRetornoItem
+{
+    public int ProductoId { get; set; }
+    public decimal CantidadFisica { get; set; }
+}
