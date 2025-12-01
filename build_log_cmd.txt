@@ -1,0 +1,15 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+C:\Users\Jerem\source\repos\SGA\SGA\Services\InventarioService.cs(79,44): error CS0246: El nombre del tipo o del espacio de nombres 'CompraRequest' no se encontró (¿falta una directiva using o una referencia de ensamblado?) [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\InventarioService.cs(147,76): error CS0246: El nombre del tipo o del espacio de nombres 'ItemCompra' no se encontró (¿falta una directiva using o una referencia de ensamblado?) [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\InventarioService.cs(8,34): error CS0535: 'InventarioService' no implementa el miembro de interfaz 'IInventarioService.RegistrarCompraAsync(CompraRequest)' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+
+ERROR al compilar.
+
+C:\Users\Jerem\source\repos\SGA\SGA\Services\InventarioService.cs(79,44): error CS0246: El nombre del tipo o del espacio de nombres 'CompraRequest' no se encontró (¿falta una directiva using o una referencia de ensamblado?) [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\InventarioService.cs(147,76): error CS0246: El nombre del tipo o del espacio de nombres 'ItemCompra' no se encontró (¿falta una directiva using o una referencia de ensamblado?) [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\InventarioService.cs(8,34): error CS0535: 'InventarioService' no implementa el miembro de interfaz 'IInventarioService.RegistrarCompraAsync(CompraRequest)' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+    0 Advertencia(s)
+    3 Errores
+
+Tiempo transcurrido 00:00:01.16

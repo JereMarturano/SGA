@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
 using SGA.Models.Enums;
+using SGA.Models.DTOs;
 
 namespace SGA.Services;
 
