@@ -108,11 +108,11 @@ public class ReporteService : IReporteService
     public async Task<List<StockEnCalleDTO>> ObtenerStockEnCalleAsync()
     {
         var vehiculos = await _context.Vehiculos
-            //.Include(v => v.ChoferAsignado) // Si queremos mostrar el chofer
+            .Include(v => v.ChoferAsignado) // Si queremos mostrar el chofer
             .ToListAsync();
 
         var stockVehiculos = await _context.StockVehiculos
-            //.Include(s => s.Producto)
+            .Include(s => s.Producto)
             .ToListAsync();
 
         var resultado = new List<StockEnCalleDTO>();

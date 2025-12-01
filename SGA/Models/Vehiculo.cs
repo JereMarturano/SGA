@@ -24,6 +24,7 @@ public class Vehiculo
     [Column(TypeName = "decimal(18,2)")]
     public decimal CapacidadCarga { get; set; }
 
+    [Column("ID_Chofer_Asignado")]
     public int? ID_Chofer_Asignado { get; set; }
 
     [ForeignKey("ID_Chofer_Asignado")]
