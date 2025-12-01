@@ -47,6 +47,7 @@ public class ReportesController : ControllerBase
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[ERROR] Error obteniendo stock en calle: {ex}");
             return StatusCode(500, new { message = "Error al obtener stock en calle.", error = ex.Message });
         }
     }

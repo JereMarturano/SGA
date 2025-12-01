@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models.DTOs;
+using SGA.Models;
 
 namespace SGA.Services;
 
@@ -16,8 +17,8 @@ public class ReporteService : IReporteService
     public async Task<ReporteFinancieroDTO> GenerarReporteFinancieroAsync(DateTime fechaInicio, DateTime fechaFin, int? vehiculoId = null)
     {
         // Asegurar rango de fechas correcto (inclusive el último día hasta el último tick)
-        var inicio = fechaInicio.Date;
-        var fin = fechaFin.Date.AddDays(1).AddTicks(-1);
+        var inicio = DateTime.SpecifyKind(fechaInicio.Date, DateTimeKind.Utc);
+        var fin = DateTime.SpecifyKind(fechaFin.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
         // 1. Consultar Ventas
         var queryVentas = _context.Ventas
@@ -107,11 +108,11 @@ public class ReporteService : IReporteService
     public async Task<List<StockEnCalleDTO>> ObtenerStockEnCalleAsync()
     {
         var vehiculos = await _context.Vehiculos
-            .Include(v => v.ChoferAsignado) // Si queremos mostrar el chofer
+            //.Include(v => v.ChoferAsignado) // Si queremos mostrar el chofer
             .ToListAsync();
 
         var stockVehiculos = await _context.StockVehiculos
-            .Include(s => s.Producto)
+            //.Include(s => s.Producto)
             .ToListAsync();
 
         var resultado = new List<StockEnCalleDTO>();
