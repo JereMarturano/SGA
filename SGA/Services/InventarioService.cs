@@ -67,6 +67,13 @@ public class InventarioService : IInventarioService
                 stockVehiculo.UltimaActualizacion = DateTime.UtcNow;
             }
 
+            // 4. Actualizar estado del vehículo a "En Reparto"
+            var vehiculo = await _context.Vehiculos.FindAsync(vehiculoId);
+            if (vehiculo != null)
+            {
+                vehiculo.EnRuta = true;
+            }
+
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
         }
