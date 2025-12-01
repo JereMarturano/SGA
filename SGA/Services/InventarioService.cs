@@ -99,6 +99,12 @@ public class InventarioService : IInventarioService
 
             if (!vehiculo.EnRuta) throw new Exception("El vehículo no está marcado como En Ruta");
 
+            // Validar Kilometraje
+            if (request.NuevoKilometraje <= vehiculo.Kilometraje)
+            {
+                throw new Exception($"El nuevo kilometraje ({request.NuevoKilometraje}) debe ser mayor al actual ({vehiculo.Kilometraje}).");
+            }
+
             // 1. Actualizar Vehículo
             vehiculo.EnRuta = false;
             vehiculo.ID_Chofer_Asignado = null; // Liberar chofer

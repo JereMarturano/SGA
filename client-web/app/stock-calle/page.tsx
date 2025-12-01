@@ -73,9 +73,13 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
 
         setLoading(true);
         try {
+            // TODO: In a real app, get the logged-in user ID from AuthContext.
+            // For now, defaulting to 1 (Admin) as per current prototype state.
+            const currentUserId = 1;
+
             const payload = {
                 vehiculoId: vehiculo.vehiculoId,
-                usuarioId: 1, // TODO: Get from auth context
+                usuarioId: currentUserId,
                 nuevoKilometraje: parseFloat(kilometraje),
                 stockRetorno: stockItems.map(item => ({
                     productoId: item.productoId,
