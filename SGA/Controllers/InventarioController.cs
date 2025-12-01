@@ -48,6 +48,26 @@ public class InventarioController : ControllerBase
         }
     }
 
+    [HttpGet("historial-cargas")]
+    public async Task<IActionResult> GetHistorialCargas()
+    {
+        var historial = await _inventarioService.ObtenerHistorialCargasAsync();
+        
+        var grouped = historial
+            .GroupBy(h => new { h.Fecha, h.VehiculoId, h.Vehiculo?.Marca, h.Vehiculo?.Modelo })
+            .Select(g => new 
+            {
+                Id = g.First().MovimientoId,
+                Fecha = g.Key.Fecha.ToLocalTime().ToString("HH:mm"),
+                Vehiculo = $"{g.Key.Marca} {g.Key.Modelo}",
+                TotalHuevos = g.Sum(x => Math.Abs(x.Cantidad)), // Use Abs just in case, though it should be positive
+                ItemsCount = g.Count()
+            })
+            .ToList();
+
+        return Ok(grouped);
+    }
+
     [HttpGet("stock-vehiculo/{vehiculoId}")]
     public async Task<ActionResult<List<StockVehiculo>>> ObtenerStockVehiculo(int vehiculoId)
     {

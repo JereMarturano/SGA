@@ -20,6 +20,7 @@ public class InventarioService : IInventarioService
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
+            var fechaHora = DateTime.UtcNow;
             foreach (var item in items)
             {
                 // 0. Validar Stock General
@@ -37,7 +38,7 @@ public class InventarioService : IInventarioService
                 // 2. Registrar el Movimiento (Auditoría) - Salida de Depósito a Vehículo
                 var movimiento = new MovimientoStock
                 {
-                    Fecha = DateTime.UtcNow,
+                    Fecha = fechaHora,
                     TipoMovimiento = TipoMovimientoStock.CargaInicial, 
                     VehiculoId = vehiculoId,
                     ProductoId = item.ProductoId,
@@ -58,13 +59,13 @@ public class InventarioService : IInventarioService
                         VehiculoId = vehiculoId,
                         ProductoId = item.ProductoId,
                         Cantidad = 0,
-                        UltimaActualizacion = DateTime.UtcNow
+                        UltimaActualizacion = fechaHora
                     };
                     _context.StockVehiculos.Add(stockVehiculo);
                 }
 
                 stockVehiculo.Cantidad += item.Cantidad;
-                stockVehiculo.UltimaActualizacion = DateTime.UtcNow;
+                stockVehiculo.UltimaActualizacion = fechaHora;
             }
 
             // 4. Actualizar estado del vehículo a "En Reparto"
@@ -188,6 +189,17 @@ public class InventarioService : IInventarioService
 
         // Retornar URL relativa para acceso web
         return $"/comprobantes/{fileName}";
+    }
+
+    public async Task<List<MovimientoStock>> ObtenerHistorialCargasAsync()
+    {
+        return await _context.MovimientosStock
+            .Include(m => m.Vehiculo)
+            .Include(m => m.Producto)
+            .Where(m => m.TipoMovimiento == TipoMovimientoStock.CargaInicial)
+            .OrderByDescending(m => m.Fecha)
+            .Take(50)
+            .ToListAsync();
     }
 
     public async Task<List<StockVehiculo>> ObtenerStockVehiculoAsync(int vehiculoId)

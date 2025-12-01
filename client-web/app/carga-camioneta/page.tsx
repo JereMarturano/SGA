@@ -63,6 +63,15 @@ export default function CargaCamionetaPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
+        const fetchHistorial = async () => {
+            try {
+                const res = await api.get('/inventario/historial-cargas');
+                setHistorial(res.data);
+            } catch (error) {
+                console.error('Error cargando historial:', error);
+            }
+        };
+
         const fetchData = async () => {
             try {
                 const [vRes, pRes] = await Promise.all([
@@ -83,6 +92,7 @@ export default function CargaCamionetaPage() {
 
                 setVehiculos(vehiculosMapped);
                 setProductosBase(productosMapped);
+                await fetchHistorial();
             } catch (error) {
                 console.error('Error cargando datos:', error);
             } finally {
@@ -92,6 +102,15 @@ export default function CargaCamionetaPage() {
 
         fetchData();
     }, []);
+
+    const fetchHistorial = async () => {
+        try {
+            const res = await api.get('/inventario/historial-cargas');
+            setHistorial(res.data);
+        } catch (error) {
+            console.error('Error cargando historial:', error);
+        }
+    };
 
     const handleAddItem = () => {
         if (productosBase.length > 0) {
@@ -136,22 +155,7 @@ export default function CargaCamionetaPage() {
 
             await api.post('/inventario/cargar-vehiculo', payload);
 
-            // Calcular total para historial local
-            const totalHuevos = items.reduce((acc, item) => {
-                const unidad = unidadesMedida.find(u => u.id === item.unidadId);
-                return acc + (item.cantidad * (unidad?.factor || 1));
-            }, 0);
-
-            // Guardar en historial
-            const nuevoHistorial: HistorialItem = {
-                id: Date.now(),
-                fecha: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                vehiculo: vehiculo?.nombre || 'Desconocido',
-                totalHuevos,
-                itemsCount: items.length
-            };
-
-            setHistorial([nuevoHistorial, ...historial]);
+            await fetchHistorial();
 
             // Resetear form
             setItems([]);
@@ -466,11 +470,13 @@ export default function CargaCamionetaPage() {
                         </div>
 
                         {/* Historial de Cargas */}
-                        {historial.length > 0 && (
-                            <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-8 shadow-sm border border-slate-100 dark:border-slate-700">
-                                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
-                                    <History size={20} className="text-slate-400" /> Historial Reciente
-                                </h3>
+                        <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-8 shadow-sm border border-slate-100 dark:border-slate-700">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                <History size={20} className="text-slate-400" /> Historial Reciente
+                            </h3>
+                            {historial.length === 0 ? (
+                                <p className="text-slate-400 text-center py-4">No hay cargas recientes.</p>
+                            ) : (
                                 <div className="space-y-3">
                                     {historial.map((h) => (
                                         <div key={h.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 transition-colors cursor-default">
@@ -490,8 +496,8 @@ export default function CargaCamionetaPage() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
