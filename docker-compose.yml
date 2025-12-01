@@ -1,0 +1,28 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sga_db
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Password123!"
+      MSSQL_PID: "Express"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+
+  api:
+    build:
+      context: ./SGA
+      dockerfile: Dockerfile
+    container_name: sga_api
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=db;Database=SGA_Avicola;User Id=sa;Password=Password123!;TrustServerCertificate=True;
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+volumes:
+  mssql_data:

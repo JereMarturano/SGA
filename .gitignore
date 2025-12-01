@@ -105,5 +105,5 @@ yarn-error.log
 
 # Docker
 .dockerignore
-docker-compose.yml
-Dockerfile
+
+

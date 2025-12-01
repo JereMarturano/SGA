@@ -1,15 +1,15 @@
 services:
   db:
-    image: postgres:15
+    image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sga_db_dev
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: SGA_Avicola
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Password123!"
+      MSSQL_PID: "Express"
     ports:
-      - "5433:5432"
+      - "1433:1433"
     volumes:
-      - postgres_data_dev:/var/lib/postgresql/data
+      - mssql_data_dev:/var/opt/mssql
 
 volumes:
-  postgres_data_dev:
+  mssql_data_dev:
