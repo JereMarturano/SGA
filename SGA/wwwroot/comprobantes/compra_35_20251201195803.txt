@@ -1,0 +1,10 @@
+=== COMPROBANTE DE COMPRA ===
+ID Compra: 35
+Fecha: 1/12/2025 19:58:03
+Proveedor: N/A
+Usuario ID: 1
+-----------------------------
+DETALLE:
+-----------------------------
+TOTAL: $ 0,00
+=============================
