@@ -31,4 +31,7 @@ public class Vehiculo
     public Usuario? ChoferAsignado { get; set; }
 
     public bool EnRuta { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal Kilometraje { get; set; }
 }
