@@ -37,6 +37,12 @@ public class InventarioController : ControllerBase
         catch (Exception ex)
         {
             Console.WriteLine($"[ERROR] CargarVehiculo: {ex}");
+
+            if (ex.Message.Contains("Stock insuficiente") || ex.Message.Contains("no encontrado"))
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+
             var innerMessage = ex.InnerException?.Message ?? "";
             return StatusCode(500, new { message = "Error al procesar la carga.", error = ex.Message, innerError = innerMessage });
         }
@@ -83,6 +89,10 @@ public class InventarioController : ControllerBase
         }
         catch (Exception ex)
         {
+            if (ex.Message.Contains("no encontrado"))
+            {
+                 return BadRequest(new { message = ex.Message });
+            }
             return StatusCode(500, new { message = "Error al registrar la compra.", error = ex.Message });
         }
     }
