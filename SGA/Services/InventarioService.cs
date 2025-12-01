@@ -89,6 +89,139 @@ public class InventarioService : IInventarioService
         }
     }
 
+    public async Task CerrarRepartoAsync(CerrarRepartoRequest request)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var vehiculo = await _context.Vehiculos.FindAsync(request.VehiculoId);
+            if (vehiculo == null) throw new Exception("Vehículo no encontrado");
+
+            if (!vehiculo.EnRuta) throw new Exception("El vehículo no está marcado como En Ruta");
+
+            // 1. Actualizar Vehículo
+            vehiculo.EnRuta = false;
+            vehiculo.ID_Chofer_Asignado = null; // Liberar chofer
+            vehiculo.Kilometraje = request.NuevoKilometraje;
+
+            // 2. Procesar Stock
+            // Obtenemos TODO el stock del vehículo para asegurar que no quede nada "huerfano" si el request viene incompleto
+            var stocksVehiculo = await _context.StockVehiculos
+                .Include(s => s.Producto)
+                .Where(s => s.VehiculoId == request.VehiculoId)
+                .ToListAsync();
+
+            // Mapa de input para acceso rápido
+            var inputMap = request.StockRetorno.ToDictionary(x => x.ProductoId, x => x.CantidadFisica);
+
+            // 2.1 Procesar lo que estaba en el vehículo
+            foreach (var stockVehiculo in stocksVehiculo)
+            {
+                var stockTeorico = stockVehiculo.Cantidad;
+
+                // Si el request no incluye este producto, asumimos que físicamente es 0 (se perdió todo? o error de UI?)
+                // Para seguridad, asumimos 0 si no viene, o mejor, asumimos que es igual al teórico si no se reporta?
+                // Dado que es un "Cierre de Caja", se DEBE contar todo. Si no está en la lista, es 0 físico.
+                decimal stockFisico = 0;
+                if (inputMap.TryGetValue(stockVehiculo.ProductoId, out var val))
+                {
+                    stockFisico = val;
+                    // Removemos del mapa para saber qué sobró en el input
+                    inputMap.Remove(stockVehiculo.ProductoId);
+                }
+
+                var diferencia = stockFisico - stockTeorico;
+
+                // 2a. Registrar diferencias
+                if (diferencia != 0)
+                {
+                    var tipoMov = diferencia < 0 ? TipoMovimientoStock.Merma : TipoMovimientoStock.AjusteInventario;
+                    var movDiff = new MovimientoStock
+                    {
+                        Fecha = DateTime.UtcNow,
+                        TipoMovimiento = tipoMov,
+                        VehiculoId = request.VehiculoId,
+                        ProductoId = stockVehiculo.ProductoId,
+                        Cantidad = diferencia,
+                        UsuarioId = request.UsuarioId,
+                        Observaciones = diferencia < 0
+                            ? $"Cierre Reparto - Faltante/Merma detectado (Teórico: {stockTeorico}, Físico: {stockFisico})"
+                            : $"Cierre Reparto - Sobrante detectado (Teórico: {stockTeorico}, Físico: {stockFisico})"
+                    };
+                    _context.MovimientosStock.Add(movDiff);
+                }
+
+                // 2b. Devolver Stock Físico al Depósito (Descarga Final)
+                if (stockFisico > 0)
+                {
+                    // Asumiendo que Include trajo el producto
+                    if (stockVehiculo.Producto != null)
+                    {
+                        stockVehiculo.Producto.StockActual += stockFisico;
+                    }
+                    else
+                    {
+                        // Fallback por seguridad si EF no trajo el producto (raro con Include)
+                         var prod = await _context.Productos.FindAsync(stockVehiculo.ProductoId);
+                         if (prod != null) prod.StockActual += stockFisico;
+                    }
+
+                    var movDescarga = new MovimientoStock
+                    {
+                        Fecha = DateTime.UtcNow,
+                        TipoMovimiento = TipoMovimientoStock.DescargaFinal,
+                        VehiculoId = request.VehiculoId,
+                        ProductoId = stockVehiculo.ProductoId,
+                        Cantidad = stockFisico,
+                        UsuarioId = request.UsuarioId,
+                        Observaciones = "Cierre Reparto - Retorno a Depósito"
+                    };
+                    _context.MovimientosStock.Add(movDescarga);
+                }
+
+                // 2c. Limpiar Stock Vehículo
+                stockVehiculo.Cantidad = 0;
+                stockVehiculo.UltimaActualizacion = DateTime.UtcNow;
+            }
+
+            // 2.2 Procesar items que vienen en el request pero NO estaban en el vehículo (Sobrantes puros)
+            foreach (var item in inputMap)
+            {
+                var productoId = item.Key;
+                var cantidadFisica = item.Value;
+
+                if (cantidadFisica > 0)
+                {
+                     var prod = await _context.Productos.FindAsync(productoId);
+                     if (prod != null)
+                     {
+                        prod.StockActual += cantidadFisica;
+
+                        var movSobrante = new MovimientoStock
+                        {
+                            Fecha = DateTime.UtcNow,
+                            TipoMovimiento = TipoMovimientoStock.AjusteInventario,
+                            VehiculoId = request.VehiculoId,
+                            ProductoId = productoId,
+                            Cantidad = cantidadFisica,
+                            UsuarioId = request.UsuarioId,
+                            Observaciones = "Cierre de Reparto - Sobrante (No existía en sistema)"
+                        };
+                        _context.MovimientosStock.Add(movSobrante);
+                     }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
     public async Task RegistrarCompraAsync(CompraRequest request)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
