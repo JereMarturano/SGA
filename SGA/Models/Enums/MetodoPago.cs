@@ -5,5 +5,6 @@ public enum MetodoPago
     Efectivo,
     Transferencia,
     Cheque,
-    CuentaCorriente // Fiado / A pagar luego
+    CuentaCorriente, // Fiado / A pagar luego
+    Tarjeta
 }

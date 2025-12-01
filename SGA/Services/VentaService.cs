@@ -30,6 +30,7 @@ public class VentaService : IVentaService
                 UsuarioId = request.UsuarioId,
                 VehiculoId = request.VehiculoId,
                 MetodoPago = request.MetodoPago,
+                DescuentoPorcentaje = request.DescuentoPorcentaje,
                 Total = 0 // Se calcula abajo
             };
 
@@ -80,8 +81,16 @@ public class VentaService : IVentaService
                 _context.MovimientosStock.Add(movimiento);
             }
 
+            // Calcular descuentos
+            decimal descuentoMonto = 0;
+            if (venta.DescuentoPorcentaje > 0)
+            {
+                descuentoMonto = totalVenta * (venta.DescuentoPorcentaje / 100);
+            }
+            venta.DescuentoMonto = descuentoMonto;
+
             // Actualizar total de la venta
-            venta.Total = totalVenta;
+            venta.Total = totalVenta - descuentoMonto;
             await _context.SaveChangesAsync();
 
             // Registrar Notificación y Auditoría
@@ -90,11 +99,11 @@ public class VentaService : IVentaService
                 "Venta", 
                 venta.VentaId.ToString(), 
                 request.UsuarioId, 
-                $"Venta registrada por ${totalVenta}"
+                $"Venta registrada por ${venta.Total} (Desc: {venta.DescuentoPorcentaje}%)"
             );
 
             await _notificacionService.CrearNotificacionAsync(
-                $"Nueva venta registrada por ${totalVenta}", 
+                $"Nueva venta registrada por ${venta.Total}",
                 "Venta", 
                 request.UsuarioId
             );

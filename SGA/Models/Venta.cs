@@ -32,6 +32,12 @@ public class Venta
 
     public MetodoPago MetodoPago { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal DescuentoPorcentaje { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal DescuentoMonto { get; set; }
+
     // Lista de items vendidos
     public List<DetalleVenta> Detalles { get; set; } = new();
 }
