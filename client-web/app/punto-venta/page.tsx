@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ShoppingCart, User, CreditCard, Check, ArrowLeft, Search, Plus, Truck, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import NotificationBell from '@/components/NotificationBell';
-import axios from 'axios';
+import api from '@/lib/axios';
 
 // Interfaces
 interface Cliente {
@@ -50,16 +50,14 @@ export default function PuntoVentaPage() {
     const [descuentoPorcentaje, setDescuentoPorcentaje] = useState<number>(0);
     const [submitting, setSubmitting] = useState(false);
 
-    const API_URL = 'http://localhost:8080/api'; // Assuming backend runs on 8080 inside docker, exposed to host. If not, check port.
-
     useEffect(() => {
         const fetchData = async () => {
             try {
                 // Try fetching from API
                 const [clientesRes, productosRes, vehiculosRes] = await Promise.all([
-                    axios.get(`${API_URL}/clientes`),
-                    axios.get(`${API_URL}/productos`),
-                    axios.get(`${API_URL}/vehiculos`)
+                    api.get('/clientes'),
+                    api.get('/productos'),
+                    api.get('/vehiculos')
                 ]);
 
                 setClientes(clientesRes.data);
@@ -127,7 +125,7 @@ export default function PuntoVentaPage() {
                 }))
             };
 
-            await axios.post(`${API_URL}/ventas`, payload);
+            await api.post('/ventas', payload);
             alert('Venta Registrada Exitosamente!');
             // Reset
             setCart([]);
@@ -274,19 +272,18 @@ export default function PuntoVentaPage() {
                                 })}
                             </div>
 
-                             {/* Descuentos */}
-                             <div className="mb-4">
+                            {/* Descuentos */}
+                            <div className="mb-4">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Aplicar Descuento</label>
                                 <div className="flex gap-2">
                                     {[0, 5, 10].map((disc) => (
                                         <button
                                             key={disc}
                                             onClick={() => setDescuentoPorcentaje(disc)}
-                                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                                descuentoPorcentaje === disc
+                                            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${descuentoPorcentaje === disc
                                                     ? 'bg-blue-600 text-white'
                                                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                            }`}
+                                                }`}
                                         >
                                             {disc === 0 ? 'Sin desc.' : `${disc}%`}
                                         </button>
@@ -324,7 +321,7 @@ export default function PuntoVentaPage() {
                                 <button
                                     onClick={() => setMetodoPago(1)}
                                     className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${metodoPago === 1 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
-                                    <ArrowLeft size={24} className="rotate-45"/>
+                                    <ArrowLeft size={24} className="rotate-45" />
                                     Transferencia
                                 </button>
                                 <button

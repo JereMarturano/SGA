@@ -152,8 +152,19 @@ public class InventarioController : ControllerBase
         }
         catch (Exception ex)
         {
+            if (ex.Message.Contains("no puede ser menor al actual"))
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             return StatusCode(500, new { message = "Error al cerrar reparto.", error = ex.Message });
         }
+    }
+
+    [HttpGet("debug-vehiculos")]
+    public async Task<IActionResult> GetVehiculosDebug()
+    {
+        var vehiculos = await _context.Vehiculos.ToListAsync();
+        return Ok(vehiculos);
     }
 }
 

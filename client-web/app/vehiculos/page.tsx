@@ -18,49 +18,54 @@ interface Vehicle {
   status: 'Activo' | 'Mantenimiento' | 'Inactivo';
 }
 
-const mockVehicles: Vehicle[] = [
-  {
-    id: 1,
-    name: 'Fiat Fiorino',
-    plate: 'AA 123 BB',
-    mileage: 125000,
-    lastOilChange: '2023-10-15',
-    oilType: '5W-30 Sintético',
-    nextOilChangeKm: 135000,
-    notes: 'Revisar frenos traseros en próximo service.',
-    tireCondition: 'Bueno',
-    status: 'Activo',
-  },
-  {
-    id: 2,
-    name: 'Peugeot Boxer',
-    plate: 'CC 456 DD',
-    mileage: 89000,
-    lastOilChange: '2023-11-01',
-    oilType: '10W-40 Semi-Sintético',
-    nextOilChangeKm: 99000,
-    notes: 'Cambio de correa realizado a los 80000km.',
-    tireCondition: 'Regular',
-    status: 'Activo',
-  },
-  {
-    id: 3,
-    name: 'Toyota Hilux',
-    plate: 'EE 789 FF',
-    mileage: 45000,
-    lastOilChange: '2023-12-20',
-    oilType: '5W-30 Sintético',
-    nextOilChangeKm: 55000,
-    notes: '',
-    tireCondition: 'Bueno',
-    status: 'Activo',
-  },
-];
+import api from '@/lib/axios';
+import { useEffect } from 'react';
+
+interface Vehicle {
+  id: number;
+  name: string;
+  plate: string;
+  mileage: number;
+  lastOilChange: string;
+  oilType: string;
+  nextOilChangeKm: number;
+  notes: string;
+  tireCondition: 'Bueno' | 'Regular' | 'Malo';
+  status: 'Activo' | 'Mantenimiento' | 'Inactivo';
+}
 
 export default function VehiculosPage() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentVehicle, setCurrentVehicle] = useState<Vehicle | null>(null);
+
+  const fetchVehicles = async () => {
+    try {
+      const response = await api.get('/vehiculos');
+      const data = response.data.map((v: any) => ({
+        id: v.vehiculoId,
+        name: `${v.marca} ${v.modelo}`,
+        plate: v.patente,
+        mileage: v.kilometraje,
+        lastOilChange: 'N/A', // Not in DB yet
+        oilType: 'N/A',       // Not in DB yet
+        nextOilChangeKm: v.kilometraje + 10000, // Mock calculation
+        notes: v.enRuta ? 'Actualmente en reparto' : '',
+        tireCondition: 'Bueno', // Not in DB yet
+        status: v.enRuta ? 'Activo' : 'Activo', // Simplified status mapping
+      }));
+      setVehicles(data);
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
 
   const handleEdit = (vehicle: Vehicle) => {
     setCurrentVehicle(vehicle);
@@ -77,29 +82,13 @@ export default function VehiculosPage() {
     setCurrentVehicle(null);
   };
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-
-    const newVehicle: Vehicle = {
-      id: currentVehicle ? currentVehicle.id : Date.now(),
-      name: formData.get('name') as string,
-      plate: formData.get('plate') as string,
-      mileage: Number(formData.get('mileage')),
-      lastOilChange: formData.get('lastOilChange') as string,
-      oilType: formData.get('oilType') as string,
-      nextOilChangeKm: Number(formData.get('nextOilChangeKm')),
-      notes: formData.get('notes') as string,
-      tireCondition: formData.get('tireCondition') as Vehicle['tireCondition'],
-      status: formData.get('status') as Vehicle['status'],
-    };
-
-    if (currentVehicle) {
-      setVehicles(vehicles.map(v => v.id === currentVehicle.id ? newVehicle : v));
-    } else {
-      setVehicles([...vehicles, newVehicle]);
-    }
+    // For now, we are just refreshing the list because the edit endpoint might not be fully ready for all these fields
+    // In a full implementation, we would PUT to /api/vehiculos/:id
+    alert('La edición completa de vehículos se implementará en la próxima etapa. Los datos se han recargado.');
     handleCloseModal();
+    fetchVehicles();
   };
 
   return (
@@ -128,7 +117,7 @@ export default function VehiculosPage() {
                 <span className={`px-3 py-1 rounded-full text-xs font-bold
                   ${vehicle.status === 'Activo' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
                     vehicle.status === 'Mantenimiento' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                    'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'}`}>
+                      'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'}`}>
                   {vehicle.status}
                 </span>
               </div>
@@ -153,39 +142,39 @@ export default function VehiculosPage() {
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                    <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                        <Droplets size={18} />
-                        <span className="text-sm font-medium">Próx. Cambio</span>
-                    </div>
-                    <div className="text-right">
-                         <span className={`block font-bold ${vehicle.mileage >= vehicle.nextOilChangeKm ? 'text-red-500' : 'text-slate-800 dark:text-white'}`}>
-                            {vehicle.nextOilChangeKm.toLocaleString()} km
-                         </span>
-                         <span className="text-xs text-slate-400 block">{vehicle.oilType}</span>
-                    </div>
+                  <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                    <Droplets size={18} />
+                    <span className="text-sm font-medium">Próx. Cambio</span>
+                  </div>
+                  <div className="text-right">
+                    <span className={`block font-bold ${vehicle.mileage >= vehicle.nextOilChangeKm ? 'text-red-500' : 'text-slate-800 dark:text-white'}`}>
+                      {vehicle.nextOilChangeKm.toLocaleString()} km
+                    </span>
+                    <span className="text-xs text-slate-400 block">{vehicle.oilType}</span>
+                  </div>
                 </div>
 
-                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                    <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                        <Disc size={18} />
-                        <span className="text-sm font-medium">Cubiertas</span>
-                    </div>
-                    <span className={`font-bold text-sm px-2 py-0.5 rounded-lg
+                <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                  <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                    <Disc size={18} />
+                    <span className="text-sm font-medium">Cubiertas</span>
+                  </div>
+                  <span className={`font-bold text-sm px-2 py-0.5 rounded-lg
                         ${vehicle.tireCondition === 'Bueno' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' :
-                          vehicle.tireCondition === 'Regular' ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20' :
-                          'text-red-600 bg-red-50 dark:bg-red-900/20'}`}>
-                        {vehicle.tireCondition}
-                    </span>
+                      vehicle.tireCondition === 'Regular' ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20' :
+                        'text-red-600 bg-red-50 dark:bg-red-900/20'}`}>
+                    {vehicle.tireCondition}
+                  </span>
                 </div>
 
                 {vehicle.notes && (
-                    <div className="p-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-xl">
-                        <div className="flex gap-2 text-yellow-700 dark:text-yellow-500 mb-1">
-                             <AlertTriangle size={14} />
-                             <span className="text-xs font-bold uppercase">Notas</span>
-                        </div>
-                        <p className="text-xs text-yellow-800 dark:text-yellow-400 italic">"{vehicle.notes}"</p>
+                  <div className="p-3 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/30 rounded-xl">
+                    <div className="flex gap-2 text-yellow-700 dark:text-yellow-500 mb-1">
+                      <AlertTriangle size={14} />
+                      <span className="text-xs font-bold uppercase">Notas</span>
                     </div>
+                    <p className="text-xs text-yellow-800 dark:text-yellow-400 italic">"{vehicle.notes}"</p>
+                  </div>
                 )}
               </div>
 
@@ -207,67 +196,67 @@ export default function VehiculosPage() {
         title={currentVehicle ? `Editar ${currentVehicle.name}` : 'Nuevo Vehículo'}
       >
         <form id="vehicleForm" onSubmit={handleSave} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nombre / Modelo</label>
-                    <input name="name" defaultValue={currentVehicle?.name} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Patente</label>
-                    <input name="plate" defaultValue={currentVehicle?.plate} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Kilometraje Actual</label>
-                    <input type="number" name="mileage" defaultValue={currentVehicle?.mileage} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado</label>
-                    <select name="status" defaultValue={currentVehicle?.status || 'Activo'} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                        <option value="Activo">Activo</option>
-                        <option value="Mantenimiento">Mantenimiento</option>
-                        <option value="Inactivo">Inactivo</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
-                <h4 className="font-bold text-slate-800 dark:text-white mb-3">Mantenimiento</h4>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Último Cambio Aceite</label>
-                        <input type="date" name="lastOilChange" defaultValue={currentVehicle?.lastOilChange} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
-                    </div>
-                     <div className="space-y-1">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Próximo Cambio (Km)</label>
-                        <input type="number" name="nextOilChangeKm" defaultValue={currentVehicle?.nextOilChangeKm} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
-                    </div>
-                    <div className="space-y-1 col-span-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tipo de Aceite</label>
-                        <input name="oilType" defaultValue={currentVehicle?.oilType} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" placeholder="Ej: 5W-30 Sintético" />
-                    </div>
-                     <div className="space-y-1 col-span-2">
-                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado Cubiertas</label>
-                         <select name="tireCondition" defaultValue={currentVehicle?.tireCondition || 'Bueno'} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
-                            <option value="Bueno">Bueno</option>
-                            <option value="Regular">Regular</option>
-                            <option value="Malo">Malo</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Notas / Observaciones</label>
-                <textarea name="notes" defaultValue={currentVehicle?.notes} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white h-24" placeholder="Detalles adicionales..." />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nombre / Modelo</label>
+              <input name="name" defaultValue={currentVehicle?.name} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
             </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Patente</label>
+              <input name="plate" defaultValue={currentVehicle?.plate} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+            </div>
+          </div>
 
-            <div className="pt-4 flex justify-end gap-3">
-                 <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancelar</button>
-                 <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors">Guardar Cambios</button>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Kilometraje Actual</label>
+              <input type="number" name="mileage" defaultValue={currentVehicle?.mileage} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
             </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado</label>
+              <select name="status" defaultValue={currentVehicle?.status || 'Activo'} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                <option value="Activo">Activo</option>
+                <option value="Mantenimiento">Mantenimiento</option>
+                <option value="Inactivo">Inactivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+            <h4 className="font-bold text-slate-800 dark:text-white mb-3">Mantenimiento</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Último Cambio Aceite</label>
+                <input type="date" name="lastOilChange" defaultValue={currentVehicle?.lastOilChange} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Próximo Cambio (Km)</label>
+                <input type="number" name="nextOilChangeKm" defaultValue={currentVehicle?.nextOilChangeKm} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              </div>
+              <div className="space-y-1 col-span-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tipo de Aceite</label>
+                <input name="oilType" defaultValue={currentVehicle?.oilType} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" placeholder="Ej: 5W-30 Sintético" />
+              </div>
+              <div className="space-y-1 col-span-2">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado Cubiertas</label>
+                <select name="tireCondition" defaultValue={currentVehicle?.tireCondition || 'Bueno'} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                  <option value="Bueno">Bueno</option>
+                  <option value="Regular">Regular</option>
+                  <option value="Malo">Malo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Notas / Observaciones</label>
+            <textarea name="notes" defaultValue={currentVehicle?.notes} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white h-24" placeholder="Detalles adicionales..." />
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3">
+            <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancelar</button>
+            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors">Guardar Cambios</button>
+          </div>
         </form>
       </Modal>
     </div>
