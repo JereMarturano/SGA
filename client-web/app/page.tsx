@@ -95,6 +95,13 @@ export default function Dashboard() {
                 </div>
                 Nueva Venta
               </Link>
+
+              <Link href="/simulacion-ventas" className="group bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:-translate-y-1 flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-12 transition-transform">
+                  <Package size={20} />
+                </div>
+                Simulación Ventas
+              </Link>
             </div>
           </div>
         </div>

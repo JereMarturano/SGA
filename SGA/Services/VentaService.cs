@@ -25,7 +25,7 @@ public class VentaService : IVentaService
             // 1. Crear la Venta
             var venta = new Venta
             {
-                Fecha = DateTime.UtcNow,
+                Fecha = request.Fecha ?? DateTime.UtcNow,
                 ClienteId = request.ClienteId,
                 UsuarioId = request.UsuarioId,
                 VehiculoId = request.VehiculoId,

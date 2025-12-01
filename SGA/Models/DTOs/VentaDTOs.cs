@@ -8,6 +8,7 @@ public class RegistrarVentaRequest
     public int UsuarioId { get; set; } // Vendedor
     public int VehiculoId { get; set; }
     public MetodoPago MetodoPago { get; set; }
+    public DateTime? Fecha { get; set; }
     public List<ItemVentaDTO> Items { get; set; } = new();
 }
 
