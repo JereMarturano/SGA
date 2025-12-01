@@ -31,7 +31,7 @@ public class InventarioController : ControllerBase
         try
         {
             var items = request.Items.Select(i => (i.ProductoId, i.Cantidad)).ToList();
-            await _inventarioService.CargarVehiculoAsync(request.VehiculoId, items, request.UsuarioId);
+            await _inventarioService.CargarVehiculoAsync(request.VehiculoId, items, request.UsuarioId, request.ChoferId);
             return Ok(new { message = "Carga de vehículo registrada exitosamente." });
         }
         catch (Exception ex)

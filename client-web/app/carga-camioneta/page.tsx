@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Truck, Package, Plus, Save, ArrowLeft, Egg, History, Check, AlertTriangle, X, ChevronRight } from 'lucide-react';
+import { Truck, Package, Plus, Save, ArrowLeft, Egg, History, Check, AlertTriangle, X, ChevronRight, User } from 'lucide-react';
 import Link from 'next/link';
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
@@ -33,6 +33,12 @@ interface ProductoUI {
     nombre: string;
 }
 
+interface Usuario {
+    usuarioId: number;
+    nombre: string;
+    apellido: string;
+}
+
 const unidadesMedida = [
     { id: 'maple', nombre: 'Maple (30u)', factor: 30 },
     { id: 'cajon', nombre: 'Cajón (12 maples)', factor: 360 },
@@ -51,9 +57,11 @@ interface HistorialItem {
 export default function CargaCamionetaPage() {
     const [vehiculos, setVehiculos] = useState<VehiculoUI[]>([]);
     const [productosBase, setProductosBase] = useState<ProductoUI[]>([]);
+    const [usuarios, setUsuarios] = useState<Usuario[]>([]);
     const [loadingData, setLoadingData] = useState(true);
 
     const [selectedVehiculo, setSelectedVehiculo] = useState<number | null>(null);
+    const [selectedChofer, setSelectedChofer] = useState<number | null>(null);
     const [items, setItems] = useState<{ productoId: number; unidadId: string; cantidad: number }[]>([]);
 
     // UI States
@@ -74,9 +82,10 @@ export default function CargaCamionetaPage() {
 
         const fetchData = async () => {
             try {
-                const [vRes, pRes] = await Promise.all([
+                const [vRes, pRes, uRes] = await Promise.all([
                     api.get('/vehiculos'),
-                    api.get('/productos')
+                    api.get('/productos'),
+                    api.get('/inventario/usuarios')
                 ]);
 
                 const vehiculosMapped = vRes.data.map((v: Vehiculo) => ({
@@ -92,6 +101,7 @@ export default function CargaCamionetaPage() {
 
                 setVehiculos(vehiculosMapped);
                 setProductosBase(productosMapped);
+                setUsuarios(uRes.data);
                 await fetchHistorial();
             } catch (error) {
                 console.error('Error cargando datos:', error);
@@ -143,6 +153,7 @@ export default function CargaCamionetaPage() {
             const payload = {
                 vehiculoId: selectedVehiculo,
                 usuarioId: 1, // TODO: Obtener del contexto de autenticación
+                choferId: selectedChofer,
                 items: items.map(item => {
                     const unidad = unidadesMedida.find(u => u.id === item.unidadId);
                     const factor = unidad?.factor || 1;
@@ -333,6 +344,34 @@ export default function CargaCamionetaPage() {
                             </div>
                         </div>
 
+                        {/* Selección de Chofer */}
+                        <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 mb-6">
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                                Asignar Chofer
+                            </h3>
+                            <div className="relative">
+                                <select
+                                    value={selectedChofer || ''}
+                                    onChange={(e) => setSelectedChofer(Number(e.target.value))}
+                                    className="w-full p-4 pl-12 rounded-2xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold appearance-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                                >
+                                    <option value="" disabled>Seleccione un chofer...</option>
+                                    {usuarios.map((u) => (
+                                        <option key={u.usuarioId} value={u.usuarioId}>
+                                            {u.nombre} {u.apellido}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                                    <User size={20} />
+                                </div>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <ChevronRight size={20} className="rotate-90" />
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Resumen de Carga (Sticky) */}
                         <div className={`transition-all duration-500 ${items.length > 0 ? 'opacity-100 translate-y-0' : 'opacity-50 translate-y-4 pointer-events-none grayscale'}`}>
                             <div className="bg-slate-900/95 backdrop-blur-xl dark:bg-blue-600/90 rounded-[2rem] p-6 shadow-2xl text-white sticky top-24 border border-slate-700 dark:border-blue-500 overflow-hidden relative z-20">
@@ -356,7 +395,7 @@ export default function CargaCamionetaPage() {
 
                                 <button
                                     onClick={handlePreSubmit}
-                                    disabled={!selectedVehiculo || items.length === 0}
+                                    disabled={!selectedVehiculo || !selectedChofer || items.length === 0}
                                     className="w-full bg-blue-500 hover:bg-blue-400 dark:bg-white dark:text-blue-600 dark:hover:bg-blue-50 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/50 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] relative z-10"
                                 >
                                     <Save size={20} />

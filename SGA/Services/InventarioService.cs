@@ -15,7 +15,7 @@ public class InventarioService : IInventarioService
         _context = context;
     }
 
-    public async Task CargarVehiculoAsync(int vehiculoId, List<(int ProductoId, decimal Cantidad)> items, int usuarioId)
+    public async Task CargarVehiculoAsync(int vehiculoId, List<(int ProductoId, decimal Cantidad)> items, int usuarioId, int? choferId = null)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
@@ -68,11 +68,15 @@ public class InventarioService : IInventarioService
                 stockVehiculo.UltimaActualizacion = fechaHora;
             }
 
-            // 4. Actualizar estado del vehículo a "En Reparto"
+            // 4. Actualizar estado del vehículo a "En Reparto" y asignar chofer
             var vehiculo = await _context.Vehiculos.FindAsync(vehiculoId);
             if (vehiculo != null)
             {
                 vehiculo.EnRuta = true;
+                if (choferId.HasValue)
+                {
+                    vehiculo.ID_Chofer_Asignado = choferId.Value;
+                }
             }
 
             await _context.SaveChangesAsync();
@@ -193,12 +197,16 @@ public class InventarioService : IInventarioService
 
     public async Task<List<MovimientoStock>> ObtenerHistorialCargasAsync()
     {
+        var now = DateTime.UtcNow;
+        // Calculate start of the week (Monday)
+        int diff = (7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7;
+        var startOfWeek = now.Date.AddDays(-1 * diff);
+
         return await _context.MovimientosStock
             .Include(m => m.Vehiculo)
             .Include(m => m.Producto)
-            .Where(m => m.TipoMovimiento == TipoMovimientoStock.CargaInicial)
+            .Where(m => m.TipoMovimiento == TipoMovimientoStock.CargaInicial && m.Fecha >= startOfWeek)
             .OrderByDescending(m => m.Fecha)
-            .Take(50)
             .ToListAsync();
     }
 

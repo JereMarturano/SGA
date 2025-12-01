@@ -4,6 +4,7 @@ public class CargaVehiculoRequest
 {
     public int VehiculoId { get; set; }
     public int UsuarioId { get; set; } // El Admin que realiza la carga
+    public int? ChoferId { get; set; } // El chofer asignado
     public List<ItemCarga> Items { get; set; } = new();
 }
 
