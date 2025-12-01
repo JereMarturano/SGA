@@ -1,28 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Truck, Package, Plus, Save, ArrowLeft, Egg, History, Check, AlertTriangle, X, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
+import api from '@/lib/axios';
 
-// Mock data de Vehículos
-const vehiculos = [
-    { id: 1, nombre: 'Boxer', patente: 'AA123BB', capacidad: 'Grande', color: 'bg-blue-500' },
-    { id: 2, nombre: 'Fiorino', patente: 'CC456DD', capacidad: 'Mediana', color: 'bg-orange-500' },
-];
+// Interfaces para datos de API
+interface Vehiculo {
+    vehiculoId: number;
+    marca: string;
+    modelo: string;
+    patente: string;
+}
 
-// Mock data de Productos Completa
-const productosBase = [
-    { id: 1, nombre: 'Huevo Blanco Grande', tipo: 'Huevo', color: 'Blanco', tamano: 'Grande' },
-    { id: 2, nombre: 'Huevo Blanco Mediano', tipo: 'Huevo', color: 'Blanco', tamano: 'Mediano' },
-    { id: 3, nombre: 'Huevo Blanco Chico', tipo: 'Huevo', color: 'Blanco', tamano: 'Chico' },
-    { id: 4, nombre: 'Huevo Blanco Jumbo', tipo: 'Huevo', color: 'Blanco', tamano: 'Jumbo' },
-    { id: 5, nombre: 'Huevo Color Grande', tipo: 'Huevo', color: 'Color', tamano: 'Grande' },
-    { id: 6, nombre: 'Huevo Color Mediano', tipo: 'Huevo', color: 'Color', tamano: 'Mediano' },
-    { id: 7, nombre: 'Huevo Color Chico', tipo: 'Huevo', color: 'Color', tamano: 'Chico' },
-    { id: 8, nombre: 'Huevo Color Jumbo', tipo: 'Huevo', color: 'Color', tamano: 'Jumbo' },
-];
+interface Producto {
+    productoId: number;
+    nombre: string;
+    tipoProducto: number;
+}
+
+// Interfaces para UI
+interface VehiculoUI {
+    id: number;
+    nombre: string;
+    patente: string;
+}
+
+interface ProductoUI {
+    id: number;
+    nombre: string;
+}
 
 const unidadesMedida = [
     { id: 'maple', nombre: 'Maple (30u)', factor: 30 },
@@ -40,6 +49,10 @@ interface HistorialItem {
 }
 
 export default function CargaCamionetaPage() {
+    const [vehiculos, setVehiculos] = useState<VehiculoUI[]>([]);
+    const [productosBase, setProductosBase] = useState<ProductoUI[]>([]);
+    const [loadingData, setLoadingData] = useState(true);
+
     const [selectedVehiculo, setSelectedVehiculo] = useState<number | null>(null);
     const [items, setItems] = useState<{ productoId: number; unidadId: string; cantidad: number }[]>([]);
 
@@ -47,9 +60,43 @@ export default function CargaCamionetaPage() {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [showToast, setShowToast] = useState(false);
     const [historial, setHistorial] = useState<HistorialItem[]>([]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [vRes, pRes] = await Promise.all([
+                    api.get('/vehiculos'),
+                    api.get('/productos')
+                ]);
+
+                const vehiculosMapped = vRes.data.map((v: Vehiculo) => ({
+                    id: v.vehiculoId,
+                    nombre: `${v.marca} ${v.modelo}`,
+                    patente: v.patente
+                }));
+
+                const productosMapped = pRes.data.map((p: Producto) => ({
+                    id: p.productoId,
+                    nombre: p.nombre
+                }));
+
+                setVehiculos(vehiculosMapped);
+                setProductosBase(productosMapped);
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+            } finally {
+                setLoadingData(false);
+            }
+        };
+
+        fetchData();
+    }, []);
 
     const handleAddItem = () => {
-        setItems([...items, { productoId: 1, unidadId: 'cajon', cantidad: 1 }]);
+        if (productosBase.length > 0) {
+            setItems([...items, { productoId: productosBase[0].id, unidadId: 'cajon', cantidad: 1 }]);
+        }
     };
 
     const handleUpdateItem = (index: number, field: string, value: any) => {
@@ -67,29 +114,57 @@ export default function CargaCamionetaPage() {
         setIsConfirmModalOpen(true);
     };
 
-    const handleConfirmSubmit = () => {
-        const vehiculo = vehiculos.find(v => v.id === selectedVehiculo);
-        const totalHuevos = items.reduce((acc, item) => {
-            const unidad = unidadesMedida.find(u => u.id === item.unidadId);
-            return acc + (item.cantidad * (unidad?.factor || 1));
-        }, 0);
+    const handleConfirmSubmit = async () => {
+        if (!selectedVehiculo) return;
+        setIsSubmitting(true);
 
-        // Guardar en historial
-        const nuevoHistorial: HistorialItem = {
-            id: Date.now(),
-            fecha: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            vehiculo: vehiculo?.nombre || 'Desconocido',
-            totalHuevos,
-            itemsCount: items.length
-        };
+        try {
+            const vehiculo = vehiculos.find(v => v.id === selectedVehiculo);
 
-        setHistorial([nuevoHistorial, ...historial]);
+            const payload = {
+                vehiculoId: selectedVehiculo,
+                usuarioId: 1, // TODO: Obtener del contexto de autenticación
+                items: items.map(item => {
+                    const unidad = unidadesMedida.find(u => u.id === item.unidadId);
+                    const factor = unidad?.factor || 1;
+                    return {
+                        productoId: item.productoId,
+                        cantidad: item.cantidad * factor
+                    };
+                })
+            };
 
-        // Resetear form
-        setItems([]);
-        setSelectedVehiculo(null);
-        setIsConfirmModalOpen(false);
-        setShowToast(true);
+            await api.post('/inventario/cargar-vehiculo', payload);
+
+            // Calcular total para historial local
+            const totalHuevos = items.reduce((acc, item) => {
+                const unidad = unidadesMedida.find(u => u.id === item.unidadId);
+                return acc + (item.cantidad * (unidad?.factor || 1));
+            }, 0);
+
+            // Guardar en historial
+            const nuevoHistorial: HistorialItem = {
+                id: Date.now(),
+                fecha: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                vehiculo: vehiculo?.nombre || 'Desconocido',
+                totalHuevos,
+                itemsCount: items.length
+            };
+
+            setHistorial([nuevoHistorial, ...historial]);
+
+            // Resetear form
+            setItems([]);
+            setSelectedVehiculo(null);
+            setIsConfirmModalOpen(false);
+            setShowToast(true);
+
+        } catch (error: any) {
+            console.error('Error al cargar vehículo:', error);
+            alert(`Error al cargar vehículo: ${error.response?.data?.message || error.message}`);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const getResumenCarga = () => {
@@ -104,6 +179,10 @@ export default function CargaCamionetaPage() {
             };
         });
     };
+
+    if (loadingData) {
+        return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-500">Cargando datos...</div>;
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-8 pb-32 transition-colors duration-300">
@@ -122,14 +201,16 @@ export default function CargaCamionetaPage() {
                         <button
                             onClick={() => setIsConfirmModalOpen(false)}
                             className="px-5 py-2.5 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+                            disabled={isSubmitting}
                         >
                             Cancelar
                         </button>
                         <button
                             onClick={handleConfirmSubmit}
-                            className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 transform active:scale-95"
+                            disabled={isSubmitting}
+                            className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Check size={18} /> Confirmar
+                            {isSubmitting ? 'Procesando...' : <><Check size={18} /> Confirmar</>}
                         </button>
                     </>
                 }
@@ -219,8 +300,8 @@ export default function CargaCamionetaPage() {
                                         key={v.id}
                                         onClick={() => setSelectedVehiculo(v.id)}
                                         className={`w-full relative overflow-hidden p-4 rounded-2xl border-2 text-left transition-all duration-300 group ${selectedVehiculo === v.id
-                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/20 scale-[1.02]'
-                                                : 'border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/20 scale-[1.02]'
+                                            : 'border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                                             }`}
                                     >
                                         <div className="flex items-center gap-4 relative z-10">

@@ -1,0 +1,16 @@
+=== COMPROBANTE DE COMPRA ===
+ID Compra: 34
+Fecha: 1/12/2025 19:46:45
+Proveedor: Inicializacion Stock
+Usuario ID: 1
+-----------------------------
+DETALLE:
+Producto ID: 1 | Cant: 5000 | Costo U.: $ 10,00 | Subtotal: $ 50.000,00
+Producto ID: 2 | Cant: 5000 | Costo U.: $ 10,00 | Subtotal: $ 50.000,00
+Producto ID: 3 | Cant: 5000 | Costo U.: $ 10,00 | Subtotal: $ 50.000,00
+Producto ID: 4 | Cant: 5000 | Costo U.: $ 10,00 | Subtotal: $ 50.000,00
+Producto ID: 5 | Cant: 5000 | Costo U.: $ 10,00 | Subtotal: $ 50.000,00
+Producto ID: 6 | Cant: 5000 | Costo U.: $ 10,00 | Subtotal: $ 50.000,00
+-----------------------------
+TOTAL: $ 300.000,00
+=============================

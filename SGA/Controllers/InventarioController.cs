@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SGA.Models;
 using SGA.Models.DTOs;
 using SGA.Services;
+using SGA.Data;
 
 namespace SGA.Controllers;
 
@@ -10,10 +12,12 @@ namespace SGA.Controllers;
 public class InventarioController : ControllerBase
 {
     private readonly IInventarioService _inventarioService;
+    private readonly AppDbContext _context;
 
-    public InventarioController(IInventarioService inventarioService)
+    public InventarioController(IInventarioService inventarioService, AppDbContext context)
     {
         _inventarioService = inventarioService;
+        _context = context;
     }
 
     [HttpPost("cargar-vehiculo")]
@@ -32,7 +36,9 @@ public class InventarioController : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error al procesar la carga.", error = ex.Message });
+            Console.WriteLine($"[ERROR] CargarVehiculo: {ex}");
+            var innerMessage = ex.InnerException?.Message ?? "";
+            return StatusCode(500, new { message = "Error al procesar la carga.", error = ex.Message, innerError = innerMessage });
         }
     }
 
@@ -79,5 +85,12 @@ public class InventarioController : ControllerBase
         {
             return StatusCode(500, new { message = "Error al registrar la compra.", error = ex.Message });
         }
+    }
+
+    [HttpGet("usuarios")]
+    public async Task<IActionResult> GetUsuarios()
+    {
+        var usuarios = await _context.Usuarios.ToListAsync();
+        return Ok(usuarios);
     }
 }
