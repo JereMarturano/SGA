@@ -12,4 +12,5 @@ public interface IInventarioService
     Task RegistrarMermaAsync(int vehiculoId, int productoId, decimal cantidad, int usuarioId, string motivo);
     Task RegistrarCompraAsync(CompraRequest request);
     Task CerrarRepartoAsync(CerrarRepartoRequest request);
+    Task<ResumenCajaDTO> ObtenerResumenCajaAsync(int vehiculoId);
 }

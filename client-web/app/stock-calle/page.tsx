@@ -44,6 +44,18 @@ const UNIT_FACTORS: Record<UnitType, number> = {
     'CAJON': 360
 };
 
+
+interface ResumenCaja {
+    totalEsperado: number;
+    totalVentas: number;
+    dineroEnCajaEsperado: number;
+    desglosePorMetodoPago: {
+        metodoPago: string;
+        total: number;
+        cantidadVentas: number;
+    }[];
+}
+
 const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModalProps) => {
     const [kilometraje, setKilometraje] = useState<string>('');
     const [stockItems, setStockItems] = useState<{
@@ -53,15 +65,18 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
         cantidadFisica: string;
         unitType: UnitType;
     }[]>([]);
+    const [resumenCaja, setResumenCaja] = useState<ResumenCaja | null>(null);
+    const [efectivoRendido, setEfectivoRendido] = useState<string>('');
+
     const [loading, setLoading] = useState(false);
     const [fetchingStock, setFetchingStock] = useState(true);
 
     useEffect(() => {
-        const fetchStock = async () => {
+        const fetchData = async () => {
             try {
                 // Fetch detailed stock with IDs
-                const response = await api.get<StockVehiculoItem[]>(`/inventario/stock-vehiculo/${vehiculo.vehiculoId}`);
-                const items = response.data.map(item => ({
+                const stockResponse = await api.get<StockVehiculoItem[]>(`/inventario/stock-vehiculo/${vehiculo.vehiculoId}`);
+                const items = stockResponse.data.map(item => ({
                     productoId: item.productoId,
                     nombre: item.producto.nombre,
                     cantidadTeorica: item.cantidad,
@@ -69,15 +84,20 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
                     unitType: 'MAPLE' as UnitType // Default to Maple
                 }));
                 setStockItems(items);
+
+                // Fetch Cash Summary
+                const cajaResponse = await api.get<ResumenCaja>(`/inventario/resumen-caja/${vehiculo.vehiculoId}`);
+                setResumenCaja(cajaResponse.data);
+
             } catch (error) {
-                console.error('Error fetching vehicle stock details:', error);
-                alert('Error al cargar detalle del stock.');
+                console.error('Error fetching vehicle details:', error);
+                alert('Error al cargar detalle del stock o caja.');
                 onClose();
             } finally {
                 setFetchingStock(false);
             }
         };
-        fetchStock();
+        fetchData();
     }, [vehiculo.vehiculoId, onClose]);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -132,6 +152,10 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
         setStockItems(newItems);
     };
 
+    const diferenciaCaja = resumenCaja
+        ? (parseFloat(efectivoRendido) || 0) - resumenCaja.dineroEnCajaEsperado
+        : 0;
+
     if (fetchingStock) return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-lg text-center">
@@ -142,7 +166,7 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-4xl shadow-xl flex flex-col max-h-[90vh]">
                 <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-white">Cerrar Reparto - {vehiculo.vehiculoNombre}</h2>
                     <button onClick={onClose} className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white">
@@ -150,64 +174,145 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                            Nuevo Kilometraje
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="number"
-                                step="0.1"
-                                value={kilometraje}
-                                onChange={(e) => setKilometraje(e.target.value)}
-                                className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                                placeholder={`Anterior: ${vehiculo.kilometraje} km`}
-                                required
-                            />
-                            <p className="text-xs text-slate-500 mt-1 ml-1">
-                                Anterior: <span className="font-bold">{vehiculo.kilometraje} km</span>
-                            </p>
+                <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                    {/* Columna Izquierda: Datos y Stock */}
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                                Nuevo Kilometraje
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    value={kilometraje}
+                                    onChange={(e) => setKilometraje(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                    placeholder={`Anterior: ${vehiculo.kilometraje} km`}
+                                    required
+                                />
+                                <p className="text-xs text-slate-500 mt-1 ml-1">
+                                    Anterior: <span className="font-bold">{vehiculo.kilometraje} km</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Control de Stock (Retorno)</h3>
+                            <p className="text-sm text-slate-500 mb-4">Verifique el stock físico que regresa.</p>
+
+                            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                                {stockItems.map((item, idx) => (
+                                    <div key={item.productoId} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg gap-3">
+                                        <div className="flex-1">
+                                            <div className="font-medium text-slate-800 dark:text-white">{item.nombre}</div>
+                                            <div className="text-xs text-slate-500">Teórico: {item.cantidadTeorica}</div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <select
+                                                value={item.unitType}
+                                                onChange={(e) => handleUnitChange(idx, e.target.value as UnitType)}
+                                                className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="UNIDAD">Unidad</option>
+                                                <option value="MAPLE">Maple</option>
+                                                <option value="CAJON">Cajón</option>
+                                            </select>
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                value={item.cantidadFisica}
+                                                onChange={(e) => handleQuantityChange(idx, e.target.value)}
+                                                className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right outline-none focus:ring-2 focus:ring-blue-500"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                                {stockItems.length === 0 && (
+                                    <p className="text-center text-slate-500 italic">No hay stock registrado en el vehículo.</p>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    <div className="mb-4">
-                        <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Control de Stock (Retorno)</h3>
-                        <p className="text-sm text-slate-500 mb-4">Verifique el stock físico que regresa en la camioneta. Cualquier diferencia será registrada.</p>
+                    {/* Columna Derecha: Control de Caja */}
+                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 h-fit">
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="p-1 bg-green-100 text-green-600 rounded">
+                                $
+                            </span>
+                            Control de Caja
+                        </h3>
 
-                        <div className="space-y-3">
-                            {stockItems.map((item, idx) => (
-                                <div key={item.productoId} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg gap-3">
-                                    <div className="flex-1">
-                                        <div className="font-medium text-slate-800 dark:text-white">{item.nombre}</div>
-                                        <div className="text-xs text-slate-500">Teórico: {item.cantidadTeorica} unidades</div>
+                        {resumenCaja ? (
+                            <div className="space-y-6">
+                                {/* Resumen General */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <div className="text-xs text-slate-500 uppercase font-bold">Total Ventas</div>
+                                        <div className="text-xl font-bold text-slate-800 dark:text-white">
+                                            ${resumenCaja.totalVentas.toLocaleString()}
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            value={item.unitType}
-                                            onChange={(e) => handleUnitChange(idx, e.target.value as UnitType)}
-                                            className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                        >
-                                            <option value="UNIDAD">Unidad</option>
-                                            <option value="MAPLE">Maple</option>
-                                            <option value="CAJON">Cajón</option>
-                                        </select>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            value={item.cantidadFisica}
-                                            onChange={(e) => handleQuantityChange(idx, e.target.value)}
-                                            className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="0"
-                                        />
+                                    <div className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+                                        <div className="text-xs text-slate-500 uppercase font-bold">Efectivo Esperado</div>
+                                        <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                                            ${resumenCaja.dineroEnCajaEsperado.toLocaleString()}
+                                        </div>
                                     </div>
                                 </div>
-                            ))}
-                            {stockItems.length === 0 && (
-                                <p className="text-center text-slate-500 italic">No hay stock registrado en el vehículo.</p>
-                            )}
-                        </div>
+
+                                {/* Desglose */}
+                                <div>
+                                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Desglose por Medio de Pago</h4>
+                                    <div className="space-y-2">
+                                        {resumenCaja.desglosePorMetodoPago.map((metodo) => (
+                                            <div key={metodo.metodoPago} className="flex justify-between items-center text-sm p-2 bg-white dark:bg-slate-800 rounded border border-slate-100 dark:border-slate-700">
+                                                <span className="text-slate-600 dark:text-slate-400">{metodo.metodoPago} ({metodo.cantidadVentas})</span>
+                                                <span className="font-medium text-slate-800 dark:text-white">${metodo.total.toLocaleString()}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Input Rendición */}
+                                <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                                        Dinero Físico en Caja (Rendido)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={efectivoRendido}
+                                        onChange={(e) => setEfectivoRendido(e.target.value)}
+                                        className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-xl font-bold text-right outline-none focus:ring-2 focus:ring-green-500"
+                                        placeholder="$ 0.00"
+                                    />
+
+                                    {efectivoRendido && (
+                                        <div className={`mt-3 p-3 rounded-lg flex justify-between items-center ${diferenciaCaja === 0
+                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                                : diferenciaCaja > 0
+                                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                            }`}>
+                                            <span className="font-medium">Diferencia:</span>
+                                            <span className="font-bold text-lg">
+                                                {diferenciaCaja > 0 ? '+' : ''}{diferenciaCaja.toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 text-slate-500">
+                                No se pudo cargar el resumen de caja.
+                            </div>
+                        )}
                     </div>
+
                 </form>
 
                 <div className="p-6 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl">
