@@ -8,6 +8,7 @@ import Link from 'next/link';
 import WeatherWidget from '@/components/WeatherWidget';
 import Header from '@/components/Header';
 import api from '@/lib/axios';
+import { VentaPorFecha } from '@/lib/api-reportes';
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -17,7 +18,7 @@ export default function Dashboard() {
     mermasCount: 0
   });
 
-  const [chartData, setChartData] = useState<{ name: string; ventas: number }[]>([]);
+  const [chartData, setChartData] = useState<VentaPorFecha[]>([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -50,11 +51,13 @@ export default function Dashboard() {
         });
 
         // Map trend data for chart
-        const chart = financieroSemana.tendenciaVentas.map((t: any) => ({
-          name: t.fecha,
-          ventas: t.total
-        }));
-        setChartData(chart);
+        if (financieroSemana.ventasPorFecha) {
+            setChartData(financieroSemana.ventasPorFecha);
+        } else if (financieroSemana.tendenciaVentas) {
+            // Fallback if needed, but SalesChart needs VentaPorFecha structure
+            // Assuming tendenciaVentas matches VentaPorFecha structure if it exists
+             setChartData(financieroSemana.tendenciaVentas);
+        }
 
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);

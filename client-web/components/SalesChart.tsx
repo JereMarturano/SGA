@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import api from '@/lib/axios';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, parseISO, subMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { VentaPorFecha } from '@/lib/api-reportes';
 
 interface ChartData {
     name: string;
@@ -12,14 +13,31 @@ interface ChartData {
     fullDate: string;
 }
 
-export default function SalesChart() {
+interface SalesChartProps {
+    data?: VentaPorFecha[];
+}
+
+export default function SalesChart({ data }: SalesChartProps) {
     const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
     const [chartData, setChartData] = useState<ChartData[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchData(viewMode);
-    }, [viewMode]);
+        if (data) {
+            const transformedData = data.map((item) => {
+                const dateObj = parseISO(item.fecha);
+                return {
+                    name: format(dateObj, 'dd/MM', { locale: es }),
+                    ventas: item.total,
+                    fullDate: format(dateObj, 'dd MMM yyyy', { locale: es })
+                };
+            });
+            setChartData(transformedData);
+            setLoading(false);
+        } else {
+            fetchData(viewMode);
+        }
+    }, [viewMode, data]);
 
     const fetchData = async (mode: 'week' | 'month') => {
         setLoading(true);
@@ -65,30 +83,32 @@ export default function SalesChart() {
         <div className="h-[350px] w-full">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                    {viewMode === 'week' ? 'Ventas de la semana' : 'Ventas del mes'}
+                    {data ? 'Evolución de Ventas' : (viewMode === 'week' ? 'Ventas de la semana' : 'Ventas del mes')}
                 </h3>
-                <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
-                    <button
-                        onClick={() => setViewMode('week')}
-                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                            viewMode === 'week'
-                                ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                        }`}
-                    >
-                        Semana
-                    </button>
-                    <button
-                        onClick={() => setViewMode('month')}
-                        className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                            viewMode === 'month'
-                                ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                        }`}
-                    >
-                        Mes
-                    </button>
-                </div>
+                {!data && (
+                    <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+                        <button
+                            onClick={() => setViewMode('week')}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                                viewMode === 'week'
+                                    ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                            }`}
+                        >
+                            Semana
+                        </button>
+                        <button
+                            onClick={() => setViewMode('month')}
+                            className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                                viewMode === 'month'
+                                    ? 'bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                            }`}
+                        >
+                            Mes
+                        </button>
+                    </div>
+                )}
             </div>
 
             {loading ? (
