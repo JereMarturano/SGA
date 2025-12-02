@@ -10,6 +10,9 @@ public interface IEmpleadoService
 
     // Stats
     Task<EmpleadoEstadisticasDto> GetEstadisticasAsync(int usuarioId, DateTime desde, DateTime hasta);
+
+    // Management
+    Task UpdateEmpleadoAsync(int usuarioId, Models.DTOs.UpdateEmpleadoDTO dto);
 }
 
 public class EmpleadoEstadisticasDto

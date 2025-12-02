@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SGA.Data;
 using SGA.Models;
+using SGA.Models.DTOs;
 using SGA.Services;
 
 namespace SGA.Controllers;
@@ -70,6 +71,24 @@ public class EmpleadosController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(ex.Message);
+        }
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateEmpleado(int id, [FromBody] UpdateEmpleadoDTO dto)
+    {
+        try
+        {
+            await _empleadoService.UpdateEmpleadoAsync(id, dto);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error interno", error = ex.Message });
         }
     }
 }

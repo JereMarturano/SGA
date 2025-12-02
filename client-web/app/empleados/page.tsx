@@ -43,11 +43,11 @@ export default function EmpleadosPage() {
         id: u.usuarioId,
         name: u.nombre,
         role: u.rol,
-        startDate: '2024-01-01', // Default
-        monthlySales: 0, // Default
-        absences: 0, // Default
-        status: 'Activo', // Default
-        phone: 'N/A', // Default
+        startDate: u.fechaIngreso ? u.fechaIngreso.split('T')[0] : '2024-01-01',
+        monthlySales: 0, // Calculated in backend but not in simple user list yet. Could call getEstadisticas.
+        absences: 0,
+        status: u.estado || 'Activo',
+        phone: u.telefono || 'N/A',
       }));
       setEmployees(data);
     } catch (error) {
@@ -76,10 +76,35 @@ export default function EmpleadosPage() {
     setCurrentEmployee(null);
   };
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    alert('Edición de empleados no implementada en backend aún.');
-    handleCloseModal();
+
+    if (!currentEmployee) {
+      // Create logic not requested yet, but we can assume user wants edit for now based on image.
+      // If Create is needed, we need a separate endpoint POST.
+      alert('Creación de empleados no implementada aún. Solo edición.');
+      return;
+    }
+
+    const formData = new FormData(e.currentTarget);
+    const updateData = {
+      nombre: formData.get('name'),
+      role: formData.get('role'),
+      telefono: formData.get('phone'),
+      fechaIngreso: formData.get('startDate'), // "YYYY-MM-DD"
+      estado: formData.get('status'),
+      // metrics ignored for update
+    };
+
+    try {
+      await api.put(`/empleados/${currentEmployee.id}`, updateData);
+      // alert('Empleado actualizado exitosamente.');
+      handleCloseModal();
+      fetchEmployees();
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      alert('Error al actualizar empleado.');
+    }
   };
 
   const calculateTenure = (startDate: string) => {

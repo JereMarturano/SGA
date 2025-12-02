@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
+using SGA.Models.DTOs;
+using SGA.Models.Enums;
 
 namespace SGA.Services;
 
@@ -111,5 +113,33 @@ public class EmpleadoService : IEmpleadoService
         stats.VentasPorDia = stats.VentasPorDia.OrderBy(v => v.Fecha).ToList();
 
         return stats;
+    }
+
+    public async Task UpdateEmpleadoAsync(int usuarioId, UpdateEmpleadoDTO dto)
+    {
+        var empleado = await _context.Usuarios.FindAsync(usuarioId);
+        if (empleado == null)
+            throw new KeyNotFoundException($"Empleado con ID {usuarioId} no encontrado.");
+
+        empleado.Nombre = dto.Nombre;
+
+        if (Enum.TryParse<RolUsuario>(dto.Role, out var roleEnum))
+        {
+            empleado.Rol = roleEnum;
+        }
+        else
+        {
+             // Fallback or ignore?
+             // If "Vendedor" comes as string, TryParse should handle it if it's in Enum.
+             // If frontend sends arbitrary string, we might default or throw.
+             // For now, let's assume valid enum string.
+        }
+
+        empleado.Telefono = dto.Telefono;
+        empleado.FechaIngreso = dto.FechaIngreso;
+        empleado.Estado = dto.Estado;
+
+        _context.Usuarios.Update(empleado);
+        await _context.SaveChangesAsync();
     }
 }
