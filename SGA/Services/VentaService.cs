@@ -99,6 +99,20 @@ public class VentaService : IVentaService
 
             // Actualizar total de la venta
             venta.Total = totalVenta - descuentoMonto;
+
+            // Actualizar información del cliente
+            var clienteUpdate = await _context.Clientes.FindAsync(request.ClienteId);
+            if (clienteUpdate != null)
+            {
+                clienteUpdate.VentasTotales += venta.Total;
+                clienteUpdate.UltimaCompra = venta.Fecha;
+
+                if (request.MetodoPago == MetodoPago.CuentaCorriente)
+                {
+                    clienteUpdate.Deuda += venta.Total;
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             // Registrar Notificación y Auditoría
