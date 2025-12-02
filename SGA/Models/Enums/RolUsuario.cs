@@ -5,5 +5,6 @@ public enum RolUsuario
     Admin,
     Oficina,
     Chofer,
-    Galponero
+    Galponero,
+    Vendedor
 }
