@@ -35,10 +35,10 @@ export default function ClientesPage() {
       const data = response.data.map((c: any) => ({
         id: c.clienteId,
         name: c.nombreCompleto || c.nombre,
-        dni: c.dni || '00000000',
+        dni: c.dni || '',
         address: c.direccion,
         addressLocal: c.direccionLocal || '',
-        phone: c.telefono || 'N/A',
+        phone: c.telefono || '',
         debt: c.deuda || 0,
         totalSales: c.ventasTotales || 0,
         lastPurchase: c.ultimaCompra ? c.ultimaCompra.split('T')[0] : new Date().toISOString().split('T')[0],
@@ -85,10 +85,10 @@ export default function ClientesPage() {
     const clientData = {
       clienteId: currentClient ? currentClient.id : 0,
       nombreCompleto: formData.get('name'),
-      dni: formData.get('dni') || '00000000',
+      dni: formData.get('dni') || null,
       direccion: formData.get('address'),
-      direccionLocal: formData.get('addressLocal'),
-      telefono: formData.get('phone'),
+      // direccionLocal intentionally omitted from form processing
+      telefono: formData.get('phone') || null,
       estado: formData.get('status'),
       deuda: parseFloat(formData.get('debt') as string) || 0,
       ventasTotales: parseFloat(formData.get('totalSales') as string) || 0,
@@ -190,11 +190,11 @@ export default function ClientesPage() {
               <div className="space-y-3 mb-6 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-600 dark:text-slate-300">Teléfono</span>
-                  <span className="font-medium text-slate-800 dark:text-white">{client.phone}</span>
+                  <span className="font-medium text-slate-800 dark:text-white">{client.phone || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-600 dark:text-slate-300">DNI</span>
-                  <span className="font-medium text-slate-800 dark:text-white">{client.dni}</span>
+                  <span className="font-medium text-slate-800 dark:text-white">{client.dni || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-600 dark:text-slate-300">Última Compra</span>
@@ -233,17 +233,12 @@ export default function ClientesPage() {
 
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">DNI</label>
-            <input name="dni" defaultValue={currentClient?.dni} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+            <input name="dni" defaultValue={currentClient?.dni} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
           </div>
 
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Dirección</label>
             <input name="address" defaultValue={currentClient?.address} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Dirección del Local (Opcional)</label>
-            <input name="addressLocal" defaultValue={currentClient?.addressLocal} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
           </div>
 
           <div className="space-y-1">
@@ -254,7 +249,7 @@ export default function ClientesPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Teléfono</label>
-              <input name="phone" defaultValue={currentClient?.phone} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              <input name="phone" defaultValue={currentClient?.phone} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado</label>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,12 +11,7 @@ namespace SGA.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<decimal>(
-                name: "Kilometraje",
-                table: "Vehiculos",
-                type: "decimal(18,2)",
-                nullable: false,
-                defaultValue: 0m);
+            // Removed redundant AddColumn for Kilometraje as it is handled in previous migration
 
             migrationBuilder.AddColumn<decimal>(
                 name: "Deuda",
@@ -56,9 +51,7 @@ namespace SGA.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "Kilometraje",
-                table: "Vehiculos");
+            // Removed redundant DropColumn for Kilometraje
 
             migrationBuilder.DropColumn(
                 name: "Deuda",
