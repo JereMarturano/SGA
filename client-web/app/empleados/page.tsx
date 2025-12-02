@@ -85,32 +85,46 @@ export default function EmpleadosPage() {
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
 
     if (!currentEmployee) {
-      // Create logic not requested yet, but we can assume user wants edit for now based on image.
-      // If Create is needed, we need a separate endpoint POST.
-      alert('Creación de empleados no implementada aún. Solo edición.');
-      return;
-    }
+      // Create logic
+      const createData = {
+        nombre: formData.get('name'),
+        role: formData.get('role'),
+        telefono: formData.get('phone'),
+        fechaIngreso: formData.get('startDate'),
+        contrasena: formData.get('password'), // New field
+        // status and metrics ignored for creation or set defaults in backend
+      };
 
-    const formData = new FormData(e.currentTarget);
-    const updateData = {
-      nombre: formData.get('name'),
-      role: formData.get('role'),
-      telefono: formData.get('phone'),
-      fechaIngreso: formData.get('startDate'), // "YYYY-MM-DD"
-      estado: formData.get('status'),
-      // metrics ignored for update
-    };
+      try {
+        await api.post('/empleados', createData);
+        handleCloseModal();
+        fetchEmployees();
+      } catch (error) {
+        console.error('Error creating employee:', error);
+        alert('Error al crear empleado.');
+      }
+    } else {
+      // Update logic
+      const updateData = {
+        nombre: formData.get('name'),
+        role: formData.get('role'),
+        telefono: formData.get('phone'),
+        fechaIngreso: formData.get('startDate'), // "YYYY-MM-DD"
+        estado: formData.get('status'),
+        // metrics ignored for update
+      };
 
-    try {
-      await api.put(`/empleados/${currentEmployee.id}`, updateData);
-      // alert('Empleado actualizado exitosamente.');
-      handleCloseModal();
-      fetchEmployees();
-    } catch (error) {
-      console.error('Error updating employee:', error);
-      alert('Error al actualizar empleado.');
+      try {
+        await api.put(`/empleados/${currentEmployee.id}`, updateData);
+        handleCloseModal();
+        fetchEmployees();
+      } catch (error) {
+        console.error('Error updating employee:', error);
+        alert('Error al actualizar empleado.');
+      }
     }
   };
 
@@ -240,6 +254,13 @@ export default function EmpleadosPage() {
               <input name="phone" defaultValue={currentEmployee?.phone} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
             </div>
           </div>
+
+          {!currentEmployee && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña</label>
+              <input type="password" name="password" required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
