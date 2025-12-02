@@ -15,8 +15,12 @@ public class ClienteService : IClienteService
 
     public async Task<Cliente> CrearClienteAsync(Cliente cliente)
     {
-        // Validation: Check for duplicate DNI
-        if (await _context.Clientes.AnyAsync(c => c.DNI == cliente.DNI))
+        // Normalize empty strings to null for optional fields
+        if (string.IsNullOrWhiteSpace(cliente.DNI)) cliente.DNI = null;
+        if (string.IsNullOrWhiteSpace(cliente.Telefono)) cliente.Telefono = null;
+
+        // Validation: Check for duplicate DNI (only if provided)
+        if (!string.IsNullOrEmpty(cliente.DNI) && await _context.Clientes.AnyAsync(c => c.DNI == cliente.DNI))
         {
             throw new InvalidOperationException($"Ya existe un cliente con el DNI {cliente.DNI}.");
         }
@@ -50,8 +54,13 @@ public class ClienteService : IClienteService
             return null;
         }
 
-        // Validation: Check for duplicate DNI (excluding current client)
-        if (await _context.Clientes.AnyAsync(c => c.DNI == clienteActualizado.DNI && c.ClienteId != id))
+        // Normalize empty strings to null for optional fields
+        if (string.IsNullOrWhiteSpace(clienteActualizado.DNI)) clienteActualizado.DNI = null;
+        if (string.IsNullOrWhiteSpace(clienteActualizado.Telefono)) clienteActualizado.Telefono = null;
+
+        // Validation: Check for duplicate DNI (excluding current client, and only if DNI is provided)
+        if (!string.IsNullOrEmpty(clienteActualizado.DNI) &&
+            await _context.Clientes.AnyAsync(c => c.DNI == clienteActualizado.DNI && c.ClienteId != id))
         {
             throw new InvalidOperationException($"Ya existe otro cliente con el DNI {clienteActualizado.DNI}.");
         }

@@ -13,12 +13,11 @@ public class Cliente
     [MaxLength(100)]
     public string NombreCompleto { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(20)]
-    public string DNI { get; set; } = string.Empty;
+    public string? DNI { get; set; }
 
     [MaxLength(20)]
-    public string Telefono { get; set; } = string.Empty;
+    public string? Telefono { get; set; }
 
     [MaxLength(100)]
     [EmailAddress]
