@@ -22,6 +22,8 @@ public class ReporteService : IReporteService
 
         // 1. Consultar Ventas
         var queryVentas = _context.Ventas
+            .Include(v => v.Cliente) // Include Cliente
+            .Include(v => v.Usuario) // Include Usuario (Vendedor)
             .Include(v => v.Detalles)
             .ThenInclude(d => d.Producto)
             .Where(v => v.Fecha >= inicio && v.Fecha <= fin);
@@ -114,6 +116,36 @@ public class ReporteService : IReporteService
             })
             .OrderByDescending(x => x.Total)
             .ToList();
+
+        // Top Clientes
+        reporte.TopClientes = ventas
+            .GroupBy(v => v.ClienteId)
+            .Select(g => new VentaPorClienteDTO
+            {
+                ClienteId = g.Key,
+                NombreCliente = g.First().Cliente?.NombreCompleto ?? "Cliente Eliminado",
+                TotalComprado = g.Sum(v => v.Total),
+                CantidadCompras = g.Count()
+            })
+            .OrderByDescending(x => x.TotalComprado)
+            .Take(5)
+            .ToList();
+
+        // Ventas por Vendedor
+        reporte.VentasPorVendedor = ventas
+            .GroupBy(v => v.UsuarioId)
+            .Select(g => new VentaPorVendedorDTO
+            {
+                UsuarioId = g.Key,
+                NombreVendedor = g.First().Usuario?.Nombre ?? "Usuario Eliminado",
+                TotalVendido = g.Sum(v => v.Total),
+                CantidadVentas = g.Count()
+            })
+            .OrderByDescending(x => x.TotalVendido)
+            .ToList();
+
+        // Deuda Total Actual (Snapshot global)
+        reporte.DeudaTotalActual = await _context.Clientes.SumAsync(c => c.Deuda);
 
         // Por Dia (Tendencia)
         var ventasPorDia = new List<VentaDiariaDTO>();

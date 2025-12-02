@@ -30,6 +30,11 @@ public class ReporteFinancieroDTO
     public int TotalHuevosVendidos { get; set; } // En unidades (o maples si se prefiere, pero usaremos unidades base)
     public int ClientesActivos { get; set; } // Clientes que compraron en este periodo
     public List<VentaDiariaDTO> TendenciaVentas { get; set; } = new();
+
+    // Nuevas estadísticas solicitadas
+    public List<VentaPorClienteDTO> TopClientes { get; set; } = new();
+    public List<VentaPorVendedorDTO> VentasPorVendedor { get; set; } = new();
+    public decimal DeudaTotalActual { get; set; }
 }
 
 public class VentaDiariaDTO
@@ -90,4 +95,20 @@ public class MermaReporteDTO
     public string Producto { get; set; } = string.Empty;
     public decimal Cantidad { get; set; }
     public string Motivo { get; set; } = string.Empty;
+}
+
+public class VentaPorClienteDTO
+{
+    public int ClienteId { get; set; }
+    public string NombreCliente { get; set; } = string.Empty;
+    public decimal TotalComprado { get; set; }
+    public int CantidadCompras { get; set; }
+}
+
+public class VentaPorVendedorDTO
+{
+    public int UsuarioId { get; set; }
+    public string NombreVendedor { get; set; } = string.Empty;
+    public decimal TotalVendido { get; set; }
+    public int CantidadVentas { get; set; }
 }

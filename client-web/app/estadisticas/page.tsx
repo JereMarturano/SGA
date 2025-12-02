@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import SalesChart from '@/components/SalesChart';
-import { PieChart, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { fetchReporteFinanciero, ReporteFinanciero } from '@/lib/api-reportes';
+import { PieChart, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, Users, CreditCard, DollarSign, Wallet } from 'lucide-react';
+import { fetchReporteFinanciero, ReporteFinanciero, VentaPorMetodoPago } from '@/lib/api-reportes';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -42,7 +42,12 @@ export default function EstadisticasPage() {
     const topProduct = getTopProduct();
 
     // Calculate colors for pie chart distribution (simple cycling)
-    const colors = ['bg-blue-500', 'bg-red-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
+    const colors = ['bg-blue-500', 'bg-red-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
+
+    const getMetodoPagoLabel = (metodo: number) => {
+        const metodos = ['Efectivo', 'Tarjeta', 'Transferencia', 'Cheque', 'Cuenta Corriente'];
+        return metodos[metodo] || 'Desconocido';
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
@@ -89,33 +94,33 @@ export default function EstadisticasPage() {
                 ) : (
                     <>
                         {/* Overview Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Ventas Totales</p>
                                 <div className="flex items-end justify-between">
-                                    <h3 className="text-3xl font-black text-slate-800 dark:text-white">
+                                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
                                         $ {reporte.totalVentas.toLocaleString('es-AR')}
                                     </h3>
-                                    <span className="flex items-center text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">
-                                        <ArrowUpRight size={16} /> Rentabilidad: {reporte.margenGananciaPorcentaje.toFixed(1)}%
+                                    <span className="flex items-center text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg" title="Margen de ganancia">
+                                        <ArrowUpRight size={16} /> {reporte.margenGananciaPorcentaje.toFixed(1)}%
                                     </span>
                                 </div>
                             </div>
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Gastos</p>
                                 <div className="flex items-end justify-between">
-                                    <h3 className="text-3xl font-black text-slate-800 dark:text-white">
+                                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
                                         $ {reporte.totalGastos.toLocaleString('es-AR')}
                                     </h3>
                                     <span className="flex items-center text-red-500 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
-                                        <ArrowDownRight size={16} /> Gastos
+                                        <ArrowDownRight size={16} />
                                     </span>
                                 </div>
                             </div>
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Ticket Promedio</p>
                                 <div className="flex items-end justify-between">
-                                    <h3 className="text-3xl font-black text-slate-800 dark:text-white">
+                                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
                                         $ {reporte.ticketPromedio.toLocaleString('es-AR')}
                                     </h3>
                                     <span className="flex items-center text-blue-500 text-sm font-bold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">
@@ -123,9 +128,20 @@ export default function EstadisticasPage() {
                                     </span>
                                 </div>
                             </div>
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 border-l-4 border-l-red-500">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Deuda Clientes Total</p>
+                                <div className="flex items-end justify-between">
+                                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
+                                        $ {reporte.deudaTotalActual.toLocaleString('es-AR')}
+                                    </h3>
+                                    <span className="flex items-center text-red-500 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
+                                        <Wallet size={16} /> Global
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
@@ -173,6 +189,108 @@ export default function EstadisticasPage() {
                                         </p>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        {/* Additional Stats Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                            {/* Payment Methods */}
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg text-green-600 dark:text-green-400">
+                                        <CreditCard size={20} />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Métodos de Pago</h3>
+                                </div>
+                                <div className="space-y-4">
+                                    {reporte.ventasPorMetodoPago.map((metodo, idx) => {
+                                        const percentage = reporte.totalVentas > 0 ? (metodo.total / reporte.totalVentas) * 100 : 0;
+                                        return (
+                                            <div key={metodo.metodoPago} className="space-y-1">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-slate-600 dark:text-slate-400 font-medium">{getMetodoPagoLabel(metodo.metodoPago)}</span>
+                                                    <span className="text-slate-800 dark:text-white font-bold">$ {metodo.total.toLocaleString('es-AR')}</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                                                    <div className={`${colors[idx % colors.length]} h-2 rounded-full`} style={{ width: `${percentage}%` }}></div>
+                                                </div>
+                                                <div className="text-right text-xs text-slate-400">
+                                                    {metodo.cantidadTransacciones} transacciones ({percentage.toFixed(1)}%)
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Top Clients */}
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-yellow-600 dark:text-yellow-400">
+                                        <Users size={20} />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Top Clientes</h3>
+                                </div>
+                                <div className="overflow-y-auto max-h-[300px]">
+                                    <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                        <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
+                                            <tr>
+                                                <th scope="col" className="px-3 py-2 rounded-l-lg">Cliente</th>
+                                                <th scope="col" className="px-3 py-2 text-right rounded-r-lg">Total</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {reporte.topClientes.map((cliente) => (
+                                                <tr key={cliente.clienteId} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700">
+                                                    <td className="px-3 py-3 font-medium text-slate-900 dark:text-white truncate max-w-[150px]">
+                                                        {cliente.nombreCliente}
+                                                    </td>
+                                                    <td className="px-3 py-3 text-right">
+                                                        $ {cliente.totalComprado.toLocaleString('es-AR')}
+                                                        <div className="text-xs text-slate-400">{cliente.cantidadCompras} compras</div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {reporte.topClientes.length === 0 && (
+                                                 <tr>
+                                                    <td colSpan={2} className="px-3 py-4 text-center text-xs">No hay datos disponibles.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                             {/* Sales by Employee */}
+                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400">
+                                        <DollarSign size={20} />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Ventas por Vendedor</h3>
+                                </div>
+                                <div className="space-y-4">
+                                     {reporte.ventasPorVendedor.map((vendedor, idx) => {
+                                        const percentage = reporte.totalVentas > 0 ? (vendedor.totalVendido / reporte.totalVentas) * 100 : 0;
+                                        return (
+                                            <div key={vendedor.usuarioId} className="space-y-1">
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-slate-600 dark:text-slate-400 font-medium">{vendedor.nombreVendedor}</span>
+                                                    <span className="text-slate-800 dark:text-white font-bold">$ {vendedor.totalVendido.toLocaleString('es-AR')}</span>
+                                                </div>
+                                                <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                                                    <div className={`${colors[(idx + 2) % colors.length]} h-2 rounded-full`} style={{ width: `${percentage}%` }}></div>
+                                                </div>
+                                                <div className="text-right text-xs text-slate-400">
+                                                    {vendedor.cantidadVentas} ventas
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    {reporte.ventasPorVendedor.length === 0 && (
+                                        <p className="text-center text-slate-500 text-sm">No hay datos disponibles.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </>

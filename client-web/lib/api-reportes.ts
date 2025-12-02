@@ -11,6 +11,11 @@ export interface ReporteFinanciero {
     gastosPorTipo: GastoPorTipo[];
     cantidadVentas: number;
     ticketPromedio: number;
+
+    // Nuevas estadísticas
+    topClientes: VentaPorCliente[];
+    ventasPorVendedor: VentaPorVendedor[];
+    deudaTotalActual: number;
 }
 
 export interface VentaPorMetodoPago {
@@ -36,6 +41,20 @@ export interface GastoPorTipo {
     tipoGasto: number;
     total: number;
     cantidadRegistros: number;
+}
+
+export interface VentaPorCliente {
+    clienteId: number;
+    nombreCliente: string;
+    totalComprado: number;
+    cantidadCompras: number;
+}
+
+export interface VentaPorVendedor {
+    usuarioId: number;
+    nombreVendedor: string;
+    totalVendido: number;
+    cantidadVentas: number;
 }
 
 export const fetchReporteFinanciero = async (inicio: Date, fin: Date): Promise<ReporteFinanciero> => {
