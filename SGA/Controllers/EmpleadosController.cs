@@ -21,11 +21,43 @@ public class EmpleadosController : ControllerBase
 
     // GET: api/empleados
     [HttpGet]
-    public ActionResult<IEnumerable<Usuario>> GetEmpleados()
+    public async Task<ActionResult<IEnumerable<UsuarioDTO>>> GetEmpleados()
     {
-        // Return only users with roles that are considered employees (e.g., Chofer, Vendedor)
-        // Or all users for now.
-        return _context.Usuarios.ToList();
+        var users = _context.Usuarios.ToList();
+        var dtos = new List<UsuarioDTO>();
+
+        var firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
+
+        foreach (var u in users)
+        {
+            // Calculate sales for this month (Unit count of Eggs as per previous logic, or Total amount?)
+            // The prompt says "vincule con ventas". Let's show Total Money for now as it's more generic, or quantity if specific.
+            // But looking at GetEstadisticas, it calculates eggs.
+            // Let's use simple query here for performance, or call Service if needed.
+            // To be fast, we might want to do a GroupBy query outside loop, but for small number of employees loop is fine.
+
+            var stats = await _empleadoService.GetEstadisticasAsync(u.UsuarioId, firstDayOfMonth, lastDayOfMonth);
+            // Also need absences
+            var faltas = await _empleadoService.GetFaltasPorEmpleadoAsync(u.UsuarioId, firstDayOfMonth, lastDayOfMonth);
+
+            dtos.Add(new UsuarioDTO
+            {
+                UsuarioId = u.UsuarioId,
+                Nombre = u.Nombre,
+                Role = u.Rol.ToString(),
+                Telefono = u.Telefono,
+                FechaIngreso = u.FechaIngreso,
+                Estado = u.Estado,
+                VentasDelMes = stats.TotalHuevosVendidos, // Using Egg Count as "Ventas" metric based on previous context, or stats.TotalVentas?
+                                                          // Let's use TotalHuevosVendidos as the prompt implies "Sales" usually means volume in this egg business.
+                                                          // Actually, let's use TotalVentas (money) or check what frontend expects.
+                                                          // Frontend says "Ventas (Huevos/Mes)". So it expects Quantity.
+                FaltasDelMes = faltas.Count
+            });
+        }
+
+        return Ok(dtos);
     }
 
     [HttpPost]

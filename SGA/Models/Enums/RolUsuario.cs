@@ -6,5 +6,7 @@ public enum RolUsuario
     Oficina,
     Chofer,
     Galponero,
-    Vendedor
+    Vendedor,
+    Encargado,
+    Recolector
 }

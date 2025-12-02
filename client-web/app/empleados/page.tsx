@@ -38,14 +38,21 @@ export default function EmpleadosPage() {
 
   const fetchEmployees = async () => {
     try {
-      const response = await api.get('/inventario/usuarios');
+      // The updated backend now returns UsuarioDTO with statistics and attendance data.
+      // Route is /empleados, not /inventario/usuarios (which might be the generic one).
+      // Let's verify if the generic one was used or if EmpleadosController's GetEmpleados is used.
+      // EmpleadosController route is "api/empleados".
+      // Previous code used '/inventario/usuarios' which might be from a different controller or the wrong one.
+      // But looking at EmpleadosController, it is mapped to "api/empleados".
+      // Let's switch to /empleados to get the new DTOs.
+      const response = await api.get('/empleados');
       const data = response.data.map((u: any) => ({
         id: u.usuarioId,
         name: u.nombre,
-        role: u.rol,
+        role: u.role, // This is now a string from the DTO
         startDate: u.fechaIngreso ? u.fechaIngreso.split('T')[0] : '2024-01-01',
-        monthlySales: 0, // Calculated in backend but not in simple user list yet. Could call getEstadisticas.
-        absences: 0,
+        monthlySales: u.ventasDelMes || 0,
+        absences: u.faltasDelMes || 0,
         status: u.estado || 'Activo',
         phone: u.telefono || 'N/A',
       }));
@@ -218,7 +225,15 @@ export default function EmpleadosPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Puesto / Rol</label>
-              <input name="role" defaultValue={currentEmployee?.role} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              <select name="role" defaultValue={currentEmployee?.role || 'Chofer'} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                <option value="Admin">Admin</option>
+                <option value="Oficina">Oficina</option>
+                <option value="Chofer">Chofer</option>
+                <option value="Galponero">Galponero</option>
+                <option value="Vendedor">Vendedor</option>
+                <option value="Encargado">Encargado</option>
+                <option value="Recolector">Recolector</option>
+              </select>
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Teléfono</label>
