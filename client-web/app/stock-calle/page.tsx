@@ -15,6 +15,7 @@ interface StockEnCalle {
     vehiculoId: number;
     vehiculoNombre: string;
     enRuta: boolean;
+    kilometraje: number;
     stock: StockDetalle[];
 }
 
@@ -154,15 +155,20 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                             Nuevo Kilometraje
                         </label>
-                        <input
-                            type="number"
-                            step="0.1"
-                            value={kilometraje}
-                            onChange={(e) => setKilometraje(e.target.value)}
-                            className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                            placeholder="Ingrese Km actual del vehículo"
-                            required
-                        />
+                        <div className="relative">
+                            <input
+                                type="number"
+                                step="0.1"
+                                value={kilometraje}
+                                onChange={(e) => setKilometraje(e.target.value)}
+                                className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                                placeholder={`Anterior: ${vehiculo.kilometraje} km`}
+                                required
+                            />
+                            <p className="text-xs text-slate-500 mt-1 ml-1">
+                                Anterior: <span className="font-bold">{vehiculo.kilometraje} km</span>
+                            </p>
+                        </div>
                     </div>
 
                     <div className="mb-4">

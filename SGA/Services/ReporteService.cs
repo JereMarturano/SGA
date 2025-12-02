@@ -164,6 +164,7 @@ public class ReporteService : IReporteService
                 VehiculoId = vehiculo.VehiculoId,
                 VehiculoNombre = $"{vehiculo.Marca} {vehiculo.Modelo} ({vehiculo.Patente})",
                 EnRuta = vehiculo.EnRuta,
+                Kilometraje = vehiculo.Kilometraje,
                 Stock = stockDelVehiculo
             });
         }

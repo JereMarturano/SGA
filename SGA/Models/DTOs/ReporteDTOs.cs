@@ -72,6 +72,7 @@ public class StockEnCalleDTO
     public int VehiculoId { get; set; }
     public string VehiculoNombre { get; set; } = string.Empty;
     public bool EnRuta { get; set; }
+    public decimal Kilometraje { get; set; }
     public List<StockVehiculoDetalleDTO> Stock { get; set; } = new();
 }
 
