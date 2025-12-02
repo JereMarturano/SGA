@@ -91,6 +91,18 @@ public class ReporteService : IReporteService
             .OrderByDescending(x => x.TotalGenerado)
             .ToList();
 
+        // Por Fecha
+        reporte.VentasPorFecha = ventas
+            .GroupBy(v => v.Fecha.Date)
+            .Select(g => new VentaPorFechaDTO
+            {
+                Fecha = g.Key,
+                Total = g.Sum(v => v.Total),
+                CantidadVentas = g.Count()
+            })
+            .OrderBy(x => x.Fecha)
+            .ToList();
+
         // Por Tipo de Gasto
         reporte.GastosPorTipo = gastos
             .GroupBy(g => g.Tipo)

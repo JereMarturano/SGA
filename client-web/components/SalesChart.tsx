@@ -1,23 +1,29 @@
 'use client';
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { VentaPorFecha } from '@/lib/api-reportes';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface SalesChartProps {
-    data?: { name: string; ventas: number }[];
+    data: VentaPorFecha[];
 }
 
-export default function SalesChart({ data = [] }: SalesChartProps) {
+export default function SalesChart({ data }: SalesChartProps) {
+    const chartData = data.map(d => ({
+        name: format(new Date(d.fecha), 'dd/MM', { locale: es }),
+        ventas: d.total,
+        fullDate: format(new Date(d.fecha), 'PPPP', { locale: es })
+    }));
+
     return (
         <div className="h-[350px] w-full">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tendencia de Ventas</h3>
-                <select className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1 outline-none">
-                    <option>Últimos 7 días</option>
-                </select>
             </div>
             <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
-                    data={data}
+                    data={chartData}
                     margin={{
                         top: 10,
                         right: 10,
