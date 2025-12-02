@@ -14,6 +14,7 @@ public interface IEmpleadoService
     // Management
     Task<Usuario> CreateEmpleadoAsync(Models.DTOs.CreateEmpleadoDto dto);
     Task UpdateEmpleadoAsync(int usuarioId, Models.DTOs.UpdateEmpleadoDTO dto);
+    Task DeleteEmpleadoAsync(int usuarioId);
 }
 
 public class EmpleadoEstadisticasDto

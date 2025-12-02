@@ -70,7 +70,7 @@ export default function EstadisticasPage() {
                             />
                         </div>
                         <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2 rounded-xl">
-                             <span className="text-xs font-bold text-slate-500">Hasta:</span>
+                            <span className="text-xs font-bold text-slate-500">Hasta:</span>
                             <input
                                 type="date"
                                 className="bg-transparent text-sm font-bold text-slate-700 dark:text-slate-200 outline-none"
@@ -78,10 +78,10 @@ export default function EstadisticasPage() {
                                 onChange={(e) => setFechaFin(new Date(e.target.value))}
                             />
                         </div>
-                         <button
+                        <button
                             onClick={loadData}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-                         >
+                        >
                             Filtrar
                         </button>
                     </div>
@@ -118,7 +118,7 @@ export default function EstadisticasPage() {
                                 </div>
                             </div>
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Ticket Promedio</p>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Promedio de Venta</p>
                                 <div className="flex items-end justify-between">
                                     <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
                                         $ {reporte.ticketPromedio.toLocaleString('es-AR')}
@@ -252,7 +252,7 @@ export default function EstadisticasPage() {
                                                 </tr>
                                             ))}
                                             {(reporte.topClientes || []).length === 0 && (
-                                                 <tr>
+                                                <tr>
                                                     <td colSpan={2} className="px-3 py-4 text-center text-xs">No hay datos disponibles.</td>
                                                 </tr>
                                             )}
@@ -261,8 +261,8 @@ export default function EstadisticasPage() {
                                 </div>
                             </div>
 
-                             {/* Sales by Employee */}
-                             <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+                            {/* Sales by Employee */}
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400">
                                         <DollarSign size={20} />
@@ -270,7 +270,7 @@ export default function EstadisticasPage() {
                                     <h3 className="text-lg font-bold text-slate-800 dark:text-white">Ventas por Vendedor</h3>
                                 </div>
                                 <div className="space-y-4">
-                                     {(reporte.ventasPorVendedor || []).map((vendedor, idx) => {
+                                    {(reporte.ventasPorVendedor || []).map((vendedor, idx) => {
                                         const percentage = reporte.totalVentas > 0 ? (vendedor.totalVendido / reporte.totalVentas) * 100 : 0;
                                         return (
                                             <div key={vendedor.usuarioId} className="space-y-1">

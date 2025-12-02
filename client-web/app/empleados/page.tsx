@@ -2,7 +2,7 @@
 
 import Header from '@/components/Header';
 import Modal from '@/components/Modal';
-import { Users, Plus, Edit2, Calendar, TrendingUp, DollarSign, Clock } from 'lucide-react';
+import { Users, Plus, Edit2, Calendar, TrendingUp, DollarSign, Clock, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface Employee {
@@ -35,6 +35,7 @@ export default function EmpleadosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const fetchEmployees = async () => {
     try {
@@ -71,16 +72,19 @@ export default function EmpleadosPage() {
   const handleEdit = (employee: Employee) => {
     setCurrentEmployee(employee);
     setIsModalOpen(true);
+    setShowDeleteConfirm(false);
   };
 
   const handleAdd = () => {
     setCurrentEmployee(null);
     setIsModalOpen(true);
+    setShowDeleteConfirm(false);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentEmployee(null);
+    setShowDeleteConfirm(false);
   };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -125,6 +129,21 @@ export default function EmpleadosPage() {
         console.error('Error updating employee:', error);
         alert('Error al actualizar empleado.');
       }
+    }
+  };
+
+  const handleDelete = async () => {
+    console.log('handleDelete called', currentEmployee);
+    if (!currentEmployee) return;
+
+    try {
+      await api.delete(`/empleados/${currentEmployee.id}`);
+      console.log('Delete successful');
+      handleCloseModal();
+      fetchEmployees();
+    } catch (error) {
+      console.error('Error deleting employee:', error);
+      alert('Error al eliminar empleado. Asegúrate de que no sea el administrador.');
     }
   };
 
@@ -291,9 +310,41 @@ export default function EmpleadosPage() {
             </div>
           </div>
 
-          <div className="pt-4 flex justify-end gap-3">
-            <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancelar</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors">Guardar Cambios</button>
+          <div className="pt-4 flex justify-between gap-3">
+            {currentEmployee && currentEmployee.role !== 'Admin' && (
+              showDeleteConfirm ? (
+                <div className="flex items-center gap-2 animate-fadeIn">
+                  <span className="text-sm font-bold text-red-600 dark:text-red-400 mr-2">¿Estás seguro?</span>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-sm transition-colors"
+                  >
+                    Sí, eliminar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 rounded-lg font-bold text-sm transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 rounded-lg font-bold transition-colors flex items-center gap-2"
+                >
+                  <Trash2 size={18} />
+                  Eliminar
+                </button>
+              )
+            )}
+            <div className="flex gap-3 ml-auto">
+              <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancelar</button>
+              <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors">Guardar Cambios</button>
+            </div>
           </div>
         </form>
       </Modal>

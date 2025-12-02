@@ -164,4 +164,20 @@ public class EmpleadoService : IEmpleadoService
         _context.Usuarios.Update(empleado);
         await _context.SaveChangesAsync();
     }
+
+    public async Task DeleteEmpleadoAsync(int usuarioId)
+    {
+        var empleado = await _context.Usuarios.FindAsync(usuarioId);
+        if (empleado == null)
+            throw new KeyNotFoundException($"Empleado con ID {usuarioId} no encontrado.");
+
+        // Prevent deleting Admin (though frontend also checks, backend should too)
+        if (empleado.Rol == RolUsuario.Admin)
+        {
+             throw new InvalidOperationException("No se puede eliminar al administrador.");
+        }
+
+        _context.Usuarios.Remove(empleado);
+        await _context.SaveChangesAsync();
+    }
 }

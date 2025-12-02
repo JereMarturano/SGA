@@ -141,6 +141,28 @@ public class EmpleadosController : ControllerBase
             return StatusCode(500, new { message = "Error interno", error = ex.Message });
         }
     }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteEmpleado(int id)
+    {
+        try
+        {
+            await _empleadoService.DeleteEmpleadoAsync(id);
+            return NoContent();
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error interno", error = ex.Message });
+        }
+    }
 }
 
 public class RegistrarFaltaDto
