@@ -8,4 +8,5 @@ public interface IVentaService
     Task<Venta> RegistrarVentaAsync(RegistrarVentaRequest request);
     Task<Venta?> ObtenerVentaPorIdAsync(int id);
     Task<List<Venta>> ObtenerVentasPorVehiculoYFechaAsync(int vehiculoId, DateTime fecha);
+    Task<List<HistorialVentaDTO>> ObtenerVentasPorClienteAsync(int clienteId);
 }

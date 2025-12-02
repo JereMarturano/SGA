@@ -177,4 +177,30 @@ public class VentaService : IVentaService
             .OrderByDescending(v => v.Fecha)
             .ToListAsync();
     }
+
+    public async Task<List<HistorialVentaDTO>> ObtenerVentasPorClienteAsync(int clienteId)
+    {
+        return await _context.Ventas
+            .Where(v => v.ClienteId == clienteId)
+            .Include(v => v.Usuario)
+            .Include(v => v.Detalles)
+                .ThenInclude(d => d.Producto)
+            .OrderByDescending(v => v.Fecha)
+            .Select(v => new HistorialVentaDTO
+            {
+                VentaId = v.VentaId,
+                Fecha = v.Fecha.ToString("yyyy-MM-dd HH:mm"),
+                Total = v.Total,
+                MetodoPago = v.MetodoPago.ToString(),
+                Vendedor = v.Usuario != null ? v.Usuario.Nombre : "Desconocido",
+                Productos = v.Detalles.Select(d => new DetalleVentaHistorialDTO
+                {
+                    Producto = d.Producto != null ? d.Producto.Nombre : "Desconocido",
+                    Cantidad = d.Cantidad,
+                    PrecioUnitario = d.PrecioUnitario,
+                    Subtotal = d.Subtotal
+                }).ToList()
+            })
+            .ToListAsync();
+    }
 }
