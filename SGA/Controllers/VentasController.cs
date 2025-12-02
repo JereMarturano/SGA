@@ -35,6 +35,7 @@ public class VentasController : ControllerBase
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[ERROR] Venta failed: {ex}");
             return StatusCode(500, new { message = "Error al procesar la venta.", error = ex.Message });
         }
     }

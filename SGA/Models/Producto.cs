@@ -31,4 +31,7 @@ public class Producto
     
     // Cantidad de unidades por bulto (ej. 30 para Maple, 360 para Cajón)
     public int UnidadesPorBulto { get; set; } = 1;
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal CostoUltimaCompra { get; set; }
 }

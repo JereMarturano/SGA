@@ -254,6 +254,9 @@ public class InventarioService : IInventarioService
 
                 // 1. Aumentar Stock General
                 producto.StockActual += item.Cantidad;
+                
+                // Actualizar Costo de Última Compra (por unidad)
+                producto.CostoUltimaCompra = item.CostoUnitario;
 
                 // 2. Registrar Detalle Compra
                 var detalle = new DetalleCompra

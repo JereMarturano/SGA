@@ -9,6 +9,7 @@ public class RegistrarVentaRequest
     public int VehiculoId { get; set; }
     public MetodoPago MetodoPago { get; set; }
     public DateTime? Fecha { get; set; }
+    public DateTime? FechaVencimientoPago { get; set; }
     public decimal DescuentoPorcentaje { get; set; }
     public List<ItemVentaDTO> Items { get; set; } = new();
 }

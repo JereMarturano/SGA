@@ -31,6 +31,7 @@ public class VentaService : IVentaService
                 VehiculoId = request.VehiculoId,
                 MetodoPago = request.MetodoPago,
                 DescuentoPorcentaje = request.DescuentoPorcentaje,
+                FechaVencimientoPago = request.FechaVencimientoPago,
                 Total = 0 // Se calcula abajo
             };
 

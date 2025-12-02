@@ -38,6 +38,8 @@ public class Venta
     [Column(TypeName = "decimal(18,2)")]
     public decimal DescuentoMonto { get; set; }
 
+    public DateTime? FechaVencimientoPago { get; set; }
+
     // Lista de items vendidos
     public List<DetalleVenta> Detalles { get; set; } = new();
 }
