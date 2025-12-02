@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
+using SGA.Models.DTOs;
+using SGA.Models.Enums;
 
 namespace SGA.Services;
 
@@ -11,6 +13,63 @@ public class ClienteService : IClienteService
     public ClienteService(AppDbContext context)
     {
         _context = context;
+    }
+
+    public async Task<Pago> RegistrarPagoAsync(int clienteId, decimal monto, MetodoPago metodo, string? observacion)
+    {
+        var cliente = await _context.Clientes.FindAsync(clienteId);
+        if (cliente == null) throw new InvalidOperationException("Cliente no encontrado.");
+
+        var pago = new Pago
+        {
+            ClienteId = clienteId,
+            Monto = monto,
+            Fecha = DateTime.UtcNow,
+            MetodoPago = metodo,
+            Observacion = observacion
+        };
+
+        _context.Pagos.Add(pago);
+
+        // Update Client Debt
+        cliente.Deuda -= monto;
+
+        await _context.SaveChangesAsync();
+        return pago;
+    }
+
+    public async Task<Cliente?> AjustarDeudaAsync(int clienteId, decimal monto, bool esAumento, string motivo)
+    {
+        var cliente = await _context.Clientes.FindAsync(clienteId);
+        if (cliente == null) return null;
+
+        if (esAumento)
+        {
+            cliente.Deuda += monto;
+        }
+        else
+        {
+            cliente.Deuda -= monto;
+        }
+
+        await _context.SaveChangesAsync();
+        return cliente;
+    }
+
+    public async Task<List<HistorialPagoDTO>> ObtenerHistorialPagosAsync(int clienteId)
+    {
+        return await _context.Pagos
+            .Where(p => p.ClienteId == clienteId)
+            .OrderByDescending(p => p.Fecha)
+            .Select(p => new HistorialPagoDTO
+            {
+                PagoId = p.PagoId,
+                Fecha = p.Fecha.ToString("yyyy-MM-dd HH:mm"),
+                Monto = p.Monto,
+                MetodoPago = p.MetodoPago.ToString(),
+                Observacion = p.Observacion
+            })
+            .ToListAsync();
     }
 
     public async Task<Cliente> CrearClienteAsync(Cliente cliente)

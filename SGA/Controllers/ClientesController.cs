@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SGA.Models;
+using SGA.Models.DTOs;
+using SGA.Models.Enums;
 using SGA.Services;
 
 namespace SGA.Controllers;
@@ -9,10 +11,12 @@ namespace SGA.Controllers;
 public class ClientesController : ControllerBase
 {
     private readonly IClienteService _clienteService;
+    private readonly IVentaService _ventaService;
 
-    public ClientesController(IClienteService clienteService)
+    public ClientesController(IClienteService clienteService, IVentaService ventaService)
     {
         _clienteService = clienteService;
+        _ventaService = ventaService;
     }
 
     [HttpGet]
@@ -95,5 +99,46 @@ public class ClientesController : ControllerBase
         }
 
         return NoContent();
+    }
+
+    [HttpPost("{id}/pagos")]
+    public async Task<ActionResult> RegistrarPago(int id, [FromBody] PagoDTO pagoDto)
+    {
+        try
+        {
+            var pago = await _clienteService.RegistrarPagoAsync(id, pagoDto.Monto, pagoDto.MetodoPago, pagoDto.Observacion);
+            return Ok(pago);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPost("{id}/ajuste-deuda")]
+    public async Task<ActionResult> AjustarDeuda(int id, [FromBody] DeudaAjusteDTO ajusteDto)
+    {
+        var cliente = await _clienteService.AjustarDeudaAsync(id, ajusteDto.Monto, ajusteDto.EsAumento, ajusteDto.Motivo);
+
+        if (cliente == null)
+        {
+            return NotFound("Cliente no encontrado.");
+        }
+
+        return Ok(cliente);
+    }
+
+    [HttpGet("{id}/historial-pagos")]
+    public async Task<ActionResult<List<HistorialPagoDTO>>> ObtenerHistorialPagos(int id)
+    {
+        var pagos = await _clienteService.ObtenerHistorialPagosAsync(id);
+        return Ok(pagos);
+    }
+
+    [HttpGet("{id}/historial-ventas")]
+    public async Task<ActionResult<List<HistorialVentaDTO>>> ObtenerHistorialVentas(int id)
+    {
+        var ventas = await _ventaService.ObtenerVentasPorClienteAsync(id);
+        return Ok(ventas);
     }
 }
