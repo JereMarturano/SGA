@@ -2,6 +2,7 @@
 
 import { LayoutDashboard, Users, Truck, PieChart, Menu, User } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import NotificationBell from './NotificationBell';
 import { usePathname } from 'next/navigation';
 
@@ -26,8 +27,8 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3">
-                <div className="bg-gradient-to-tr from-blue-600 to-indigo-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
-                <LayoutDashboard className="text-white" size={24} />
+                <div className="relative w-12 h-12">
+                  <Image src="/logo.png" alt="SGA Logo" fill className="object-contain rounded-full" />
                 </div>
                 <div>
                 <h1 className="text-xl font-bold text-slate-800 dark:text-white leading-none tracking-tight">SGA</h1>
