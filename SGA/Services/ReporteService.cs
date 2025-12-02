@@ -182,6 +182,66 @@ public class ReporteService : IReporteService
         }
         reporte.VentasPorDia = ventasPorDia;
 
+        reporte.VentasPorDia = ventasPorDia;
+
+        // 5. Comparaciones (vs Mes Anterior)
+        // Definir periodo anterior (mismo rango pero mes anterior)
+        var prevInicio = inicio.AddMonths(-1);
+        var prevFin = fin.AddMonths(-1);
+
+        // Consultar Ventas Periodo Anterior
+        var prevVentasTotal = await _context.Ventas
+            .Where(v => v.Fecha >= prevInicio && v.Fecha <= prevFin)
+            .SumAsync(v => v.Total);
+
+        // Consultar Gastos Periodo Anterior
+        var prevGastosTotal = await _context.GastosVehiculos
+            .Where(g => g.Fecha >= prevInicio && g.Fecha <= prevFin)
+            .SumAsync(g => g.Monto);
+
+        // Consultar CMV Periodo Anterior (Aproximado)
+        // Nota: Para hacerlo exacto deberíamos consultar los detalles, pero para rendimiento hacemos una query simplificada
+        // O bien, replicamos la logica de CMV actual
+        var prevVentasDetalles = await _context.Ventas
+            .Include(v => v.Detalles)
+            .ThenInclude(d => d.Producto)
+            .Where(v => v.Fecha >= prevInicio && v.Fecha <= prevFin)
+            .SelectMany(v => v.Detalles)
+            .ToListAsync();
+
+        var prevCostoMercaderia = prevVentasDetalles
+            .Sum(d => d.Cantidad * (d.Producto?.CostoUltimaCompra ?? 0));
+
+        var prevGananciaNeta = prevVentasTotal - prevCostoMercaderia - prevGastosTotal;
+        
+        // Calcular Margen Anterior
+        var prevMargenPorcentaje = prevVentasTotal > 0 
+            ? (prevGananciaNeta / prevVentasTotal) * 100 
+            : 0;
+
+        // Calcular Variaciones
+        // Variacion Ventas
+        if (prevVentasTotal == 0)
+        {
+            reporte.VariacionVentas = reporte.TotalVentas > 0 ? 100 : 0;
+        }
+        else
+        {
+            reporte.VariacionVentas = ((reporte.TotalVentas - prevVentasTotal) / prevVentasTotal) * 100;
+        }
+        reporte.TendenciaVentasPositiva = reporte.VariacionVentas >= 0;
+
+        // Variacion Margen
+        if (prevMargenPorcentaje == 0)
+        {
+            reporte.VariacionMargen = reporte.MargenGananciaPorcentaje > 0 ? 100 : 0;
+        }
+        else
+        {
+            reporte.VariacionMargen = ((reporte.MargenGananciaPorcentaje - prevMargenPorcentaje) / prevMargenPorcentaje) * 100;
+        }
+        reporte.TendenciaMargenPositiva = reporte.VariacionMargen >= 0;
+
         return reporte;
     }
     public async Task<List<StockEnCalleDTO>> ObtenerStockEnCalleAsync()

@@ -15,7 +15,11 @@ export default function Dashboard() {
     ventasDia: 0,
     margenNeto: 0,
     vehiculosEnRuta: 0,
-    mermasCount: 0
+    mermasCount: 0,
+    variacionVentas: 0,
+    tendenciaVentasPositiva: true,
+    variacionMargen: 0,
+    tendenciaMargenPositiva: true
   });
 
   const [chartData, setChartData] = useState<VentaPorFecha[]>([]);
@@ -48,7 +52,11 @@ export default function Dashboard() {
           ventasDia: financieroHoy.totalVentas,
           margenNeto: financieroHoy.margenGananciaPorcentaje,
           vehiculosEnRuta: enRuta,
-          mermasCount: 0 // Placeholder
+          mermasCount: 0, // Placeholder
+          variacionVentas: financieroHoy.variacionVentas,
+          tendenciaVentasPositiva: financieroHoy.tendenciaVentasPositiva,
+          variacionMargen: financieroHoy.variacionMargen,
+          tendenciaMargenPositiva: financieroHoy.tendenciaMargenPositiva
         });
 
         // Map trend data for chart
@@ -149,16 +157,16 @@ export default function Dashboard() {
             title="Ventas del Día"
             value={`$ ${stats.ventasDia.toLocaleString()}`}
             icon={DollarSign}
-            trend="+12.5%"
-            trendUp={true}
+            trend={`${(stats.variacionVentas || 0) > 0 ? '+' : ''}${(stats.variacionVentas || 0).toFixed(1)}%`}
+            trendUp={stats.tendenciaVentasPositiva}
             color="green"
           />
           <KPICard
             title="Margen Neto"
-            value={`${stats.margenNeto.toFixed(1)}%`}
+            value={`${(stats.margenNeto || 0).toFixed(1)}%`}
             icon={TrendingUp}
-            trend="-0.5%"
-            trendUp={false}
+            trend={`${(stats.variacionMargen || 0) > 0 ? '+' : ''}${(stats.variacionMargen || 0).toFixed(1)}%`}
+            trendUp={stats.tendenciaMargenPositiva}
             color="blue"
           />
           <KPICard

@@ -26,6 +26,7 @@ interface Gasto {
     tipo: number;
     descripcion?: string;
     vehiculoId?: number;
+    empleadoId?: number;
     kilometraje?: number;
     litrosCombustible?: number;
 }
@@ -35,6 +36,11 @@ interface Vehiculo {
     marca: string;
     modelo: string;
     patente: string;
+}
+
+interface Usuario {
+    usuarioId: number;
+    nombre: string;
 }
 
 // Enum de tipos de gasto (alineado con backend)
@@ -62,7 +68,9 @@ export default function GastosPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+    const [empleados, setEmpleados] = useState<Usuario[]>([]);
     const [selectedVehiculoId, setSelectedVehiculoId] = useState<number | null>(null);
+    const [selectedEmpleadoId, setSelectedEmpleadoId] = useState<number | null>(null);
 
     // Cargar gastos recientes
     const loadGastos = async () => {
@@ -96,7 +104,22 @@ export default function GastosPage() {
                 console.error("Error cargando vehículos:", error);
             }
         };
+
+        // Cargar empleados
+        const fetchEmpleados = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/inventario/usuarios`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setEmpleados(data);
+                }
+            } catch (error) {
+                console.error("Error cargando empleados:", error);
+            }
+        };
+
         fetchVehiculos();
+        fetchEmpleados();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -110,7 +133,8 @@ export default function GastosPage() {
                 monto: parseFloat(amount),
                 tipo: selectedType,
                 descripcion: description || TIPOS_GASTO.find(t => t.id === selectedType)?.label,
-                vehiculoId: selectedVehiculoId || undefined
+                vehiculoId: selectedVehiculoId || undefined,
+                empleadoId: selectedEmpleadoId || undefined
             };
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/gastosvehiculos`, {
@@ -124,10 +148,9 @@ export default function GastosPage() {
             // Reset form
             setAmount('');
             setDescription('');
-            setAmount('');
-            setDescription('');
             setSelectedType(null);
             setSelectedVehiculoId(null);
+            setSelectedEmpleadoId(null);
             setShowSuccess(true);
             setTimeout(() => setShowSuccess(false), 3000);
             loadGastos();
@@ -232,6 +255,27 @@ export default function GastosPage() {
                                         {vehiculos.map((v) => (
                                             <option key={v.vehiculoId} value={v.vehiculoId}>
                                                 {v.marca} {v.modelo} ({v.patente})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {/* Selector de Empleado (Solo para Sueldos - ID 7) */}
+                            {selectedType === 7 && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">
+                                        Empleado
+                                    </label>
+                                    <select
+                                        value={selectedEmpleadoId || ''}
+                                        onChange={(e) => setSelectedEmpleadoId(Number(e.target.value))}
+                                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500/20"
+                                    >
+                                        <option value="">Seleccionar Empleado...</option>
+                                        {empleados.map((e) => (
+                                            <option key={e.usuarioId} value={e.usuarioId}>
+                                                {e.nombre}
                                             </option>
                                         ))}
                                     </select>

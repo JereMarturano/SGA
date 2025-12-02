@@ -37,6 +37,12 @@ public class ReporteFinancieroDTO
     public List<VentaPorClienteDTO> TopClientes { get; set; } = new();
     public List<VentaPorVendedorDTO> VentasPorVendedor { get; set; } = new();
     public decimal DeudaTotalActual { get; set; }
+
+    // Métricas de Comparación (vs mes anterior)
+    public decimal VariacionVentas { get; set; }
+    public bool TendenciaVentasPositiva { get; set; }
+    public decimal VariacionMargen { get; set; }
+    public bool TendenciaMargenPositiva { get; set; }
 }
 
 public class VentaDiariaDTO

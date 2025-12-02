@@ -17,6 +17,12 @@ export interface ReporteFinanciero {
     topClientes: VentaPorCliente[];
     ventasPorVendedor: VentaPorVendedor[];
     deudaTotalActual: number;
+
+    // Métricas de Comparación
+    variacionVentas: number;
+    tendenciaVentasPositiva: boolean;
+    variacionMargen: number;
+    tendenciaMargenPositiva: boolean;
 }
 
 export interface VentaPorMetodoPago {
