@@ -35,9 +35,23 @@ interface CerrarRepartoModalProps {
     onSuccess: () => void;
 }
 
+type UnitType = 'UNIDAD' | 'MAPLE' | 'CAJON';
+
+const UNIT_FACTORS: Record<UnitType, number> = {
+    'UNIDAD': 1,
+    'MAPLE': 30,
+    'CAJON': 360
+};
+
 const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModalProps) => {
     const [kilometraje, setKilometraje] = useState<string>('');
-    const [stockItems, setStockItems] = useState<{ productoId: number; nombre: string; cantidadTeorica: number; cantidadFisica: string }[]>([]);
+    const [stockItems, setStockItems] = useState<{
+        productoId: number;
+        nombre: string;
+        cantidadTeorica: number;
+        cantidadFisica: string;
+        unitType: UnitType;
+    }[]>([]);
     const [loading, setLoading] = useState(false);
     const [fetchingStock, setFetchingStock] = useState(true);
 
@@ -50,7 +64,8 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
                     productoId: item.productoId,
                     nombre: item.producto.nombre,
                     cantidadTeorica: item.cantidad,
-                    cantidadFisica: item.cantidad.toString()
+                    cantidadFisica: '', // Start empty for manual verification
+                    unitType: 'MAPLE' as UnitType // Default to Maple
                 }));
                 setStockItems(items);
             } catch (error) {
@@ -81,10 +96,16 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
                 vehiculoId: vehiculo.vehiculoId,
                 usuarioId: currentUserId,
                 nuevoKilometraje: parseFloat(kilometraje),
-                stockRetorno: stockItems.map(item => ({
-                    productoId: item.productoId,
-                    cantidadFisica: parseFloat(item.cantidadFisica) || 0
-                }))
+                stockRetorno: stockItems.map(item => {
+                    const qty = parseFloat(item.cantidadFisica) || 0;
+                    const factor = UNIT_FACTORS[item.unitType];
+                    const totalUnits = qty * factor;
+
+                    return {
+                        productoId: item.productoId,
+                        cantidadFisica: totalUnits
+                    };
+                })
             };
 
             await api.post('/inventario/cerrar-reparto', payload);
@@ -101,6 +122,12 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
     const handleQuantityChange = (index: number, value: string) => {
         const newItems = [...stockItems];
         newItems[index].cantidadFisica = value;
+        setStockItems(newItems);
+    };
+
+    const handleUnitChange = (index: number, value: UnitType) => {
+        const newItems = [...stockItems];
+        newItems[index].unitType = value;
         setStockItems(newItems);
     };
 
@@ -144,19 +171,28 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
 
                         <div className="space-y-3">
                             {stockItems.map((item, idx) => (
-                                <div key={item.productoId} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg">
+                                <div key={item.productoId} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg gap-3">
                                     <div className="flex-1">
                                         <div className="font-medium text-slate-800 dark:text-white">{item.nombre}</div>
-                                        <div className="text-xs text-slate-500">Teórico: {item.cantidadTeorica}</div>
+                                        <div className="text-xs text-slate-500">Teórico: {item.cantidadTeorica} unidades</div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <label className="text-sm text-slate-600 dark:text-slate-300">Físico:</label>
+                                        <select
+                                            value={item.unitType}
+                                            onChange={(e) => handleUnitChange(idx, e.target.value as UnitType)}
+                                            className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                        >
+                                            <option value="UNIDAD">Unidad</option>
+                                            <option value="MAPLE">Maple</option>
+                                            <option value="CAJON">Cajón</option>
+                                        </select>
                                         <input
                                             type="number"
                                             step="0.01"
                                             value={item.cantidadFisica}
                                             onChange={(e) => handleQuantityChange(idx, e.target.value)}
-                                            className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right"
+                                            className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right outline-none focus:ring-2 focus:ring-blue-500"
+                                            placeholder="0"
                                         />
                                     </div>
                                 </div>
@@ -246,8 +282,8 @@ export default function StockCallePage() {
                                 <div className="flex justify-between items-start mb-4">
                                     <h3 className="font-bold text-lg text-slate-800 dark:text-white">{vehiculo.vehiculoNombre}</h3>
                                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${vehiculo.enRuta
-                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                            : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
                                         }`}>
                                         {vehiculo.enRuta ? 'En Ruta' : 'En Depósito'}
                                     </span>
