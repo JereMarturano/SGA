@@ -38,12 +38,6 @@ public class VentaDiariaDTO
     public decimal Total { get; set; }
 }
 
-public class VentaDiariaDTO
-{
-    public DateTime Fecha { get; set; }
-    public decimal Total { get; set; }
-}
-
 public class VentaPorMetodoPagoDTO
 {
     public MetodoPago MetodoPago { get; set; }

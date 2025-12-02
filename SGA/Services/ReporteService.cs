@@ -128,7 +128,7 @@ public class ReporteService : IReporteService
 
             ventasPorDia.Add(new VentaDiariaDTO
             {
-                Fecha = day,
+                Fecha = day.ToString("yyyy-MM-dd"),
                 Total = totalDia
             });
         }
