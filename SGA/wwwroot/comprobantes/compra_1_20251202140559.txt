@@ -1,0 +1,11 @@
+=== COMPROBANTE DE COMPRA ===
+ID Compra: 1
+Fecha: 2/12/2025 14:05:59
+Proveedor: Lucas Rodriguez
+Usuario ID: 1
+-----------------------------
+DETALLE:
+Producto ID: 1 | Cant: 720 | Costo U.: $ 138,89 | Subtotal: $ 100.000,00
+-----------------------------
+TOTAL: $ 100.000,00
+=============================
