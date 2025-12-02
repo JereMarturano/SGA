@@ -22,7 +22,7 @@ public class Cliente
 
     [MaxLength(100)]
     [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
     [MaxLength(200)]
     public string Direccion { get; set; } = string.Empty;

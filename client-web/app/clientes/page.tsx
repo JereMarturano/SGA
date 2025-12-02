@@ -19,6 +19,7 @@ interface Client {
   lastPurchase: string;
   paymentMethod: 'Efectivo' | 'Transferencia' | 'Cheque' | 'Cuenta Corriente';
   status: 'Activo' | 'Moroso' | 'Inactivo';
+  email?: string;
 }
 
 export default function ClientesPage() {
@@ -41,6 +42,7 @@ export default function ClientesPage() {
         lastPurchase: c.ultimaCompra ? c.ultimaCompra.split('T')[0] : new Date().toISOString().split('T')[0],
         paymentMethod: c.metodoPagoPreferido !== null ? ['Efectivo', 'Transferencia', 'Cheque', 'Cuenta Corriente', 'Tarjeta'][c.metodoPagoPreferido] : 'Efectivo',
         status: c.estado || 'Activo',
+        email: c.email || '',
       }));
       setClients(data);
     } catch (error) {
@@ -89,7 +91,7 @@ export default function ClientesPage() {
       ventasTotales: parseFloat(formData.get('totalSales') as string) || 0,
       ultimaCompra: formData.get('lastPurchase') ? new Date(formData.get('lastPurchase') as string).toISOString() : null,
       metodoPagoPreferido: paymentMethodIdx >= 0 ? paymentMethodIdx : 0,
-      email: '', // Not in form
+      email: formData.get('email') ? formData.get('email') : null,
       fechaCumpleanios: new Date().toISOString(), // Default
       requiereFactura: false
     };
@@ -103,9 +105,25 @@ export default function ClientesPage() {
 
       fetchClients();
       handleCloseModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving client:', error);
-      alert('Error al guardar cliente. Verifique los datos.');
+      let errorMessage = 'Error al guardar cliente. Verifique los datos.';
+
+      if (error.response) {
+        if (error.response.data && error.response.data.mensaje) {
+          // Custom error message from backend (e.g., Duplicate DNI)
+          errorMessage = error.response.data.mensaje;
+        } else if (error.response.data && error.response.data.errors) {
+          // Validation errors
+          const errors = error.response.data.errors;
+          const errorMessages = Object.values(errors).flat();
+          errorMessage = `Error de validación:\n${errorMessages.join('\n')}`;
+        } else if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        }
+      }
+
+      alert(errorMessage);
     }
   };
 
@@ -218,6 +236,11 @@ export default function ClientesPage() {
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Dirección</label>
             <input name="address" defaultValue={currentClient?.address} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email</label>
+            <input type="email" name="email" defaultValue={currentClient?.email} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
