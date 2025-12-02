@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using SGA.Models.Enums;
 
 namespace SGA.Models;
 
@@ -32,4 +33,17 @@ public class Cliente
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal? PrecioEspecial { get; set; }
+
+    [MaxLength(20)]
+    public string Estado { get; set; } = "Activo";
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal Deuda { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal VentasTotales { get; set; }
+
+    public DateTime? UltimaCompra { get; set; }
+
+    public MetodoPago? MetodoPagoPreferido { get; set; }
 }

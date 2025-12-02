@@ -71,6 +71,11 @@ public class ClienteService : IClienteService
         clienteExistente.FechaCumpleanios = clienteActualizado.FechaCumpleanios;
         clienteExistente.RequiereFactura = clienteActualizado.RequiereFactura;
         clienteExistente.PrecioEspecial = clienteActualizado.PrecioEspecial;
+        clienteExistente.Estado = clienteActualizado.Estado;
+        clienteExistente.Deuda = clienteActualizado.Deuda;
+        clienteExistente.VentasTotales = clienteActualizado.VentasTotales;
+        clienteExistente.UltimaCompra = clienteActualizado.UltimaCompra;
+        clienteExistente.MetodoPagoPreferido = clienteActualizado.MetodoPagoPreferido;
 
         await _context.SaveChangesAsync();
         return clienteExistente;
