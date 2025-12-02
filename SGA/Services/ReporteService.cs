@@ -47,23 +47,33 @@ public class ReporteService : IReporteService
         var gastos = await queryGastos.ToListAsync();
 
         // 3. Procesar Datos
-        // 3. Procesar Datos
+        
+        // 3.1 Calcular Compras de Inventario (Cash Flow)
+        var totalCompras = await _context.Compras
+            .Where(c => c.Fecha >= inicio && c.Fecha <= fin)
+            .SumAsync(c => c.Total);
+
+        // 3.2 Calcular Costo de Mercadería Vendida (CMV) - Aproximación por Costo Última Compra
         var totalCostoMercaderia = ventas
             .SelectMany(v => v.Detalles)
             .Sum(d => d.Cantidad * (d.Producto?.CostoUltimaCompra ?? 0));
+
+        var totalVentas = ventas.Sum(v => v.Total);
+        var totalGastos = gastos.Sum(g => g.Monto);
 
         var reporte = new ReporteFinancieroDTO
         {
             FechaInicio = inicio,
             FechaFin = fin,
-            TotalVentas = ventas.Sum(v => v.Total),
+            TotalVentas = totalVentas,
             TotalCostoMercaderia = totalCostoMercaderia,
-            TotalGastos = gastos.Sum(g => g.Monto),
-            CantidadVentas = ventas.Count
+            TotalCompras = totalCompras,
+            TotalGastos = totalGastos,
+            CantidadVentas = ventas.Count,
+            GananciaNeta = totalVentas - totalCostoMercaderia - totalGastos
         };
 
         // Cálculos derivados
-        reporte.GananciaNeta = reporte.TotalVentas - reporte.TotalCostoMercaderia - reporte.TotalGastos;
         reporte.MargenGananciaPorcentaje = reporte.TotalVentas > 0 
             ? (reporte.GananciaNeta / reporte.TotalVentas) * 100 
             : 0;

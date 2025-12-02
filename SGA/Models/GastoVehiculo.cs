@@ -35,7 +35,11 @@ public class GastoVehiculo
     public decimal? LitrosCombustible { get; set; }
 
     // Usuario que registró el gasto (para auditoría)
-    public int? UsuarioId { get; set; }
+    public int? UsuarioId { get; set; } // Quien registra el gasto
+
+    public int? EmpleadoId { get; set; } // Para sueldos: quien recibe el pago
+    [ForeignKey("EmpleadoId")]
+    public Usuario? Empleado { get; set; }
     
     [ForeignKey("UsuarioId")]
     public Usuario? Usuario { get; set; }

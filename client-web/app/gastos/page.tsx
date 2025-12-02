@@ -154,7 +154,7 @@ export default function GastosPage() {
                 {/* Header Section */}
                 <div className="mb-8 text-center">
                     <h1 className="text-2xl font-black text-slate-800 dark:text-white">
-                        Hola, Jeremías 👋
+                        Hola, Santiago 👋
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400">
                         ¿Qué gastos tuvimos hoy?
