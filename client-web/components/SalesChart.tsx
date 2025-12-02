@@ -2,24 +2,17 @@
 
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const data = [
-    { name: 'Lun', ventas: 4000 },
-    { name: 'Mar', ventas: 3000 },
-    { name: 'Mie', ventas: 2000 },
-    { name: 'Jue', ventas: 2780 },
-    { name: 'Vie', ventas: 1890 },
-    { name: 'Sab', ventas: 2390 },
-    { name: 'Dom', ventas: 3490 },
-];
+interface SalesChartProps {
+    data?: { name: string; ventas: number }[];
+}
 
-export default function SalesChart() {
+export default function SalesChart({ data = [] }: SalesChartProps) {
     return (
         <div className="h-[350px] w-full">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">Tendencia de Ventas</h3>
                 <select className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-lg px-3 py-1 outline-none">
-                    <option>Esta Semana</option>
-                    <option>Mes Pasado</option>
+                    <option>Últimos 7 días</option>
                 </select>
             </div>
             <ResponsiveContainer width="100%" height="100%">
