@@ -13,6 +13,7 @@ interface Client {
   name: string;
   dni: string;
   address: string;
+  addressLocal?: string;
   phone: string;
   debt: number;
   totalSales: number;
@@ -36,6 +37,7 @@ export default function ClientesPage() {
         name: c.nombreCompleto || c.nombre,
         dni: c.dni || '00000000',
         address: c.direccion,
+        addressLocal: c.direccionLocal || '',
         phone: c.telefono || 'N/A',
         debt: c.deuda || 0,
         totalSales: c.ventasTotales || 0,
@@ -85,6 +87,7 @@ export default function ClientesPage() {
       nombreCompleto: formData.get('name'),
       dni: formData.get('dni') || '00000000',
       direccion: formData.get('address'),
+      direccionLocal: formData.get('addressLocal'),
       telefono: formData.get('phone'),
       estado: formData.get('status'),
       deuda: parseFloat(formData.get('debt') as string) || 0,
@@ -236,6 +239,11 @@ export default function ClientesPage() {
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Dirección</label>
             <input name="address" defaultValue={currentClient?.address} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Dirección del Local (Opcional)</label>
+            <input name="addressLocal" defaultValue={currentClient?.addressLocal} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
           </div>
 
           <div className="space-y-1">

@@ -27,6 +27,9 @@ public class Cliente
     [MaxLength(200)]
     public string Direccion { get; set; } = string.Empty;
 
+    [MaxLength(200)]
+    public string? DireccionLocal { get; set; }
+
     public DateTime FechaCumpleanios { get; set; }
 
     public bool RequiereFactura { get; set; }

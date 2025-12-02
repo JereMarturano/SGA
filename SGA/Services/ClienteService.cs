@@ -68,6 +68,7 @@ public class ClienteService : IClienteService
         clienteExistente.Telefono = clienteActualizado.Telefono;
         clienteExistente.Email = clienteActualizado.Email;
         clienteExistente.Direccion = clienteActualizado.Direccion;
+        clienteExistente.DireccionLocal = clienteActualizado.DireccionLocal;
         clienteExistente.FechaCumpleanios = clienteActualizado.FechaCumpleanios;
         clienteExistente.RequiereFactura = clienteActualizado.RequiereFactura;
         clienteExistente.PrecioEspecial = clienteActualizado.PrecioEspecial;
