@@ -24,6 +24,17 @@ public class ReporteFinancieroDTO
     // Métricas Operativas
     public int CantidadVentas { get; set; }
     public decimal TicketPromedio { get; set; }
+    
+    // Nuevas Métricas para Dashboard
+    public int TotalHuevosVendidos { get; set; } // En unidades (o maples si se prefiere, pero usaremos unidades base)
+    public int ClientesActivos { get; set; } // Clientes que compraron en este periodo
+    public List<VentaDiariaDTO> TendenciaVentas { get; set; } = new();
+}
+
+public class VentaDiariaDTO
+{
+    public string Fecha { get; set; } = string.Empty; // "Lun", "Mar", or "2023-10-25"
+    public decimal Total { get; set; }
 }
 
 public class VentaDiariaDTO
