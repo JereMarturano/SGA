@@ -91,6 +91,18 @@ public class ReporteService : IReporteService
             .OrderByDescending(x => x.TotalGenerado)
             .ToList();
 
+        // Por Fecha
+        reporte.VentasPorFecha = ventas
+            .GroupBy(v => v.Fecha.Date)
+            .Select(g => new VentaPorFechaDTO
+            {
+                Fecha = g.Key,
+                Total = g.Sum(v => v.Total),
+                CantidadVentas = g.Count()
+            })
+            .OrderBy(x => x.Fecha)
+            .ToList();
+
         // Por Tipo de Gasto
         reporte.GastosPorTipo = gastos
             .GroupBy(g => g.Tipo)
@@ -102,6 +114,25 @@ public class ReporteService : IReporteService
             })
             .OrderByDescending(x => x.Total)
             .ToList();
+
+        // Por Dia (Tendencia)
+        var ventasPorDia = new List<VentaDiariaDTO>();
+        // Iteramos por cada dia en el rango para asegurar que tenemos un punto de dato por dia, incluso si es 0.
+        // Convertimos a Date para iterar sin horas
+        for (var day = inicio.Date; day <= fin.Date; day = day.AddDays(1))
+        {
+            // Filtramos ventas que ocurrieron en ese dia (comparando fecha local o UTC segun corresponda, aqui simplificamos a Date)
+            var totalDia = ventas
+                .Where(v => v.Fecha.Date == day)
+                .Sum(v => v.Total);
+
+            ventasPorDia.Add(new VentaDiariaDTO
+            {
+                Fecha = day,
+                Total = totalDia
+            });
+        }
+        reporte.VentasPorDia = ventasPorDia;
 
         return reporte;
     }

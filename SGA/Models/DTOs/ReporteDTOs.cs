@@ -16,11 +16,32 @@ public class ReporteFinancieroDTO
     // Desgloses
     public List<VentaPorMetodoPagoDTO> VentasPorMetodoPago { get; set; } = new();
     public List<VentaPorProductoDTO> VentasPorProducto { get; set; } = new();
+    public List<VentaPorFechaDTO> VentasPorFecha { get; set; } = new();
     public List<GastoPorTipoDTO> GastosPorTipo { get; set; } = new();
     
+    // Metrica diaria
+    public List<VentaDiariaDTO> VentasPorDia { get; set; } = new();
+
     // Métricas Operativas
     public int CantidadVentas { get; set; }
     public decimal TicketPromedio { get; set; }
+    
+    // Nuevas Métricas para Dashboard
+    public int TotalHuevosVendidos { get; set; } // En unidades (o maples si se prefiere, pero usaremos unidades base)
+    public int ClientesActivos { get; set; } // Clientes que compraron en este periodo
+    public List<VentaDiariaDTO> TendenciaVentas { get; set; } = new();
+}
+
+public class VentaDiariaDTO
+{
+    public string Fecha { get; set; } = string.Empty; // "Lun", "Mar", or "2023-10-25"
+    public decimal Total { get; set; }
+}
+
+public class VentaDiariaDTO
+{
+    public DateTime Fecha { get; set; }
+    public decimal Total { get; set; }
 }
 
 public class VentaPorMetodoPagoDTO
@@ -36,6 +57,13 @@ public class VentaPorProductoDTO
     public string NombreProducto { get; set; } = string.Empty;
     public decimal CantidadVendida { get; set; }
     public decimal TotalGenerado { get; set; }
+}
+
+public class VentaPorFechaDTO
+{
+    public DateTime Fecha { get; set; }
+    public decimal Total { get; set; }
+    public int CantidadVentas { get; set; }
 }
 
 public class GastoPorTipoDTO

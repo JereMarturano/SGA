@@ -31,26 +31,40 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
+        const today = new Date();
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - 6); // Last 7 days
 
-        // Fetch Financial Report for Today
-        const financieroRes = await api.get(`/reportes/financiero?inicio=${today}&fin=${today}`);
-        const financiero = financieroRes.data;
+        const todayStr = today.toISOString().split('T')[0];
+        const startStr = startOfWeek.toISOString().split('T')[0];
+
+        // Fetch Financial Report for Today (for KPIs)
+        const financieroHoyRes = await api.get(`/reportes/financiero?inicio=${todayStr}&fin=${todayStr}`);
+        const financieroHoy = financieroHoyRes.data;
+
+        // Fetch Financial Report for Last 7 Days (for Chart)
+        const financieroSemanaRes = await api.get(`/reportes/financiero?inicio=${startStr}&fin=${todayStr}`);
+        const financieroSemana = financieroSemanaRes.data;
 
         // Fetch Stock en Calle to count vehicles
         const stockRes = await api.get('/reportes/stock-calle');
         const stock = stockRes.data;
         const enRuta = stock.filter((v: any) => v.enRuta).length;
 
-        // Fetch Mermas (maybe count recent ones? or just link)
-        // For now we just link, maybe fetch count later if needed
-
         setStats({
-          ventasDia: financiero.totalVentas,
-          margenNeto: financiero.margenGananciaPorcentaje,
+          ventasDia: financieroHoy.totalVentas,
+          margenNeto: financieroHoy.margenGananciaPorcentaje,
           vehiculosEnRuta: enRuta,
           mermasCount: 0 // Placeholder
         });
+
+        // Map trend data for chart
+        const chart = financieroSemana.tendenciaVentas.map((t: any) => ({
+          name: t.fecha,
+          ventas: t.total
+        }));
+        setChartData(chart);
+
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
       }
@@ -164,7 +178,7 @@ export default function Dashboard() {
         {/* Charts & Details */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
-            <SalesChart />
+            <SalesChart data={chartData} />
           </div>
 
           {/* Alerts Panel */}

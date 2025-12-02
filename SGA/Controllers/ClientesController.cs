@@ -22,6 +22,19 @@ public class ClientesController : ControllerBase
         return Ok(clientes);
     }
 
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Cliente>> ObtenerPorId(int id)
+    {
+        var cliente = await _clienteService.ObtenerClientePorIdAsync(id);
+
+        if (cliente == null)
+        {
+            return NotFound($"No se encontró el cliente con ID {id}.");
+        }
+
+        return Ok(cliente);
+    }
+
     [HttpPost]
     public async Task<ActionResult<Cliente>> Crear([FromBody] Cliente cliente)
     {
@@ -30,8 +43,15 @@ public class ClientesController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var nuevoCliente = await _clienteService.CrearClienteAsync(cliente);
-        return CreatedAtAction(nameof(ObtenerTodos), new { id = nuevoCliente.ClienteId }, nuevoCliente);
+        try
+        {
+            var nuevoCliente = await _clienteService.CrearClienteAsync(cliente);
+            return CreatedAtAction(nameof(ObtenerTodos), new { id = nuevoCliente.ClienteId }, nuevoCliente);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { mensaje = ex.Message });
+        }
     }
 
     [HttpPut("{id}")]
@@ -42,13 +62,38 @@ public class ClientesController : ControllerBase
             return BadRequest("El ID del cliente no coincide.");
         }
 
-        var clienteActualizado = await _clienteService.ActualizarClienteAsync(id, cliente);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            var clienteActualizado = await _clienteService.ActualizarClienteAsync(id, cliente);
+
+            if (clienteActualizado == null)
+            {
+                return NotFound($"No se encontró el cliente con ID {id}.");
+            }
+
+            return Ok(clienteActualizado);
+        }
+        catch (InvalidOperationException ex)
+        {
+             return Conflict(new { mensaje = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Eliminar(int id)
+    {
+        var eliminado = await _clienteService.EliminarClienteAsync(id);
         
-        if (clienteActualizado == null)
+        if (!eliminado)
         {
             return NotFound($"No se encontró el cliente con ID {id}.");
         }
 
-        return Ok(clienteActualizado);
+        return NoContent();
     }
 }
