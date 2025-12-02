@@ -10,6 +10,7 @@ public class DetalleVenta
 
     public int VentaId { get; set; }
     [ForeignKey("VentaId")]
+    [System.Text.Json.Serialization.JsonIgnore]
     public Venta? Venta { get; set; }
 
     public int ProductoId { get; set; }
