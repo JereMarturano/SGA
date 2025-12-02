@@ -2,6 +2,7 @@ export interface ReporteFinanciero {
     fechaInicio: string;
     fechaFin: string;
     totalVentas: number;
+    totalCostoMercaderia: number;
     totalGastos: number;
     gananciaNeta: number;
     margenGananciaPorcentaje: number;

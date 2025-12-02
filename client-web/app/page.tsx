@@ -132,6 +132,13 @@ export default function Dashboard() {
                 </div>
                 Simulación Ventas
               </Link>
+
+              <Link href="/gastos" className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3">
+                <div className="bg-white dark:bg-slate-600 p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
+                  <DollarSign size={20} className="text-red-500 dark:text-red-400" />
+                </div>
+                Gastos
+              </Link>
             </div>
           </div>
         </div>

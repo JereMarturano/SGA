@@ -9,9 +9,8 @@ public class GastoVehiculo
     [Key]
     public int GastoId { get; set; }
 
-    [Required]
-    public int VehiculoId { get; set; }
-
+    public int? VehiculoId { get; set; }
+    
     [ForeignKey("VehiculoId")]
     public Vehiculo? Vehiculo { get; set; }
 

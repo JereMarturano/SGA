@@ -9,6 +9,7 @@ public class ReporteFinancieroDTO
     
     // Resumen General
     public decimal TotalVentas { get; set; }
+    public decimal TotalCostoMercaderia { get; set; } // Costo de lo vendido (CMV)
     public decimal TotalGastos { get; set; }
     public decimal GananciaNeta { get; set; } // Ventas - Gastos
     public decimal MargenGananciaPorcentaje { get; set; }

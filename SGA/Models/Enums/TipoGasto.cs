@@ -7,5 +7,13 @@ public enum TipoGasto
     Peaje,
     Seguro,
     Patente,
+    
+    // Generales
+    Alquiler,
+    Servicios, // Luz, Agua, Internet
+    Sueldos,
+    Impuestos,
+    Marketing,
+    Insumos,
     Varios
 }

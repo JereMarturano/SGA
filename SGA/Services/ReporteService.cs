@@ -47,17 +47,23 @@ public class ReporteService : IReporteService
         var gastos = await queryGastos.ToListAsync();
 
         // 3. Procesar Datos
+        // 3. Procesar Datos
+        var totalCostoMercaderia = ventas
+            .SelectMany(v => v.Detalles)
+            .Sum(d => d.Cantidad * (d.Producto?.CostoUltimaCompra ?? 0));
+
         var reporte = new ReporteFinancieroDTO
         {
             FechaInicio = inicio,
             FechaFin = fin,
             TotalVentas = ventas.Sum(v => v.Total),
+            TotalCostoMercaderia = totalCostoMercaderia,
             TotalGastos = gastos.Sum(g => g.Monto),
             CantidadVentas = ventas.Count
         };
 
         // Cálculos derivados
-        reporte.GananciaNeta = reporte.TotalVentas - reporte.TotalGastos;
+        reporte.GananciaNeta = reporte.TotalVentas - reporte.TotalCostoMercaderia - reporte.TotalGastos;
         reporte.MargenGananciaPorcentaje = reporte.TotalVentas > 0 
             ? (reporte.GananciaNeta / reporte.TotalVentas) * 100 
             : 0;

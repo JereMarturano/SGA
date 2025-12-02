@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import SalesChart from '@/components/SalesChart';
-import { PieChart, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, Users, CreditCard, DollarSign, Wallet } from 'lucide-react';
+import { PieChart, TrendingUp, Calendar, ArrowUpRight, ArrowDownRight, Users, CreditCard, DollarSign, Wallet, Package, Activity } from 'lucide-react';
 import { fetchReporteFinanciero, ReporteFinanciero, VentaPorMetodoPago } from '@/lib/api-reportes';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -94,20 +94,37 @@ export default function EstadisticasPage() {
                 ) : (
                     <>
                         {/* Overview Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        {/* Overview Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                            {/* 1. Ventas Totales */}
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Ventas Totales</p>
                                 <div className="flex items-end justify-between">
                                     <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
                                         $ {reporte.totalVentas.toLocaleString('es-AR')}
                                     </h3>
-                                    <span className="flex items-center text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg" title="Margen de ganancia">
-                                        <ArrowUpRight size={16} /> {reporte.margenGananciaPorcentaje.toFixed(1)}%
+                                    <span className="flex items-center text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">
+                                        <ArrowUpRight size={16} />
                                     </span>
                                 </div>
                             </div>
+
+                            {/* 2. Costo Mercadería */}
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Gastos</p>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Costo Mercadería (CMV)</p>
+                                <div className="flex items-end justify-between">
+                                    <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
+                                        $ {(reporte.totalCostoMercaderia || 0).toLocaleString('es-AR')}
+                                    </h3>
+                                    <span className="flex items-center text-orange-500 text-sm font-bold bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-lg">
+                                        <Package size={16} />
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* 3. Total Gastos */}
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Gastos Operativos</p>
                                 <div className="flex items-end justify-between">
                                     <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
                                         $ {reporte.totalGastos.toLocaleString('es-AR')}
@@ -117,8 +134,23 @@ export default function EstadisticasPage() {
                                     </span>
                                 </div>
                             </div>
+
+                            {/* 4. Margen Neto */}
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 border-l-4 border-l-blue-500">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Margen Neto</p>
+                                <div className="flex items-end justify-between">
+                                    <h3 className={`text-2xl lg:text-3xl font-black ${reporte.gananciaNeta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        $ {reporte.gananciaNeta.toLocaleString('es-AR')}
+                                    </h3>
+                                    <span className={`flex items-center text-sm font-bold px-2 py-1 rounded-lg ${reporte.gananciaNeta >= 0 ? 'text-green-500 bg-green-50 dark:bg-green-900/20' : 'text-red-500 bg-red-50 dark:bg-red-900/20'}`}>
+                                        <Activity size={16} className="mr-1" /> {reporte.margenGananciaPorcentaje.toFixed(1)}%
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* 5. Ticket Promedio */}
                             <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Promedio de Venta</p>
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Ticket Promedio</p>
                                 <div className="flex items-end justify-between">
                                     <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
                                         $ {reporte.ticketPromedio.toLocaleString('es-AR')}
@@ -128,14 +160,16 @@ export default function EstadisticasPage() {
                                     </span>
                                 </div>
                             </div>
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 border-l-4 border-l-red-500">
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Deuda Clientes Total</p>
+
+                            {/* 6. Deuda Total */}
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Deuda Global Clientes</p>
                                 <div className="flex items-end justify-between">
                                     <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
                                         $ {(reporte.deudaTotalActual || 0).toLocaleString('es-AR')}
                                     </h3>
                                     <span className="flex items-center text-red-500 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
-                                        <Wallet size={16} /> Global
+                                        <Wallet size={16} />
                                     </span>
                                 </div>
                             </div>
