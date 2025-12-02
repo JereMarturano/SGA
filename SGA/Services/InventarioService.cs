@@ -399,4 +399,46 @@ public class InventarioService : IInventarioService
             throw;
         }
     }
+    public async Task<ResumenCajaDTO> ObtenerResumenCajaAsync(int vehiculoId)
+    {
+        // 1. Encontrar la última carga inicial (Inicio de Sesión de Ruta)
+        var ultimaCarga = await _context.MovimientosStock
+            .Where(m => m.VehiculoId == vehiculoId && m.TipoMovimiento == TipoMovimientoStock.CargaInicial)
+            .OrderByDescending(m => m.Fecha)
+            .FirstOrDefaultAsync();
+
+        // Si no hay carga, asumimos inicio del día (fallback)
+        var fechaInicio = ultimaCarga?.Fecha ?? DateTime.UtcNow.Date;
+
+        // 2. Obtener todas las ventas desde esa fecha para este vehículo
+        var ventas = await _context.Ventas
+            .Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fechaInicio)
+            .ToListAsync();
+
+        // 3. Calcular totales
+        var resumen = new ResumenCajaDTO
+        {
+            TotalVentas = ventas.Sum(v => v.Total),
+            DesglosePorMetodoPago = ventas
+                .GroupBy(v => v.MetodoPago)
+                .Select(g => new MetodoPagoResumenDTO
+                {
+                    MetodoPago = g.Key.ToString(),
+                    Total = g.Sum(v => v.Total),
+                    CantidadVentas = g.Count()
+                })
+                .ToList()
+        };
+
+        // 4. Calcular Dinero en Caja Esperado (Solo Efectivo)
+        // Asumimos que Efectivo es el único que suma a la caja física.
+        // Transferencia y CtaCte no suman billetes.
+        var efectivo = resumen.DesglosePorMetodoPago.FirstOrDefault(x => x.MetodoPago == MetodoPago.Efectivo.ToString());
+        resumen.DineroEnCajaEsperado = efectivo?.Total ?? 0;
+        
+        // Total Esperado es el total de ventas (concepto general)
+        resumen.TotalEsperado = resumen.TotalVentas;
+
+        return resumen;
+    }
 }

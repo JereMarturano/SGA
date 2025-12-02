@@ -166,6 +166,19 @@ public class InventarioController : ControllerBase
         var vehiculos = await _context.Vehiculos.ToListAsync();
         return Ok(vehiculos);
     }
+    [HttpGet("resumen-caja/{vehiculoId}")]
+    public async Task<ActionResult<ResumenCajaDTO>> GetResumenCaja(int vehiculoId)
+    {
+        try
+        {
+            var resumen = await _inventarioService.ObtenerResumenCajaAsync(vehiculoId);
+            return Ok(resumen);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al obtener resumen de caja.", error = ex.Message });
+        }
+    }
 }
 
 public class CerrarRepartoDTO
