@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, Truck, User, ShoppingCart, DollarSign, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
-import axios from 'axios';
+import api from '@/lib/axios';
 
 // Interfaces
 interface Vehiculo {
@@ -45,15 +45,13 @@ export default function SimulacionVentasPage() {
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-    const API_URL = 'http://localhost:5035/api';
-
     useEffect(() => {
         const fetchData = async () => {
             try {
                 const [vehiculosRes, clientesRes, productosRes] = await Promise.all([
-                    axios.get(`${API_URL}/vehiculos`),
-                    axios.get(`${API_URL}/clientes`),
-                    axios.get(`${API_URL}/productos`)
+                    api.get('/vehiculos'),
+                    api.get('/clientes'),
+                    api.get('/productos')
                 ]);
 
                 setVehiculos(vehiculosRes.data);
@@ -101,7 +99,7 @@ export default function SimulacionVentasPage() {
                 ]
             };
 
-            await axios.post(`${API_URL}/ventas`, payload);
+            await api.post('/ventas', payload);
 
             setMessage({ type: 'success', text: 'Venta simulada registrada exitosamente.' });
 
