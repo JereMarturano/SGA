@@ -14,7 +14,7 @@ builder.Services.AddScoped<IInventarioService, InventarioService>();
 builder.Services.AddScoped<IVentaService, VentaService>();
 builder.Services.AddScoped<IReporteService, ReporteService>();
 builder.Services.AddScoped<INotificacionService, NotificacionService>();
-builder.Services.AddScoped<IEmpleadoService, EmpleadoService>();
+builder.Services.AddScoped<IAlertaService, AlertaService>();
 builder.Services.AddControllers();
 
 builder.Services.AddCors(options =>

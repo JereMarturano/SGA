@@ -17,7 +17,16 @@ export default function Dashboard() {
     mermasCount: 0
   });
 
-  const [chartData, setChartData] = useState<{ name: string; ventas: number }[]>([]);
+  interface Alerta {
+    id: number;
+    titulo: string;
+    mensaje: string;
+    tipo: string;
+    fecha: string;
+    icono: string;
+  }
+
+  const [alertas, setAlertas] = useState<Alerta[]>([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -61,7 +70,17 @@ export default function Dashboard() {
       }
     };
 
+    const fetchAlertas = async () => {
+      try {
+        const res = await api.get('/alertas');
+        setAlertas(res.data);
+      } catch (error) {
+        console.error('Error fetching alertas:', error);
+      }
+    };
+
     fetchStats();
+    fetchAlertas();
   }, []);
 
   return (
@@ -163,34 +182,36 @@ export default function Dashboard() {
           </div>
 
           {/* Alerts Panel */}
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col h-full">
+          <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col h-full max-h-[500px]">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-slate-800 dark:text-white">Alertas Operativas</h3>
-              <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-full animate-pulse">2 Nuevas</span>
+              {alertas.length > 0 && (
+                 <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-full animate-pulse">{alertas.length} Nuevas</span>
+              )}
             </div>
 
             <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              <div className="flex gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-red-200 dark:hover:border-red-900/50 transition-all cursor-pointer group">
-                <div className="mt-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl text-red-500 shadow-sm group-hover:scale-110 transition-transform">
-                  <Package size={20} />
-                </div>
-                <div>
-                  <p className="font-bold text-slate-800 dark:text-white text-sm">Stock Crítico: Fiorino</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Quedan menos de 10 maples de Huevo Grande.</p>
-                  <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wide">Hace 15 min</p>
-                </div>
-              </div>
-
-              <div className="flex gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-yellow-200 dark:hover:border-yellow-900/50 transition-all cursor-pointer group">
-                <div className="mt-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl text-yellow-500 shadow-sm group-hover:scale-110 transition-transform">
-                  <Truck size={20} />
-                </div>
-                <div>
-                  <p className="font-bold text-slate-800 dark:text-white text-sm">Mantenimiento Requerido</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">Boxer debe realizar cambio de aceite en 500km.</p>
-                  <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wide">Hace 2 horas</p>
-                </div>
-              </div>
+              {alertas.length === 0 ? (
+                 <p className="text-sm text-slate-500 text-center py-4">No hay alertas recientes.</p>
+              ) : (
+                alertas.map((alerta) => (
+                  <div key={alerta.id} className={`flex gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 transition-all cursor-pointer group ${alerta.tipo === 'Warning' ? 'hover:border-red-200 dark:hover:border-red-900/50' : 'hover:border-blue-200 dark:hover:border-blue-900/50'}`}>
+                    <div className={`mt-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm group-hover:scale-110 transition-transform ${alerta.tipo === 'Warning' ? 'text-red-500' : 'text-blue-500'}`}>
+                      {alerta.icono === 'Package' ? <Package size={20} /> :
+                       alerta.icono === 'Truck' ? <Truck size={20} /> :
+                       alerta.icono === 'DollarSign' ? <DollarSign size={20} /> :
+                       <TrendingUp size={20} />}
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800 dark:text-white text-sm">{alerta.titulo}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{alerta.mensaje}</p>
+                      <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wide">
+                        {new Date(alerta.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
