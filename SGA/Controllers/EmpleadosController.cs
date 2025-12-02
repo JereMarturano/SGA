@@ -28,6 +28,24 @@ public class EmpleadosController : ControllerBase
         return _context.Usuarios.ToList();
     }
 
+    [HttpPost]
+    public async Task<ActionResult<Usuario>> CreateEmpleado([FromBody] CreateEmpleadoDto dto)
+    {
+        try
+        {
+            var empleado = await _empleadoService.CreateEmpleadoAsync(dto);
+            return CreatedAtAction(nameof(GetEmpleados), new { id = empleado.UsuarioId }, empleado);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error interno", error = ex.Message });
+        }
+    }
+
     // POST: api/empleados/{id}/faltas
     [HttpPost("{id}/faltas")]
     public async Task<ActionResult<Falta>> RegistrarFalta(int id, [FromBody] RegistrarFaltaDto dto)

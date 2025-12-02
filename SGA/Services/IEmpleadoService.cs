@@ -12,6 +12,7 @@ public interface IEmpleadoService
     Task<EmpleadoEstadisticasDto> GetEstadisticasAsync(int usuarioId, DateTime desde, DateTime hasta);
 
     // Management
+    Task<Usuario> CreateEmpleadoAsync(Models.DTOs.CreateEmpleadoDto dto);
     Task UpdateEmpleadoAsync(int usuarioId, Models.DTOs.UpdateEmpleadoDTO dto);
 }
 

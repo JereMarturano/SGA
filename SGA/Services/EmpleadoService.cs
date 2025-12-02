@@ -115,6 +115,28 @@ public class EmpleadoService : IEmpleadoService
         return stats;
     }
 
+    public async Task<Usuario> CreateEmpleadoAsync(CreateEmpleadoDto dto)
+    {
+        if (!Enum.TryParse<RolUsuario>(dto.Role, out var roleEnum))
+        {
+            throw new ArgumentException($"Rol inválido: {dto.Role}");
+        }
+
+        var empleado = new Usuario
+        {
+            Nombre = dto.Nombre,
+            Rol = roleEnum,
+            ContrasenaHash = dto.Contrasena, // Storing plain text as per current codebase convention
+            Telefono = dto.Telefono,
+            FechaIngreso = dto.FechaIngreso,
+            Estado = "Activo"
+        };
+
+        _context.Usuarios.Add(empleado);
+        await _context.SaveChangesAsync();
+        return empleado;
+    }
+
     public async Task UpdateEmpleadoAsync(int usuarioId, UpdateEmpleadoDTO dto)
     {
         var empleado = await _context.Usuarios.FindAsync(usuarioId);
