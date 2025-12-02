@@ -18,9 +18,18 @@ public class ReporteFinancieroDTO
     public List<VentaPorProductoDTO> VentasPorProducto { get; set; } = new();
     public List<GastoPorTipoDTO> GastosPorTipo { get; set; } = new();
     
+    // Metrica diaria
+    public List<VentaDiariaDTO> VentasPorDia { get; set; } = new();
+
     // Métricas Operativas
     public int CantidadVentas { get; set; }
     public decimal TicketPromedio { get; set; }
+}
+
+public class VentaDiariaDTO
+{
+    public DateTime Fecha { get; set; }
+    public decimal Total { get; set; }
 }
 
 public class VentaPorMetodoPagoDTO

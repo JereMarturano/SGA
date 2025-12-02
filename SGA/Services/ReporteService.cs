@@ -103,6 +103,25 @@ public class ReporteService : IReporteService
             .OrderByDescending(x => x.Total)
             .ToList();
 
+        // Por Dia (Tendencia)
+        var ventasPorDia = new List<VentaDiariaDTO>();
+        // Iteramos por cada dia en el rango para asegurar que tenemos un punto de dato por dia, incluso si es 0.
+        // Convertimos a Date para iterar sin horas
+        for (var day = inicio.Date; day <= fin.Date; day = day.AddDays(1))
+        {
+            // Filtramos ventas que ocurrieron en ese dia (comparando fecha local o UTC segun corresponda, aqui simplificamos a Date)
+            var totalDia = ventas
+                .Where(v => v.Fecha.Date == day)
+                .Sum(v => v.Total);
+
+            ventasPorDia.Add(new VentaDiariaDTO
+            {
+                Fecha = day,
+                Total = totalDia
+            });
+        }
+        reporte.VentasPorDia = ventasPorDia;
+
         return reporte;
     }
     public async Task<List<StockEnCalleDTO>> ObtenerStockEnCalleAsync()
