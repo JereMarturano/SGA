@@ -38,16 +38,24 @@ public class VentaService : IVentaService
             await _context.SaveChangesAsync(); // Para obtener el ID
 
             decimal totalVenta = 0;
+            var detallesTexto = new List<string>();
 
             foreach (var item in request.Items)
             {
                 // 2. Validar Stock
                 var stockVehiculo = await _context.StockVehiculos
+                    .Include(s => s.Producto)
                     .FirstOrDefaultAsync(s => s.VehiculoId == request.VehiculoId && s.ProductoId == item.ProductoId);
 
                 if (stockVehiculo == null || stockVehiculo.Cantidad < item.Cantidad)
                 {
                     throw new InvalidOperationException($"Stock insuficiente para el producto ID {item.ProductoId} en el vehículo.");
+                }
+
+                // Recolectar info para notificación
+                if (stockVehiculo.Producto != null)
+                {
+                    detallesTexto.Add($"{item.Cantidad} {stockVehiculo.Producto.UnidadDeMedida} de {stockVehiculo.Producto.Nombre}");
                 }
 
                 // 3. Crear Detalle de Venta
@@ -102,8 +110,19 @@ public class VentaService : IVentaService
                 $"Venta registrada por ${venta.Total} (Desc: {venta.DescuentoPorcentaje}%)"
             );
 
+            // Obtener Nombres para el mensaje detallado
+            var usuario = await _context.Usuarios.FindAsync(request.UsuarioId);
+            var cliente = await _context.Clientes.FindAsync(request.ClienteId);
+
+            var nombreUsuario = usuario?.Nombre ?? "Usuario Desconocido";
+            var nombreCliente = cliente?.NombreCompleto ?? "Cliente Desconocido";
+            var listaProductos = string.Join(", ", detallesTexto);
+
+            // "Juan pablo vendio tantos maples/caja/unidades a cliente tanto, por el valor de tanto"
+            var mensajeNotificacion = $"{nombreUsuario} vendió {listaProductos} a {nombreCliente}, por el valor de ${venta.Total}";
+
             await _notificacionService.CrearNotificacionAsync(
-                $"Nueva venta registrada por ${venta.Total}",
+                mensajeNotificacion,
                 "Venta", 
                 request.UsuarioId
             );

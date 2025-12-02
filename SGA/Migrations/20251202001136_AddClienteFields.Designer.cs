@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SGA.Data;
 
@@ -11,9 +12,11 @@ using SGA.Data;
 namespace SGA.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251202001136_AddClienteFields")]
+    partial class AddClienteFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -185,35 +188,6 @@ namespace SGA.Migrations
                     b.HasIndex("VentaId");
 
                     b.ToTable("DetallesVenta");
-                });
-
-            modelBuilder.Entity("SGA.Models.Falta", b =>
-                {
-                    b.Property<int>("FaltaId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FaltaId"));
-
-                    b.Property<bool>("EsJustificada")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Motivo")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("UsuarioId")
-                        .HasColumnType("int");
-
-                    b.HasKey("FaltaId");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("Faltas");
                 });
 
             modelBuilder.Entity("SGA.Models.GastoVehiculo", b =>
@@ -607,17 +581,6 @@ namespace SGA.Migrations
                     b.Navigation("Producto");
 
                     b.Navigation("Venta");
-                });
-
-            modelBuilder.Entity("SGA.Models.Falta", b =>
-                {
-                    b.HasOne("SGA.Models.Usuario", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("SGA.Models.GastoVehiculo", b =>

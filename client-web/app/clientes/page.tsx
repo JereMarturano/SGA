@@ -5,24 +5,13 @@ import Modal from '@/components/Modal';
 import { User, Plus, Edit2, DollarSign, ShoppingBag, CreditCard, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 
-interface Client {
-  id: number;
-  name: string;
-  address: string;
-  phone: string;
-  debt: number;
-  totalSales: number;
-  lastPurchase: string;
-  paymentMethod: 'Efectivo' | 'Transferencia' | 'Cheque' | 'Cuenta Corriente';
-  status: 'Activo' | 'Moroso' | 'Inactivo';
-}
-
 import api from '@/lib/axios';
 import { useEffect } from 'react';
 
 interface Client {
   id: number;
   name: string;
+  dni: string;
   address: string;
   phone: string;
   debt: number;
@@ -43,14 +32,15 @@ export default function ClientesPage() {
       const response = await api.get('/clientes');
       const data = response.data.map((c: any) => ({
         id: c.clienteId,
-        name: c.nombre,
+        name: c.nombreCompleto || c.nombre,
+        dni: c.dni || '00000000',
         address: c.direccion,
-        phone: 'N/A', // Not in DB
-        debt: 0, // Not in DB
-        totalSales: 0, // Not in DB
-        lastPurchase: new Date().toISOString(), // Default
-        paymentMethod: 'Efectivo', // Default
-        status: 'Activo', // Default
+        phone: c.telefono || 'N/A',
+        debt: c.deuda || 0,
+        totalSales: c.ventasTotales || 0,
+        lastPurchase: c.ultimaCompra ? c.ultimaCompra.split('T')[0] : new Date().toISOString().split('T')[0],
+        paymentMethod: c.metodoPagoPreferido !== null ? ['Efectivo', 'Transferencia', 'Cheque', 'Cuenta Corriente', 'Tarjeta'][c.metodoPagoPreferido] : 'Efectivo',
+        status: c.estado || 'Activo',
       }));
       setClients(data);
     } catch (error) {
@@ -79,10 +69,44 @@ export default function ClientesPage() {
     setCurrentClient(null);
   };
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    alert('Edición de clientes no implementada en backend aún.');
-    handleCloseModal();
+    const formData = new FormData(e.currentTarget);
+
+    // Convert payment method string to enum value for backend
+    const paymentMethodStr = formData.get('paymentMethod') as string;
+    const paymentMethods = ['Efectivo', 'Transferencia', 'Cheque', 'Cuenta Corriente', 'Tarjeta'];
+    const paymentMethodIdx = paymentMethods.indexOf(paymentMethodStr);
+
+    const clientData = {
+      clienteId: currentClient ? currentClient.id : 0,
+      nombreCompleto: formData.get('name'),
+      dni: formData.get('dni') || '00000000',
+      direccion: formData.get('address'),
+      telefono: formData.get('phone'),
+      estado: formData.get('status'),
+      deuda: parseFloat(formData.get('debt') as string) || 0,
+      ventasTotales: parseFloat(formData.get('totalSales') as string) || 0,
+      ultimaCompra: formData.get('lastPurchase') ? new Date(formData.get('lastPurchase') as string).toISOString() : null,
+      metodoPagoPreferido: paymentMethodIdx >= 0 ? paymentMethodIdx : 0,
+      email: '', // Not in form
+      fechaCumpleanios: new Date().toISOString(), // Default
+      requiereFactura: false
+    };
+
+    try {
+      if (currentClient) {
+        await api.put(`/clientes/${currentClient.id}`, clientData);
+      } else {
+        await api.post('/clientes', clientData);
+      }
+
+      fetchClients();
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error saving client:', error);
+      alert('Error al guardar cliente. Verifique los datos.');
+    }
   };
 
   return (
@@ -148,6 +172,10 @@ export default function ClientesPage() {
                   <span className="font-medium text-slate-800 dark:text-white">{client.phone}</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-600 dark:text-slate-300">DNI</span>
+                  <span className="font-medium text-slate-800 dark:text-white">{client.dni}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-600 dark:text-slate-300">Última Compra</span>
                   <span className="font-medium text-slate-800 dark:text-white">{new Date(client.lastPurchase).toLocaleDateString()}</span>
                 </div>
@@ -180,6 +208,11 @@ export default function ClientesPage() {
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nombre / Razón Social</label>
             <input name="name" defaultValue={currentClient?.name} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">DNI</label>
+            <input name="dni" defaultValue={currentClient?.dni} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
           </div>
 
           <div className="space-y-1">
