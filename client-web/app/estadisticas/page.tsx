@@ -132,7 +132,7 @@ export default function EstadisticasPage() {
                                 <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Deuda Clientes Total</p>
                                 <div className="flex items-end justify-between">
                                     <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
-                                        $ {reporte.deudaTotalActual.toLocaleString('es-AR')}
+                                        $ {(reporte.deudaTotalActual || 0).toLocaleString('es-AR')}
                                     </h3>
                                     <span className="flex items-center text-red-500 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
                                         <Wallet size={16} /> Global
@@ -203,7 +203,7 @@ export default function EstadisticasPage() {
                                     <h3 className="text-lg font-bold text-slate-800 dark:text-white">Métodos de Pago</h3>
                                 </div>
                                 <div className="space-y-4">
-                                    {reporte.ventasPorMetodoPago.map((metodo, idx) => {
+                                    {(reporte.ventasPorMetodoPago || []).map((metodo, idx) => {
                                         const percentage = reporte.totalVentas > 0 ? (metodo.total / reporte.totalVentas) * 100 : 0;
                                         return (
                                             <div key={metodo.metodoPago} className="space-y-1">
@@ -240,7 +240,7 @@ export default function EstadisticasPage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {reporte.topClientes.map((cliente) => (
+                                            {(reporte.topClientes || []).map((cliente) => (
                                                 <tr key={cliente.clienteId} className="bg-white dark:bg-slate-800 border-b dark:border-slate-700">
                                                     <td className="px-3 py-3 font-medium text-slate-900 dark:text-white truncate max-w-[150px]">
                                                         {cliente.nombreCliente}
@@ -251,7 +251,7 @@ export default function EstadisticasPage() {
                                                     </td>
                                                 </tr>
                                             ))}
-                                            {reporte.topClientes.length === 0 && (
+                                            {(reporte.topClientes || []).length === 0 && (
                                                  <tr>
                                                     <td colSpan={2} className="px-3 py-4 text-center text-xs">No hay datos disponibles.</td>
                                                 </tr>
@@ -270,7 +270,7 @@ export default function EstadisticasPage() {
                                     <h3 className="text-lg font-bold text-slate-800 dark:text-white">Ventas por Vendedor</h3>
                                 </div>
                                 <div className="space-y-4">
-                                     {reporte.ventasPorVendedor.map((vendedor, idx) => {
+                                     {(reporte.ventasPorVendedor || []).map((vendedor, idx) => {
                                         const percentage = reporte.totalVentas > 0 ? (vendedor.totalVendido / reporte.totalVentas) * 100 : 0;
                                         return (
                                             <div key={vendedor.usuarioId} className="space-y-1">
@@ -287,7 +287,7 @@ export default function EstadisticasPage() {
                                             </div>
                                         );
                                     })}
-                                    {reporte.ventasPorVendedor.length === 0 && (
+                                    {(reporte.ventasPorVendedor || []).length === 0 && (
                                         <p className="text-center text-slate-500 text-sm">No hay datos disponibles.</p>
                                     )}
                                 </div>
