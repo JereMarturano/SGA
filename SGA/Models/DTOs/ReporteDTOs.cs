@@ -19,6 +19,9 @@ public class ReporteFinancieroDTO
     public List<VentaPorFechaDTO> VentasPorFecha { get; set; } = new();
     public List<GastoPorTipoDTO> GastosPorTipo { get; set; } = new();
     
+    // Metrica diaria
+    public List<VentaDiariaDTO> VentasPorDia { get; set; } = new();
+
     // Métricas Operativas
     public int CantidadVentas { get; set; }
     public decimal TicketPromedio { get; set; }
@@ -32,6 +35,12 @@ public class ReporteFinancieroDTO
 public class VentaDiariaDTO
 {
     public string Fecha { get; set; } = string.Empty; // "Lun", "Mar", or "2023-10-25"
+    public decimal Total { get; set; }
+}
+
+public class VentaDiariaDTO
+{
+    public DateTime Fecha { get; set; }
     public decimal Total { get; set; }
 }
 

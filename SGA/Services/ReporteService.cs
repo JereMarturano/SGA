@@ -115,27 +115,24 @@ public class ReporteService : IReporteService
             .OrderByDescending(x => x.Total)
             .ToList();
 
-        // 5. Nuevas Métricas para Dashboard
-        
-        // Total Huevos Vendidos (Unidades)
-        reporte.TotalHuevosVendidos = (int)detallesPlanos
-            .Where(d => d.Producto != null && d.Producto.EsHuevo)
-            .Sum(d => d.Cantidad);
+        // Por Dia (Tendencia)
+        var ventasPorDia = new List<VentaDiariaDTO>();
+        // Iteramos por cada dia en el rango para asegurar que tenemos un punto de dato por dia, incluso si es 0.
+        // Convertimos a Date para iterar sin horas
+        for (var day = inicio.Date; day <= fin.Date; day = day.AddDays(1))
+        {
+            // Filtramos ventas que ocurrieron en ese dia (comparando fecha local o UTC segun corresponda, aqui simplificamos a Date)
+            var totalDia = ventas
+                .Where(v => v.Fecha.Date == day)
+                .Sum(v => v.Total);
 
-        // Clientes Activos (Unique IDs in this period)
-        reporte.ClientesActivos = ventas.Select(v => v.ClienteId).Distinct().Count();
-
-        // Tendencia de Ventas (Agrupado por día)
-        // Rellenar días con 0 si no hay ventas es ideal para gráficos, pero por ahora solo agrupamos lo existente
-        reporte.TendenciaVentas = ventas
-            .GroupBy(v => v.Fecha.Date)
-            .OrderBy(g => g.Key)
-            .Select(g => new VentaDiariaDTO
+            ventasPorDia.Add(new VentaDiariaDTO
             {
-                Fecha = g.Key.ToString("dd/MM"), // Format: 25/10
-                Total = g.Sum(v => v.Total)
-            })
-            .ToList();
+                Fecha = day,
+                Total = totalDia
+            });
+        }
+        reporte.VentasPorDia = ventasPorDia;
 
         return reporte;
     }
