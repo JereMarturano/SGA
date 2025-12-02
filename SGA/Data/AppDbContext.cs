@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<Compra> Compras { get; set; }
     public DbSet<DetalleCompra> DetallesCompra { get; set; }
     public DbSet<Falta> Faltas { get; set; }
+    public DbSet<Asistencia> Asistencias { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
