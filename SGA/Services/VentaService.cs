@@ -117,30 +117,38 @@ public class VentaService : IVentaService
             await _context.SaveChangesAsync();
 
             // Registrar Notificación y Auditoría
-            await _notificacionService.RegistrarAccionAsync(
-                "Registrar Venta", 
-                "Venta", 
-                venta.VentaId.ToString(), 
-                request.UsuarioId, 
-                $"Venta registrada por ${venta.Total} (Desc: {venta.DescuentoPorcentaje}%)"
-            );
+            try
+            {
+                await _notificacionService.RegistrarAccionAsync(
+                    "Registrar Venta", 
+                    "Venta", 
+                    venta.VentaId.ToString(), 
+                    request.UsuarioId, 
+                    $"Venta registrada por ${venta.Total} (Desc: {venta.DescuentoPorcentaje}%)"
+                );
 
-            // Obtener Nombres para el mensaje detallado
-            var usuario = await _context.Usuarios.FindAsync(request.UsuarioId);
-            var cliente = await _context.Clientes.FindAsync(request.ClienteId);
+                // Obtener Nombres para el mensaje detallado
+                var usuario = await _context.Usuarios.FindAsync(request.UsuarioId);
+                var cliente = await _context.Clientes.FindAsync(request.ClienteId);
 
-            var nombreUsuario = usuario?.Nombre ?? "Usuario Desconocido";
-            var nombreCliente = cliente?.NombreCompleto ?? "Cliente Desconocido";
-            var listaProductos = string.Join(", ", detallesTexto);
+                var nombreUsuario = usuario?.Nombre ?? "Usuario Desconocido";
+                var nombreCliente = cliente?.NombreCompleto ?? "Cliente Desconocido";
+                var listaProductos = string.Join(", ", detallesTexto);
 
-            // "Juan pablo vendio tantos maples/caja/unidades a cliente tanto, por el valor de tanto"
-            var mensajeNotificacion = $"{nombreUsuario} vendió {listaProductos} a {nombreCliente}, por el valor de ${venta.Total}";
+                // "Juan pablo vendio tantos maples/caja/unidades a cliente tanto, por el valor de tanto"
+                var mensajeNotificacion = $"{nombreUsuario} vendió {listaProductos} a {nombreCliente}, por el valor de ${venta.Total}";
 
-            await _notificacionService.CrearNotificacionAsync(
-                mensajeNotificacion,
-                "Venta", 
-                request.UsuarioId
-            );
+                await _notificacionService.CrearNotificacionAsync(
+                    mensajeNotificacion,
+                    "Venta", 
+                    request.UsuarioId
+                );
+            }
+            catch (Exception ex)
+            {
+                // Log warning but don't fail the transaction just for notification
+                Console.WriteLine($"[WARNING] Failed to create notification: {ex.Message}");
+            }
 
             await transaction.CommitAsync();
 

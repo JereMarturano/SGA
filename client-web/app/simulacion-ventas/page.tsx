@@ -60,6 +60,10 @@ export default function SimulacionVentasPage() {
     const [metodoPago, setMetodoPago] = useState<number>(0); // 0: Efectivo, 3: Cta Cte
     const [fechaVencimiento, setFechaVencimiento] = useState<string>('');
 
+    // Stock Management
+    const [vehicleStock, setVehicleStock] = useState<Map<number, number>>(new Map());
+    const [loadingStock, setLoadingStock] = useState(false);
+
     // Status states
     const [submitting, setSubmitting] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -91,6 +95,46 @@ export default function SimulacionVentasPage() {
 
         fetchData();
     }, []);
+
+    // Fetch stock when vehicle changes
+    useEffect(() => {
+        if (!selectedVehiculo) {
+            setVehicleStock(new Map());
+            return;
+        }
+
+        const fetchStock = async () => {
+            setLoadingStock(true);
+            try {
+                const res = await api.get(`/inventario/stock-vehiculo/${selectedVehiculo}`);
+                const stockMap = new Map<number, number>();
+                res.data.forEach((item: any) => {
+                    if (item.cantidad > 0) {
+                        stockMap.set(item.productoId, item.cantidad);
+                    }
+                });
+                setVehicleStock(stockMap);
+
+                // Reset selected product if not in new stock
+                if (selectedProducto && !stockMap.has(Number(selectedProducto))) {
+                    setSelectedProducto('');
+                }
+            } catch (error) {
+                console.error('Error fetching vehicle stock:', error);
+                setMessage({ type: 'error', text: 'Error al cargar el stock del vehículo.' });
+            } finally {
+                setLoadingStock(false);
+            }
+        };
+
+        fetchStock();
+    }, [selectedVehiculo, selectedProducto]);
+
+    // Filter available products based on stock
+    const availableProducts = useMemo(() => {
+        if (!selectedVehiculo) return [];
+        return productos.filter(p => vehicleStock.has(p.productoId));
+    }, [productos, vehicleStock, selectedVehiculo]);
 
     // Filtered Clients
     const filteredClientes = useMemo(() => {
@@ -141,23 +185,52 @@ export default function SimulacionVentasPage() {
 
     const handlePreSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        console.log('handlePreSubmit triggered');
         setMessage(null);
 
+        console.log('Form Data:', {
+            selectedVehiculo,
+            selectedCliente,
+            selectedProducto,
+            cantidad,
+            precio,
+            metodoPago,
+            fechaVencimiento
+        });
+
         if (!selectedVehiculo || !selectedCliente || !selectedProducto || !cantidad || !precio) {
+            console.log('Validation failed: Missing fields');
             setMessage({ type: 'error', text: 'Por favor complete todos los campos requeridos.' });
             return;
         }
 
         if (metodoPago === 3 && !fechaVencimiento) {
+            console.log('Validation failed: Missing due date for Cta Cte');
             setMessage({ type: 'error', text: 'Debe indicar una fecha de pago para Cuenta Corriente.' });
             return;
         }
 
         if (!validatePrice()) {
+            console.log('Validation failed: Price validation');
             setMessage({ type: 'error', text: 'El precio de venta es menor o igual al costo de compra. Verifique el precio.' });
             return;
         }
 
+        // Validate Stock
+        const { totalUnits } = calculateTotals();
+        const currentStock = vehicleStock.get(Number(selectedProducto)) || 0;
+        console.log('Stock Validation:', { totalUnits, currentStock });
+
+        if (totalUnits > currentStock) {
+            const currentStockMaples = (currentStock / 30).toFixed(1);
+            setMessage({
+                type: 'error',
+                text: `Stock insuficiente. Disponible: ${currentStockMaples} maples (${currentStock} huevos).`
+            });
+            return;
+        }
+
+        console.log('Opening Confirm Modal');
         setShowConfirmModal(true);
     };
 
@@ -171,7 +244,7 @@ export default function SimulacionVentasPage() {
 
             const payload = {
                 clienteId: selectedCliente?.clienteId,
-                usuarioId: 1, // Hardcoded Admin
+                usuarioId: 3, // Hardcoded Admin (ID 3)
                 vehiculoId: Number(selectedVehiculo),
                 metodoPago: Number(metodoPago),
                 fecha: dateTime.toISOString(),
@@ -340,15 +413,17 @@ export default function SimulacionVentasPage() {
                                     className="w-full pl-10 p-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none font-medium"
                                     required
                                 >
-                                    <option value="">Seleccionar Producto</option>
-                                    {productos.map(p => (
-                                        <option key={p.productoId} value={p.productoId}>{p.nombre}</option>
+                                    <option value="">{loadingStock ? 'Cargando stock...' : 'Seleccionar Producto'}</option>
+                                    {availableProducts.map(p => (
+                                        <option key={p.productoId} value={p.productoId}>
+                                            {p.nombre} (Disp: {Math.floor((vehicleStock.get(p.productoId) || 0) / 30)} maples)
+                                        </option>
                                     ))}
                                 </select>
                             </div>
                             {selectedProdData && selectedProdData.costoUltimaCompra > 0 && (
                                 <p className="text-xs text-slate-500 pl-2">
-                                    Costo ref: ${selectedProdData.costoUltimaCompra.toFixed(2)} / unidad
+                                    Costo ref ({unitType}): ${(selectedProdData.costoUltimaCompra * UNIT_FACTORS[unitType]).toFixed(2)} (+10% ganancia)
                                 </p>
                             )}
                         </div>
