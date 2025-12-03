@@ -488,13 +488,20 @@ export default function SimulacionVentasPage() {
                         {/* Método de Pago */}
                         <div className="space-y-4">
                             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">Método de Pago</label>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <button
                                     type="button"
                                     onClick={() => setMetodoPago(0)}
                                     className={`p-4 rounded-xl border-2 transition-all font-bold ${metodoPago === 0 ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'border-slate-100 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                                 >
                                     Efectivo
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setMetodoPago(1)}
+                                    className={`p-4 rounded-xl border-2 transition-all font-bold ${metodoPago === 1 ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'border-slate-100 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                                >
+                                    MercadoPago
                                 </button>
                                 <button
                                     type="button"
