@@ -17,7 +17,7 @@ interface Client {
   debt: number;
   totalSales: number;
   lastPurchase: string;
-  paymentMethod: 'Efectivo' | 'Transferencia' | 'Cheque' | 'Cuenta Corriente';
+  paymentMethod: 'Efectivo' | 'MercadoPago' | 'Cuenta Corriente' | string;
   status: 'Activo' | 'Moroso' | 'Inactivo';
   email?: string;
 }
@@ -75,7 +75,7 @@ export default function ClientesPage() {
         debt: c.deuda || 0,
         totalSales: c.ventasTotales || 0,
         lastPurchase: c.ultimaCompra ? c.ultimaCompra.split('T')[0] : new Date().toISOString().split('T')[0],
-        paymentMethod: c.metodoPagoPreferido !== null ? ['Efectivo', 'Transferencia', 'Cheque', 'Cuenta Corriente', 'Tarjeta'][c.metodoPagoPreferido] : 'Efectivo',
+        paymentMethod: c.metodoPagoPreferido !== null ? ['Efectivo', 'MercadoPago', 'Desconocido', 'Cuenta Corriente'][c.metodoPagoPreferido] : 'Efectivo',
         status: c.estado || 'Activo',
         email: c.email || '',
       }));
@@ -124,7 +124,7 @@ export default function ClientesPage() {
     try {
       if (debtAction === 'pagar') {
         const paymentMethodStr = formData.get('paymentMethod') as string;
-        const paymentMethods = ['Efectivo', 'Transferencia', 'Cheque', 'Cuenta Corriente', 'Tarjeta'];
+        const paymentMethods = ['Efectivo', 'MercadoPago', 'Desconocido', 'Cuenta Corriente'];
         const paymentMethodIdx = paymentMethods.indexOf(paymentMethodStr);
 
         await api.post(`/clientes/${currentClient.id}/pagos`, {
@@ -173,7 +173,7 @@ export default function ClientesPage() {
     const formData = new FormData(e.currentTarget);
 
     const paymentMethodStr = formData.get('paymentMethod') as string;
-    const paymentMethods = ['Efectivo', 'Transferencia', 'Cheque', 'Cuenta Corriente', 'Tarjeta'];
+    const paymentMethods = ['Efectivo', 'MercadoPago', 'Desconocido', 'Cuenta Corriente'];
     const paymentMethodIdx = paymentMethods.indexOf(paymentMethodStr);
 
     const clientData = {
@@ -242,7 +242,7 @@ export default function ClientesPage() {
                   </div>
                 </div>
                 <div className="flex gap-2">
-                   <button
+                  <button
                     onClick={() => handleOpenHistoryModal(client)}
                     className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                     title="Ver Historial"
@@ -373,8 +373,7 @@ export default function ClientesPage() {
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Método de Pago Preferido</label>
                 <select name="paymentMethod" defaultValue={currentClient?.paymentMethod || 'Efectivo'} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                   <option value="Efectivo">Efectivo</option>
-                  <option value="Transferencia">Transferencia</option>
-                  <option value="Cheque">Cheque</option>
+                  <option value="MercadoPago">MercadoPago</option>
                   <option value="Cuenta Corriente">Cuenta Corriente</option>
                 </select>
               </div>
@@ -398,21 +397,19 @@ export default function ClientesPage() {
           <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl mb-4">
             <button
               onClick={() => setDebtAction('pagar')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
-                debtAction === 'pagar'
-                  ? 'bg-white dark:bg-slate-600 text-green-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${debtAction === 'pagar'
+                ? 'bg-white dark:bg-slate-600 text-green-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
             >
               Registrar Pago
             </button>
             <button
               onClick={() => setDebtAction('ajustar')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
-                debtAction === 'ajustar'
-                  ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${debtAction === 'ajustar'
+                ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
             >
               Ajustar Deuda
             </button>
@@ -426,7 +423,7 @@ export default function ClientesPage() {
           <form onSubmit={handleDebtSubmit} className="space-y-4">
             {debtAction === 'pagar' ? (
               <>
-                 <div className="space-y-1">
+                <div className="space-y-1">
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Monto del Pago</label>
                   <div className="relative">
                     <DollarSign size={16} className="absolute left-3 top-3 text-slate-400" />
@@ -437,9 +434,8 @@ export default function ClientesPage() {
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Método de Pago</label>
                   <select name="paymentMethod" className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
                     <option value="Efectivo">Efectivo</option>
-                    <option value="Transferencia">Transferencia</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Tarjeta">Tarjeta</option>
+                    <option value="MercadoPago">MercadoPago</option>
+                    <option value="Cuenta Corriente">Cuenta Corriente</option>
                   </select>
                 </div>
               </>
@@ -473,33 +469,32 @@ export default function ClientesPage() {
             </div>
           </form>
         </div>
-      </Modal>
+      </Modal >
 
       {/* History Modal */}
-      <Modal
+      < Modal
         isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
+        onClose={() => setIsHistoryModalOpen(false)
+        }
         title={`Historial - ${currentClient?.name}`}
       >
         <div className="h-[60vh] flex flex-col">
           <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl mb-4 shrink-0">
             <button
               onClick={() => setHistoryTab('ventas')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
-                historyTab === 'ventas'
-                  ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${historyTab === 'ventas'
+                ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
             >
               Compras
             </button>
             <button
               onClick={() => setHistoryTab('pagos')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
-                historyTab === 'pagos'
-                  ? 'bg-white dark:bg-slate-600 text-green-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${historyTab === 'pagos'
+                ? 'bg-white dark:bg-slate-600 text-green-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
             >
               Pagos
             </button>
@@ -567,7 +562,7 @@ export default function ClientesPage() {
             )}
           </div>
         </div>
-      </Modal>
-    </div>
+      </Modal >
+    </div >
   );
 }

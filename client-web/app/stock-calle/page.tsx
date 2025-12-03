@@ -293,10 +293,10 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
 
                                     {efectivoRendido && (
                                         <div className={`mt-3 p-3 rounded-lg flex justify-between items-center ${diferenciaCaja === 0
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                                                : diferenciaCaja > 0
-                                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                                                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                            : diferenciaCaja > 0
+                                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                                                : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                             }`}>
                                             <span className="font-medium">Diferencia:</span>
                                             <span className="font-bold text-lg">

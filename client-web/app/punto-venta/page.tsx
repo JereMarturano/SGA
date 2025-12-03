@@ -281,8 +281,8 @@ export default function PuntoVentaPage() {
                                             key={disc}
                                             onClick={() => setDescuentoPorcentaje(disc)}
                                             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${descuentoPorcentaje === disc
-                                                    ? 'bg-blue-600 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                ? 'bg-blue-600 text-white'
+                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                                                 }`}
                                         >
                                             {disc === 0 ? 'Sin desc.' : `${disc}%`}
@@ -311,7 +311,7 @@ export default function PuntoVentaPage() {
 
                         <div className="space-y-3">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Método de Pago</label>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-3 gap-3">
                                 <button
                                     onClick={() => setMetodoPago(0)}
                                     className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${metodoPago === 0 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
@@ -321,14 +321,8 @@ export default function PuntoVentaPage() {
                                 <button
                                     onClick={() => setMetodoPago(1)}
                                     className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${metodoPago === 1 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
-                                    <ArrowLeft size={24} className="rotate-45" />
-                                    Transferencia
-                                </button>
-                                <button
-                                    onClick={() => setMetodoPago(4)}
-                                    className={`p-4 rounded-xl border transition-all flex flex-col items-center gap-2 ${metodoPago === 4 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}>
                                     <CreditCard size={24} />
-                                    Tarjeta
+                                    MercadoPago
                                 </button>
                                 <button
                                     onClick={() => setMetodoPago(3)}

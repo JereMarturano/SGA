@@ -45,7 +45,11 @@ export default function EstadisticasPage() {
     const colors = ['bg-blue-500', 'bg-red-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500'];
 
     const getMetodoPagoLabel = (metodo: number) => {
-        const metodos = ['Efectivo', 'Tarjeta', 'Transferencia', 'Cheque', 'Cuenta Corriente'];
+        const metodos: Record<number, string> = {
+            0: 'Efectivo',
+            1: 'MercadoPago',
+            3: 'Cuenta Corriente'
+        };
         return metodos[metodo] || 'Desconocido';
     };
 

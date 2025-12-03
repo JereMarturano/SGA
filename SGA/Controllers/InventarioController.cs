@@ -68,6 +68,7 @@ public class InventarioController : ControllerBase
         return Ok(grouped);
     }
 
+
     [HttpGet("stock-vehiculo/{vehiculoId}")]
     public async Task<ActionResult<List<StockVehiculo>>> ObtenerStockVehiculo(int vehiculoId)
     {
