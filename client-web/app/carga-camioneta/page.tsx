@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Truck, Package, Plus, Save, ArrowLeft, Egg, History, Check, AlertTriangle, X, ChevronRight, User } from 'lucide-react';
+import { Truck, Package, Plus, Save, ArrowLeft, Egg, History, Check, AlertTriangle, X, ChevronRight, User, AlertOctagon } from 'lucide-react';
 import Link from 'next/link';
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
@@ -13,6 +13,7 @@ interface Vehiculo {
     marca: string;
     modelo: string;
     patente: string;
+    enRuta: boolean;
 }
 
 interface Producto {
@@ -26,6 +27,7 @@ interface VehiculoUI {
     id: number;
     nombre: string;
     patente: string;
+    enRuta: boolean;
 }
 
 interface ProductoUI {
@@ -91,7 +93,8 @@ export default function CargaCamionetaPage() {
                 const vehiculosMapped = vRes.data.map((v: Vehiculo) => ({
                     id: v.vehiculoId,
                     nombre: `${v.marca} ${v.modelo}`,
-                    patente: v.patente
+                    patente: v.patente,
+                    enRuta: v.enRuta
                 }));
 
                 const productosMapped = pRes.data.map((p: Producto) => ({
@@ -195,6 +198,8 @@ export default function CargaCamionetaPage() {
         });
     };
 
+    const getSelectedVehiculoObj = () => vehiculos.find(v => v.id === selectedVehiculo);
+
     if (loadingData) {
         return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-500">Cargando datos...</div>;
     }
@@ -210,7 +215,7 @@ export default function CargaCamionetaPage() {
             <Modal
                 isOpen={isConfirmModalOpen}
                 onClose={() => setIsConfirmModalOpen(false)}
-                title="Confirmar Carga"
+                title={getSelectedVehiculoObj()?.enRuta ? "⚠️ ATENCIÓN: Vehículo en Calle" : "Confirmar Carga"}
                 footer={
                     <>
                         <button
@@ -223,25 +228,45 @@ export default function CargaCamionetaPage() {
                         <button
                             onClick={handleConfirmSubmit}
                             disabled={isSubmitting}
-                            className="px-6 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className={`px-6 py-2.5 font-bold rounded-xl transition-all shadow-lg flex items-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${getSelectedVehiculoObj()?.enRuta
+                                    ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/30'
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'
+                                }`}
                         >
-                            {isSubmitting ? 'Procesando...' : <><Check size={18} /> Confirmar</>}
+                            {isSubmitting ? 'Procesando...' : <><Check size={18} /> {getSelectedVehiculoObj()?.enRuta ? 'Sí, Cargar Igual' : 'Confirmar'}</>}
                         </button>
                     </>
                 }
             >
                 <div className="space-y-6">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800 flex items-start gap-4">
-                        <div className="bg-blue-100 dark:bg-blue-800 p-2 rounded-full text-blue-600 dark:text-blue-200">
-                            <AlertTriangle size={20} />
+                    {getSelectedVehiculoObj()?.enRuta ? (
+                        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl border-2 border-red-100 dark:border-red-800 flex flex-col items-center text-center gap-4 animate-pulse">
+                            <div className="bg-red-100 dark:bg-red-800 p-4 rounded-full text-red-600 dark:text-red-200">
+                                <AlertOctagon size={48} strokeWidth={2} />
+                            </div>
+                            <div>
+                                <h4 className="font-black text-red-700 dark:text-red-300 text-2xl mb-2">¡ATENCIÓN!</h4>
+                                <p className="font-bold text-red-900 dark:text-red-100 text-lg leading-tight">
+                                    Estás por cargar una camioneta que está <span className="underline decoration-wavy">EN LA CALLE</span>.
+                                </p>
+                                <p className="text-red-600 dark:text-red-300 mt-3">
+                                    ¿Estás seguro que querés agregar huevos sobre: <span className="font-black bg-red-200 dark:bg-red-800 px-2 py-0.5 rounded text-red-900 dark:text-white">{getSelectedVehiculoObj()?.nombre}</span>?
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="font-bold text-blue-900 dark:text-blue-100 text-lg">¿Confirmar movimiento?</p>
-                            <p className="text-sm text-blue-700 dark:text-blue-300 mt-1 leading-relaxed">
-                                Se agregarán los productos al stock del vehículo <span className="font-black bg-blue-200 dark:bg-blue-800 px-1.5 py-0.5 rounded">{vehiculos.find(v => v.id === selectedVehiculo)?.nombre}</span>.
-                            </p>
+                    ) : (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800 flex items-start gap-4">
+                            <div className="bg-blue-100 dark:bg-blue-800 p-2 rounded-full text-blue-600 dark:text-blue-200">
+                                <AlertTriangle size={20} />
+                            </div>
+                            <div>
+                                <p className="font-bold text-blue-900 dark:text-blue-100 text-lg">¿Confirmar movimiento?</p>
+                                <p className="text-sm text-blue-700 dark:text-blue-300 mt-1 leading-relaxed">
+                                    Se agregarán los productos al stock del vehículo <span className="font-black bg-blue-200 dark:bg-blue-800 px-1.5 py-0.5 rounded">{getSelectedVehiculoObj()?.nombre}</span>.
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div>
                         <div className="flex justify-between items-end mb-3">
@@ -331,6 +356,11 @@ export default function CargaCamionetaPage() {
                                                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-700/50 px-2 py-0.5 rounded-md uppercase tracking-wider">
                                                         {v.patente}
                                                     </span>
+                                                    {v.enRuta && (
+                                                        <span className="text-[10px] font-bold text-red-600 bg-red-100 dark:bg-red-900/30 px-2 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1">
+                                                            <AlertTriangle size={10} /> En Calle
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                             {selectedVehiculo === v.id && (
