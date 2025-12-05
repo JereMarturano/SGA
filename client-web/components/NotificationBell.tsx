@@ -12,17 +12,72 @@ interface Notificacion {
     tipo: string;
 }
 
+// Simple notification sound (Base64 encoded "ding")
+const NOTIFICATION_SOUND = 'data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU'; // Placeholder, will use a real short beep base64 below
+
+// A short, pleasant "ding" sound
+const PLAY_SOUND = () => {
+    try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(e => console.log('Audio play failed (user interaction needed first):', e));
+    } catch (e) {
+        console.error('Audio error:', e);
+    }
+};
+
 export default function NotificationBell() {
     const [notifications, setNotifications] = useState<Notificacion[]>([]);
     const [isOpen, setIsOpen] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [lastSeenId, setLastSeenId] = useState<number>(0);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const isFirstLoad = useRef(true);
+
+    // Request notification permissions on mount
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, []);
 
     const fetchNotifications = async () => {
         try {
             const response = await api.get<Notificacion[]>('/notificaciones');
-            setNotifications(response.data);
-            setUnreadCount(response.data.filter(n => !n.leido).length);
+            const data = response.data;
+
+            setNotifications(data);
+            setUnreadCount(data.filter(n => !n.leido).length);
+
+            // Check for new notifications
+            if (data.length > 0) {
+                const latestId = Math.max(...data.map(n => n.notificacionId));
+
+                // If it's not the first load and we have a new ID
+                if (!isFirstLoad.current && latestId > lastSeenId) {
+                    // Find the new notifications
+                    const newNotifs = data.filter(n => n.notificacionId > lastSeenId);
+
+                    if (newNotifs.length > 0) {
+                        // Play sound
+                        PLAY_SOUND();
+
+                        // Show system notification for the newest one
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            const newest = newNotifs[0];
+                            new Notification('SGA - Nueva Notificación', {
+                                body: newest.mensaje,
+                                icon: '/icon.png' // Assumes an icon exists, or browser default
+                            });
+                        }
+                    }
+                }
+
+                setLastSeenId(latestId);
+            }
+
+            isFirstLoad.current = false;
+
         } catch (error) {
             console.error('Error fetching notifications:', error);
         }
@@ -32,7 +87,7 @@ export default function NotificationBell() {
         fetchNotifications();
         const interval = setInterval(fetchNotifications, 10000); // Poll every 10 seconds
         return () => clearInterval(interval);
-    }, []);
+    }, [lastSeenId]); // Add lastSeenId dependency to ensure logic works correctly
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -50,7 +105,9 @@ export default function NotificationBell() {
     const markAsRead = async (id: number) => {
         try {
             await api.post(`/notificaciones/${id}/leer`);
-            setNotifications(prev => prev.filter(n => n.notificacionId !== id));
+            setNotifications(prev => prev.map(n =>
+                n.notificacionId === id ? { ...n, leido: true } : n
+            ));
             setUnreadCount(prev => Math.max(0, prev - 1));
         } catch (error) {
             console.error('Error marking as read:', error);
@@ -87,20 +144,24 @@ export default function NotificationBell() {
                         ) : (
                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {notifications.map((notif) => (
-                                    <div key={notif.notificacionId} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex gap-3 group">
+                                    <div key={notif.notificacionId} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors flex gap-3 group ${!notif.leido ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
                                         <div className="flex-1">
-                                            <p className="text-sm text-gray-800 dark:text-gray-200">{notif.mensaje}</p>
+                                            <p className={`text-sm ${!notif.leido ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                                                {notif.mensaje}
+                                            </p>
                                             <p className="text-xs text-gray-400 mt-1">
                                                 {new Date(notif.fechaCreacion).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </p>
                                         </div>
-                                        <button
-                                            onClick={() => markAsRead(notif.notificacionId)}
-                                            className="text-gray-400 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                            title="Marcar como leída"
-                                        >
-                                            <Check size={16} />
-                                        </button>
+                                        {!notif.leido && (
+                                            <button
+                                                onClick={() => markAsRead(notif.notificacionId)}
+                                                className="text-gray-400 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                                title="Marcar como leída"
+                                            >
+                                                <Check size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -111,3 +172,4 @@ export default function NotificationBell() {
         </div>
     );
 }
+
