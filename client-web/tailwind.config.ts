@@ -6,7 +6,7 @@ const config: Config = {
         "./components/**/*.{js,ts,jsx,tsx,mdx}",
         "./app/**/*.{js,ts,jsx,tsx,mdx}",
     ],
-    // Removed darkMode: 'class' so it defaults to 'media' (system preference) or auto detection in v4
+    darkMode: 'class',
     theme: {
         extend: {
             backgroundImage: {

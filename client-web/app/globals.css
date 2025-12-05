@@ -24,21 +24,19 @@
   --color-blue-900: #1e3a8a;
 }
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --foreground-rgb: 15, 23, 42;
   --background-start-rgb: 248, 250, 252;
   --background-end-rgb: 255, 255, 255;
 }
 
-/* Force light mode variables even if system is dark, unless .dark class is present */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 15, 23, 42;
-    /* Keep it light/slate-900 */
-    --background-start-rgb: 248, 250, 252;
-    /* Keep it light/slate-50 */
-    --background-end-rgb: 255, 255, 255;
-  }
+/* Dark mode variables applied when .dark class is present on root */
+:root.dark {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 15, 23, 42;
+  --background-end-rgb: 30, 41, 59;
 }
 
 body {

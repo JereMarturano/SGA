@@ -1,16 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { LayoutDashboard, Users, Truck, PieChart, Menu, User, X, LogOut, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, Truck, PieChart, Menu, User, X, LogOut, Settings, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import NotificationBell from './NotificationBell';
+import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const isActive = (path: string) => {
     if (path === '/' && pathname !== '/') return false;
@@ -64,14 +66,55 @@ export default function Header() {
         <div className="flex items-center gap-4 sm:gap-6">
           <NotificationBell />
 
-          <div className="hidden sm:flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-700">
-            <div className="text-right">
-              <p className="text-sm font-bold text-slate-700 dark:text-white">Santiago</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Administrador</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800">
-              S
-            </div>
+          <div className="relative hidden sm:block">
+            <button
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              className="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-700 focus:outline-none"
+            >
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-700 dark:text-white">Santiago</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Administrador</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800">
+                S
+              </div>
+              <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <AnimatePresence>
+              {isProfileOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-100 dark:border-slate-800 py-1 z-50"
+                >
+                  <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Mi Cuenta</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">admin@avicolasangabriel.com</p>
+                  </div>
+
+                  <div className="p-2">
+                    <div className="flex items-center justify-between px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg">
+                      <span className="font-medium">Tema</span>
+                      <ThemeToggle />
+                    </div>
+
+                    <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                      <Settings size={16} />
+                      <span>Configuración</span>
+                    </button>
+
+                    <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+
+                    <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                      <LogOut size={16} />
+                      <span>Cerrar Sesión</span>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <button
@@ -123,7 +166,8 @@ export default function Header() {
                     <p className="text-xs text-slate-500 dark:text-slate-400">Administrador</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  <ThemeToggle />
                   <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                     <Settings size={20} />
                   </button>

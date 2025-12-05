@@ -203,33 +203,45 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
                             <p className="text-sm text-slate-500 mb-4">Verifique el stock físico que regresa.</p>
 
                             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                                {stockItems.map((item, idx) => (
-                                    <div key={item.productoId} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg gap-3">
-                                        <div className="flex-1">
-                                            <div className="font-medium text-slate-800 dark:text-white">{item.nombre}</div>
-                                            <div className="text-xs text-slate-500">Teórico: {item.cantidadTeorica}</div>
+                                {stockItems.map((item, idx) => {
+                                    const factor = UNIT_FACTORS[item.unitType];
+                                    const theoreticalQty = item.cantidadTeorica / factor;
+
+                                    return (
+                                        <div key={item.productoId} className="flex flex-col sm:flex-row sm:items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-lg gap-3">
+                                            <div className="flex-1">
+                                                <div className="font-medium text-slate-800 dark:text-white">{item.nombre}</div>
+                                                <div
+                                                    className="text-xs text-slate-500 cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-1"
+                                                    onClick={() => handleQuantityChange(idx, theoreticalQty.toString())}
+                                                    title="Click para usar este valor"
+                                                >
+                                                    <span>Teórico: {theoreticalQty.toLocaleString('es-AR', { maximumFractionDigits: 2 })}</span>
+                                                    <span className="lowercase">{item.unitType === 'CAJON' ? 'cajones' : item.unitType + 's'}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <select
+                                                    value={item.unitType}
+                                                    onChange={(e) => handleUnitChange(idx, e.target.value as UnitType)}
+                                                    className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="UNIDAD">Unidad</option>
+                                                    <option value="MAPLE">Maple</option>
+                                                    <option value="CAJON">Cajón</option>
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    value={item.cantidadFisica}
+                                                    onChange={(e) => handleQuantityChange(idx, e.target.value)}
+                                                    className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="0"
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <select
-                                                value={item.unitType}
-                                                onChange={(e) => handleUnitChange(idx, e.target.value as UnitType)}
-                                                className="px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="UNIDAD">Unidad</option>
-                                                <option value="MAPLE">Maple</option>
-                                                <option value="CAJON">Cajón</option>
-                                            </select>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                value={item.cantidadFisica}
-                                                onChange={(e) => handleQuantityChange(idx, e.target.value)}
-                                                className="w-24 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-right outline-none focus:ring-2 focus:ring-blue-500"
-                                                placeholder="0"
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                                 {stockItems.length === 0 && (
                                     <p className="text-center text-slate-500 italic">No hay stock registrado en el vehículo.</p>
                                 )}
