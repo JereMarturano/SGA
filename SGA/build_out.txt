@@ -1,0 +1,23 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(38,45): error CS1513: Se esperaba } [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(38,45): error CS1026: Se esperaba ) [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(38,45): error CS1002: Se esperaba ; [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(39,36): error CS1001: Se esperaba un identificador [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(40,15): error CS1001: Se esperaba un identificador [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(41,17): error CS1001: Se esperaba un identificador [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(41,18): error CS1513: Se esperaba } [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+
+ERROR al compilar.
+
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(38,45): error CS1513: Se esperaba } [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(38,45): error CS1026: Se esperaba ) [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(38,45): error CS1002: Se esperaba ; [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(39,36): error CS1001: Se esperaba un identificador [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(40,15): error CS1001: Se esperaba un identificador [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(41,17): error CS1001: Se esperaba un identificador [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(41,18): error CS1513: Se esperaba } [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+    0 Advertencia(s)
+    7 Errores
+
+Tiempo transcurrido 00:00:01.13

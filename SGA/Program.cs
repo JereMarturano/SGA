@@ -16,7 +16,7 @@ builder.Services.AddScoped<IReporteService, ReporteService>();
 builder.Services.AddScoped<INotificacionService, NotificacionService>();
 builder.Services.AddScoped<IAlertaService, AlertaService>();
 builder.Services.AddScoped<IEmpleadoService, EmpleadoService>();
-builder.Services.AddHostedService<AsistenciaBackgroundService>();
+// builder.Services.AddHostedService<AsistenciaBackgroundService>();
 builder.Services.AddControllers();
 
 builder.Services.AddCors(options =>
