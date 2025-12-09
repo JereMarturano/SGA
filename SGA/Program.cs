@@ -1,8 +1,17 @@
 using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Services;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/sga-.txt", rollingInterval: RollingInterval.Day));
 
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -19,6 +28,8 @@ builder.Services.AddScoped<IEmpleadoService, EmpleadoService>();
 builder.Services.AddScoped<IVehiculoService, VehiculoService>();
 builder.Services.AddHostedService<AsistenciaBackgroundService>();
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 builder.Services.AddCors(options =>
 {
@@ -36,12 +47,15 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    // Swagger/OpenAPI can be added here if needed
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
+
+app.UseAuthorization();
 
 app.MapControllers();
 
