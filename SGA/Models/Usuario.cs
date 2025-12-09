@@ -10,6 +10,7 @@ public class Usuario
 
     [Required]
     [MaxLength(100)]
+    [StringLength(100, MinimumLength = 3, ErrorMessage = "El nombre debe tener al menos 3 caracteres")]
     public string Nombre { get; set; } = string.Empty;
 
     public RolUsuario Rol { get; set; }

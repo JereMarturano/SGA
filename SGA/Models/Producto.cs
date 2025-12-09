@@ -16,9 +16,11 @@ public class Producto
     public TipoProducto TipoProducto { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
+    [Range(typeof(decimal), "0", "10000000", ErrorMessage = "El stock debe ser mayor o igual a 0")]
     public decimal StockActual { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]
+    [Range(typeof(decimal), "0", "10000000", ErrorMessage = "El stock mínimo debe ser mayor o igual a 0")]
     public decimal StockMinimoAlerta { get; set; }
 
     [MaxLength(50)]
