@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using SGA.Data;
 using SGA.Models;
+using SGA.Models.DTOs;
+using SGA.Services;
 
 namespace SGA.Controllers;
 
@@ -9,55 +9,85 @@ namespace SGA.Controllers;
 [Route("api/[controller]")]
 public class VehiculosController : ControllerBase
 {
-    private readonly AppDbContext _context;
+    private readonly IVehiculoService _vehiculoService;
 
-    public VehiculosController(AppDbContext context)
+    public VehiculosController(IVehiculoService vehiculoService)
     {
-        _context = context;
+        _vehiculoService = vehiculoService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Vehiculo>>> GetVehiculos()
     {
-        return await _context.Vehiculos.ToListAsync();
+        var vehiculos = await _vehiculoService.GetAllAsync();
+        return Ok(vehiculos);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Vehiculo>> GetVehiculo(int id)
+    {
+        var vehiculo = await _vehiculoService.GetByIdAsync(id);
+        if (vehiculo == null)
+        {
+            return NotFound();
+        }
+        return Ok(vehiculo);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Vehiculo>> CreateVehiculo(CreateVehiculoDto dto)
+    {
+        try
+        {
+            var vehiculo = await _vehiculoService.CreateAsync(dto);
+            return CreatedAtAction(nameof(GetVehiculo), new { id = vehiculo.VehiculoId }, vehiculo);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateVehiculo(int id, UpdateVehiculoDto dto)
+    {
+        try
+        {
+            var vehiculo = await _vehiculoService.UpdateAsync(id, dto);
+            if (vehiculo == null)
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteVehiculo(int id)
+    {
+        try
+        {
+            var result = await _vehiculoService.DeleteAsync(id);
+            if (!result)
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 
     [HttpGet("stock-en-calle")]
     public async Task<ActionResult<IEnumerable<object>>> GetStockEnCalle()
     {
-        var vehiculos = await _context.Vehiculos
-            .Include(v => v.ChoferAsignado)
-            .ToListAsync();
-
-        var result = new List<object>();
-
-        foreach (var v in vehiculos)
-        {
-            var stock = await _context.StockVehiculos
-                .Where(s => s.VehiculoId == v.VehiculoId && s.Cantidad > 0)
-                .Include(s => s.Producto)
-                .Select(s => new 
-                {
-                    Producto = s.Producto.Nombre,
-                    Cantidad = s.Cantidad
-                })
-                .ToListAsync();
-
-            // Incluimos el vehículo incluso si no tiene stock, para saber que está vacío.
-            // O si el usuario prefiere solo los que tienen stock.
-            // "una vez que cargue los vehiculos, me aprezca el stock en calle"
-            // Asumiremos que quiere ver todos los vehículos y su estado.
-            
-            result.Add(new 
-            {
-                Id = v.VehiculoId,
-                Vehiculo = $"{v.Marca} {v.Modelo} ({v.Patente})",
-                Chofer = v.ChoferAsignado?.Nombre ?? "Sin Asignar",
-                EnRuta = v.EnRuta,
-                Stock = stock
-            });
-        }
-
+        var result = await _vehiculoService.GetStockEnCalleAsync();
         return Ok(result);
     }
 }
