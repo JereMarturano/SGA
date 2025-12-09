@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using SGA.Helpers;
 
 namespace SGA.Models;
 
@@ -12,7 +13,7 @@ public class Notificacion
     [Required]
     public string Mensaje { get; set; } = string.Empty;
 
-    public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
+    public DateTime FechaCreacion { get; set; } = TimeHelper.Now;
 
     public bool Leido { get; set; } = false;
 

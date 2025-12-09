@@ -3,6 +3,7 @@ using SGA.Data;
 using SGA.Models;
 using SGA.Models.Enums;
 using SGA.Models.DTOs;
+using SGA.Helpers;
 
 namespace SGA.Services;
 
@@ -20,7 +21,7 @@ public class InventarioService : IInventarioService
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            var fechaHora = DateTime.UtcNow;
+            var fechaHora = TimeHelper.Now;
             foreach (var item in items)
             {
                 // 0. Validar Stock General
@@ -144,7 +145,7 @@ public class InventarioService : IInventarioService
                     var tipoMov = diferencia < 0 ? TipoMovimientoStock.Merma : TipoMovimientoStock.AjusteInventario;
                     var movDiff = new MovimientoStock
                     {
-                        Fecha = DateTime.UtcNow,
+                        Fecha = TimeHelper.Now,
                         TipoMovimiento = tipoMov,
                         VehiculoId = request.VehiculoId,
                         ProductoId = stockVehiculo.ProductoId,
@@ -174,7 +175,7 @@ public class InventarioService : IInventarioService
 
                     var movDescarga = new MovimientoStock
                     {
-                        Fecha = DateTime.UtcNow,
+                        Fecha = TimeHelper.Now,
                         TipoMovimiento = TipoMovimientoStock.DescargaFinal,
                         VehiculoId = request.VehiculoId,
                         ProductoId = stockVehiculo.ProductoId,
@@ -187,7 +188,7 @@ public class InventarioService : IInventarioService
 
                 // 2c. Limpiar Stock Vehículo
                 stockVehiculo.Cantidad = 0;
-                stockVehiculo.UltimaActualizacion = DateTime.UtcNow;
+                stockVehiculo.UltimaActualizacion = TimeHelper.Now;
             }
 
             // 2.2 Procesar items que vienen en el request pero NO estaban en el vehículo (Sobrantes puros)
@@ -205,7 +206,7 @@ public class InventarioService : IInventarioService
 
                         var movSobrante = new MovimientoStock
                         {
-                            Fecha = DateTime.UtcNow,
+                            Fecha = TimeHelper.Now,
                             TipoMovimiento = TipoMovimientoStock.AjusteInventario,
                             VehiculoId = request.VehiculoId,
                             ProductoId = productoId,
@@ -235,7 +236,7 @@ public class InventarioService : IInventarioService
         {
             var compra = new Compra
             {
-                Fecha = DateTime.UtcNow,
+                Fecha = TimeHelper.Now,
                 UsuarioId = request.UsuarioId,
                 Proveedor = request.Proveedor,
                 Observaciones = request.Observaciones,
@@ -273,7 +274,7 @@ public class InventarioService : IInventarioService
                 // 3. Registrar Movimiento (Ingreso por Compra)
                 var movimiento = new MovimientoStock
                 {
-                    Fecha = DateTime.UtcNow,
+                    Fecha = TimeHelper.Now,
                     TipoMovimiento = TipoMovimientoStock.AjusteInventario, // Usamos AjusteInventario o creamos uno nuevo Compra
                     ProductoId = item.ProductoId,
                     Cantidad = item.Cantidad,
@@ -308,7 +309,7 @@ public class InventarioService : IInventarioService
             Directory.CreateDirectory(folderPath);
         }
 
-        var fileName = $"compra_{compra.CompraId}_{DateTime.UtcNow:yyyyMMddHHmmss}.txt";
+        var fileName = $"compra_{compra.CompraId}_{TimeHelper.Now:yyyyMMddHHmmss}.txt";
         var filePath = Path.Combine(folderPath, fileName);
 
         var sb = new System.Text.StringBuilder();
@@ -339,7 +340,7 @@ public class InventarioService : IInventarioService
 
     public async Task<List<MovimientoStock>> ObtenerHistorialCargasAsync()
     {
-        var now = DateTime.UtcNow;
+        var now = TimeHelper.Now;
         // Calculate start of the week (Monday)
         int diff = (7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7;
         var startOfWeek = now.Date.AddDays(-1 * diff);
@@ -368,7 +369,7 @@ public class InventarioService : IInventarioService
             // 1. Registrar Movimiento (Negativo porque es pérdida)
             var movimiento = new MovimientoStock
             {
-                Fecha = DateTime.UtcNow,
+                Fecha = TimeHelper.Now,
                 TipoMovimiento = TipoMovimientoStock.Merma,
                 VehiculoId = vehiculoId,
                 ProductoId = productoId,
@@ -385,7 +386,7 @@ public class InventarioService : IInventarioService
             if (stockVehiculo != null)
             {
                 stockVehiculo.Cantidad -= cantidad;
-                stockVehiculo.UltimaActualizacion = DateTime.UtcNow;
+                stockVehiculo.UltimaActualizacion = TimeHelper.Now;
             }
             // Si no hay stock, técnicamente no podrías tener merma, pero permitimos que quede en negativo o lanzamos error según regla de negocio.
             // Por ahora permitimos que baje (podría indicar error de conteo previo).
@@ -408,7 +409,7 @@ public class InventarioService : IInventarioService
             .FirstOrDefaultAsync();
 
         // Si no hay carga, asumimos inicio del día (fallback)
-        var fechaInicio = ultimaCarga?.Fecha ?? DateTime.UtcNow.Date;
+        var fechaInicio = ultimaCarga?.Fecha ?? TimeHelper.Now.Date;
 
         // 2. Obtener todas las ventas desde esa fecha para este vehículo
         var ventas = await _context.Ventas

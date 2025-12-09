@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
+using SGA.Helpers;
 
 namespace SGA.Services;
 
@@ -20,7 +21,7 @@ public class NotificacionService : INotificacionService
             Mensaje = mensaje,
             Tipo = tipo,
             UsuarioId = usuarioId,
-            FechaCreacion = DateTime.UtcNow,
+            FechaCreacion = TimeHelper.Now,
             Leido = false
         };
 
@@ -37,7 +38,7 @@ public class NotificacionService : INotificacionService
             EntidadId = entidadId,
             UsuarioId = usuarioId,
             Detalles = detalles,
-            Fecha = DateTime.UtcNow
+            Fecha = TimeHelper.Now
         };
 
         _context.HistorialAcciones.Add(historial);

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using SGA.Helpers;
 
 namespace SGA.Models;
 
@@ -8,7 +9,7 @@ public class Compra
     [Key]
     public int CompraId { get; set; }
 
-    public DateTime Fecha { get; set; } = DateTime.UtcNow;
+    public DateTime Fecha { get; set; } = TimeHelper.Now;
 
     [MaxLength(100)]
     public string? Proveedor { get; set; }

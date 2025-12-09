@@ -3,6 +3,7 @@ using SGA.Data;
 using SGA.Models;
 using SGA.Models.DTOs;
 using SGA.Models.Enums;
+using SGA.Helpers;
 
 namespace SGA.Services;
 
@@ -25,7 +26,7 @@ public class VentaService : IVentaService
             // 1. Crear la Venta
             var venta = new Venta
             {
-                Fecha = request.Fecha ?? DateTime.UtcNow,
+                Fecha = request.Fecha ?? TimeHelper.Now,
                 ClienteId = request.ClienteId,
                 UsuarioId = request.UsuarioId,
                 VehiculoId = request.VehiculoId,
@@ -74,12 +75,12 @@ public class VentaService : IVentaService
 
                 // 4. Descontar Stock
                 stockVehiculo.Cantidad -= item.Cantidad;
-                stockVehiculo.UltimaActualizacion = DateTime.UtcNow;
+                stockVehiculo.UltimaActualizacion = TimeHelper.Now;
 
                 // 5. Registrar Movimiento de Stock (Auditoría)
                 var movimiento = new MovimientoStock
                 {
-                    Fecha = DateTime.UtcNow,
+                    Fecha = TimeHelper.Now,
                     TipoMovimiento = TipoMovimientoStock.Venta,
                     VehiculoId = request.VehiculoId,
                     ProductoId = item.ProductoId,

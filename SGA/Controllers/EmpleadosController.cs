@@ -3,6 +3,7 @@ using SGA.Data;
 using SGA.Models;
 using SGA.Models.DTOs;
 using SGA.Services;
+using SGA.Helpers;
 
 namespace SGA.Controllers;
 
@@ -26,7 +27,7 @@ public class EmpleadosController : ControllerBase
         var users = _context.Usuarios.ToList();
         var dtos = new List<UsuarioDTO>();
 
-        var firstDayOfMonth = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+        var firstDayOfMonth = new DateTime(TimeHelper.Now.Year, TimeHelper.Now.Month, 1);
         var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
 
         foreach (var u in users)
@@ -110,8 +111,8 @@ public class EmpleadosController : ControllerBase
     public async Task<ActionResult<EmpleadoEstadisticasDto>> GetEstadisticas(int id, [FromQuery] DateTime? desde, [FromQuery] DateTime? hasta)
     {
         // Default to this month if not specified
-        var d = desde ?? new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
-        var h = hasta ?? DateTime.Now;
+        var d = desde ?? new DateTime(TimeHelper.Now.Year, TimeHelper.Now.Month, 1);
+        var h = hasta ?? TimeHelper.Now;
 
         try
         {

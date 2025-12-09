@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
 using SGA.Models.Enums;
+using SGA.Helpers;
 
 namespace SGA.Services;
 
@@ -41,7 +42,7 @@ public class AsistenciaBackgroundService : BackgroundService
 
     private async Task CheckAndRegisterAttendance(CancellationToken stoppingToken)
     {
-        var now = DateTime.Now;
+        var now = TimeHelper.Now;
 
         // "menos los domingos, lunes a sabado, automaticamente un presente"
         if (now.DayOfWeek == DayOfWeek.Sunday)

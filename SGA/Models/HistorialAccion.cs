@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using SGA.Helpers;
 
 namespace SGA.Models;
 
@@ -16,7 +17,7 @@ public class HistorialAccion
 
     public string? EntidadId { get; set; } // ID del objeto afectado
 
-    public DateTime Fecha { get; set; } = DateTime.UtcNow;
+    public DateTime Fecha { get; set; } = TimeHelper.Now;
 
     public int? UsuarioId { get; set; } // Quién lo hizo
 

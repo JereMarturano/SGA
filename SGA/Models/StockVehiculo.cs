@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using SGA.Helpers;
 
 namespace SGA.Models;
 
@@ -28,5 +29,5 @@ public class StockVehiculo
     public decimal Cantidad { get; set; }
 
     [Column("UltimaActualizacion")]
-    public DateTime UltimaActualizacion { get; set; } = DateTime.UtcNow;
+    public DateTime UltimaActualizacion { get; set; } = TimeHelper.Now;
 }

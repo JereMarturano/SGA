@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
+using SGA.Helpers;
 
 namespace SGA.Services;
 
@@ -22,7 +23,7 @@ public class AlertaService : IAlertaService
 
         // 1. Obtener Notificaciones de Ventas Recientes (últimas 24h o ultimas 10)
         var notificaciones = await _context.Notificaciones
-            .Where(n => n.Tipo == "Venta" && n.FechaCreacion >= DateTime.UtcNow.AddDays(-1))
+            .Where(n => n.Tipo == "Venta" && n.FechaCreacion >= TimeHelper.Now.AddDays(-1))
             .OrderByDescending(n => n.FechaCreacion)
             .Take(10)
             .ToListAsync();
@@ -69,7 +70,7 @@ public class AlertaService : IAlertaService
                     Titulo = "Stock Crítico Global",
                     Mensaje = $"El vehículo {item.Vehiculo.Marca} {item.Vehiculo.Modelo} (Patente {item.Vehiculo.Patente}) tiene solo {item.TotalMaples:N0} maples en total (Mínimo Global: 15).",
                     Tipo = "Warning",
-                    Fecha = DateTime.UtcNow, // Tiempo real
+                    Fecha = TimeHelper.Now, // Tiempo real
                     Icono = "Package",
                     Url = "/inventario"
                 });
@@ -89,14 +90,14 @@ public class AlertaService : IAlertaService
                 Titulo = "Deuda Alta",
                 Mensaje = $"El cliente {cliente.NombreCompleto} tiene una deuda de ${cliente.Deuda:N2}.",
                 Tipo = "Warning",
-                Fecha = DateTime.UtcNow,
+                Fecha = TimeHelper.Now,
                 Icono = "AlertCircle",
                 Url = $"/clientes/{cliente.ClienteId}"
             });
         }
 
         // 4. Clientes Inactivos (Sin compras en 30 días)
-        var fechaLimite = DateTime.UtcNow.AddDays(-30);
+        var fechaLimite = TimeHelper.Now.AddDays(-30);
         var clientesInactivos = await _context.Clientes
             .Where(c => c.UltimaCompra < fechaLimite && c.Estado == "Activo")
             .ToListAsync();
@@ -109,7 +110,7 @@ public class AlertaService : IAlertaService
                 Titulo = "Cliente Inactivo",
                 Mensaje = $"El cliente {cliente.NombreCompleto} no realiza compras desde hace más de 30 días.",
                 Tipo = "Info",
-                Fecha = DateTime.UtcNow,
+                Fecha = TimeHelper.Now,
                 Icono = "UserX",
                 Url = $"/clientes/{cliente.ClienteId}"
             });
