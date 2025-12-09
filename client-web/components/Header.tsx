@@ -1,7 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { LayoutDashboard, Users, Truck, PieChart, Menu, User, X, LogOut, Settings, ChevronDown } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Users,
+  Truck,
+  PieChart,
+  Menu,
+  User,
+  X,
+  LogOut,
+  Settings,
+  ChevronDown,
+} from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import NotificationBell from './NotificationBell';
@@ -37,8 +48,12 @@ export default function Header() {
               <Image src="/logo.png" alt="SGA Logo" fill className="object-contain rounded-full" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800 dark:text-white leading-none tracking-tight">Avicola San Gabriel</h1>
-              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 tracking-widest uppercase">Torre de Control</span>
+              <h1 className="text-xl font-bold text-slate-800 dark:text-white leading-none tracking-tight">
+                Avicola San Gabriel
+              </h1>
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 tracking-widest uppercase">
+                Torre de Control
+              </span>
             </div>
           </Link>
 
@@ -51,10 +66,11 @@ export default function Header() {
                   key={link.href}
                   href={link.href}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2
-                                ${active
-                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                      : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
-                    }`}
+                                ${
+                                  active
+                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
+                                }`}
                 >
                   <link.icon size={18} />
                   {link.name}
@@ -80,7 +96,10 @@ export default function Header() {
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800">
                 S
               </div>
-              <ChevronDown size={16} className={`text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                size={16}
+                className={`text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`}
+              />
             </button>
 
             <AnimatePresence>
@@ -93,7 +112,9 @@ export default function Header() {
                 >
                   <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
                     <p className="text-sm font-medium text-slate-900 dark:text-white">Mi Cuenta</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">admin@avicolasangabriel.com</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      admin@avicolasangabriel.com
+                    </p>
                   </div>
 
                   <div className="p-2">
@@ -102,10 +123,14 @@ export default function Header() {
                       <ThemeToggle />
                     </div>
 
-                    <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                    <Link
+                      href="/configuracion"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
                       <Settings size={16} />
                       <span>Configuración</span>
-                    </button>
+                    </Link>
 
                     <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
 
@@ -147,10 +172,11 @@ export default function Header() {
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`px-4 py-3 rounded-xl text-base font-medium transition-colors flex items-center gap-3
-                                ${active
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                        : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
-                      }`}
+                                ${
+                                  active
+                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
+                                }`}
                   >
                     <link.icon size={20} />
                     {link.name}
@@ -170,9 +196,13 @@ export default function Header() {
                 </div>
                 <div className="flex gap-2 items-center">
                   <ThemeToggle />
-                  <button className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                  <Link
+                    href="/configuracion"
+                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
                     <Settings size={20} />
-                  </button>
+                  </Link>
                   <button className="p-2 text-red-400 hover:text-red-600">
                     <LogOut size={20} />
                   </button>

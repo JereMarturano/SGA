@@ -19,7 +19,7 @@ export default function Dashboard() {
     variacionVentas: 0,
     tendenciaVentasPositiva: true,
     variacionMargen: 0,
-    tendenciaMargenPositiva: true
+    tendenciaMargenPositiva: true,
   });
 
   const [chartData, setChartData] = useState<VentaPorFecha[]>([]);
@@ -36,11 +36,15 @@ export default function Dashboard() {
         const startStr = startOfWeek.toISOString().split('T')[0];
 
         // Fetch Financial Report for Today (for KPIs)
-        const financieroHoyRes = await api.get(`/reportes/financiero?inicio=${todayStr}&fin=${todayStr}`);
+        const financieroHoyRes = await api.get(
+          `/reportes/financiero?inicio=${todayStr}&fin=${todayStr}`
+        );
         const financieroHoy = financieroHoyRes.data;
 
         // Fetch Financial Report for Last 7 Days (for Chart)
-        const financieroSemanaRes = await api.get(`/reportes/financiero?inicio=${startStr}&fin=${todayStr}`);
+        const financieroSemanaRes = await api.get(
+          `/reportes/financiero?inicio=${startStr}&fin=${todayStr}`
+        );
         const financieroSemana = financieroSemanaRes.data;
 
         // Fetch Stock en Calle to count vehicles
@@ -56,7 +60,7 @@ export default function Dashboard() {
           variacionVentas: financieroHoy.variacionVentas,
           tendenciaVentasPositiva: financieroHoy.tendenciaVentasPositiva,
           variacionMargen: financieroHoy.variacionMargen,
-          tendenciaMargenPositiva: financieroHoy.tendenciaMargenPositiva
+          tendenciaMargenPositiva: financieroHoy.tendenciaMargenPositiva,
         });
 
         // Map trend data for chart
@@ -67,7 +71,6 @@ export default function Dashboard() {
           // Assuming tendenciaVentas matches VentaPorFecha structure if it exists
           setChartData(financieroSemana.tendenciaVentas);
         }
-
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
       }
@@ -88,12 +91,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-
       {/* Navbar / Header */}
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-
         {/* Hero / Welcome Section */}
         <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 md:p-10 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 relative overflow-hidden group">
           {/* Decorative background blob */}
@@ -113,35 +114,50 @@ export default function Dashboard() {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Link href="/carga-camioneta" className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3">
+              <Link
+                href="/carga-camioneta"
+                className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3"
+              >
                 <div className="bg-white dark:bg-slate-600 p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
                   <Truck size={20} className="text-blue-500 dark:text-blue-400" />
                 </div>
                 Cargar Camioneta
               </Link>
 
-              <Link href="/inventario-general" className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3">
+              <Link
+                href="/inventario-general"
+                className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3"
+              >
                 <div className="bg-white dark:bg-slate-600 p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
                   <Warehouse size={20} className="text-blue-500 dark:text-blue-400" />
                 </div>
                 Cargar Inv. General
               </Link>
 
-              <Link href="/punto-venta" className="group bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-1 flex items-center gap-3">
+              <Link
+                href="/punto-venta"
+                className="group bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-1 flex items-center gap-3"
+              >
                 <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-12 transition-transform">
                   <DollarSign size={20} />
                 </div>
                 Nueva Venta
               </Link>
 
-              <Link href="/simulacion-ventas" className="group bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:-translate-y-1 flex items-center gap-3">
+              <Link
+                href="/simulacion-ventas"
+                className="group bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:-translate-y-1 flex items-center gap-3"
+              >
                 <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-12 transition-transform">
                   <Package size={20} />
                 </div>
                 Simulación Ventas
               </Link>
 
-              <Link href="/gastos" className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3">
+              <Link
+                href="/gastos"
+                className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3"
+              >
                 <div className="bg-white dark:bg-slate-600 p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
                   <DollarSign size={20} className="text-red-500 dark:text-red-400" />
                 </div>
@@ -194,9 +210,13 @@ export default function Dashboard() {
           {/* Alerts Panel */}
           <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col h-full max-h-[500px]">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">Alertas Operativas</h3>
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                Alertas Operativas
+              </h3>
               {alertas.length > 0 && (
-                <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-full animate-pulse">{alertas.length} Nuevas</span>
+                <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                  {alertas.length} Nuevas
+                </span>
               )}
             </div>
 
@@ -205,18 +225,35 @@ export default function Dashboard() {
                 <p className="text-sm text-slate-500 text-center py-4">No hay alertas recientes.</p>
               ) : (
                 alertas.map((alerta) => (
-                  <div key={alerta.id} className={`flex gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 transition-all cursor-pointer group ${alerta.tipo === 'Warning' ? 'hover:border-red-200 dark:hover:border-red-900/50' : 'hover:border-blue-200 dark:hover:border-blue-900/50'}`}>
-                    <div className={`mt-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm group-hover:scale-110 transition-transform ${alerta.tipo === 'Warning' ? 'text-red-500' : 'text-blue-500'}`}>
-                      {alerta.icono === 'Package' ? <Package size={20} /> :
-                        alerta.icono === 'Truck' ? <Truck size={20} /> :
-                          alerta.icono === 'DollarSign' ? <DollarSign size={20} /> :
-                            <TrendingUp size={20} />}
+                  <div
+                    key={alerta.id}
+                    className={`flex gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 transition-all cursor-pointer group ${alerta.tipo === 'Warning' ? 'hover:border-red-200 dark:hover:border-red-900/50' : 'hover:border-blue-200 dark:hover:border-blue-900/50'}`}
+                  >
+                    <div
+                      className={`mt-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm group-hover:scale-110 transition-transform ${alerta.tipo === 'Warning' ? 'text-red-500' : 'text-blue-500'}`}
+                    >
+                      {alerta.icono === 'Package' ? (
+                        <Package size={20} />
+                      ) : alerta.icono === 'Truck' ? (
+                        <Truck size={20} />
+                      ) : alerta.icono === 'DollarSign' ? (
+                        <DollarSign size={20} />
+                      ) : (
+                        <TrendingUp size={20} />
+                      )}
                     </div>
                     <div>
-                      <p className="font-bold text-slate-800 dark:text-white text-sm">{alerta.titulo}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{alerta.mensaje}</p>
+                      <p className="font-bold text-slate-800 dark:text-white text-sm">
+                        {alerta.titulo}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                        {alerta.mensaje}
+                      </p>
                       <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wide">
-                        {new Date(alerta.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(alerta.fecha).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </p>
                     </div>
                   </div>

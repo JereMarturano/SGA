@@ -170,7 +170,9 @@ export default function EmpleadosPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-black text-slate-800 dark:text-white">Empleados</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">Gestión de personal y estadísticas</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Gestión de personal y estadísticas
+            </p>
           </div>
           <button
             onClick={handleAdd}
@@ -183,21 +185,32 @@ export default function EmpleadosPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {employees.map((employee) => (
-            <div key={employee.id} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all">
+            <div
+              key={employee.id}
+              className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all"
+            >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center text-slate-600 dark:text-slate-200 font-bold text-lg">
                     {employee.name.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">{employee.name}</h3>
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                      {employee.name}
+                    </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">{employee.role}</p>
                   </div>
                 </div>
-                <span className={`px-2 py-1 rounded-lg text-xs font-bold
-                  ${employee.status === 'Activo' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                    employee.status === 'Vacaciones' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                <span
+                  className={`px-2 py-1 rounded-lg text-xs font-bold
+                  ${
+                    employee.status === 'Activo'
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : employee.status === 'Vacaciones'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                  }`}
+                >
                   {employee.status}
                 </span>
               </div>
@@ -207,13 +220,17 @@ export default function EmpleadosPage() {
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-center gap-1">
                     <DollarSign size={12} /> Ventas (Mes)
                   </p>
-                  <p className="font-bold text-slate-800 dark:text-white text-lg">{employee.monthlySales.toLocaleString()}</p>
+                  <p className="font-bold text-slate-800 dark:text-white text-lg">
+                    {employee.monthlySales.toLocaleString()}
+                  </p>
                 </div>
                 <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center">
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-center gap-1">
                     <Calendar size={12} /> Antigüedad
                   </p>
-                  <p className="font-bold text-slate-800 dark:text-white text-sm">{calculateTenure(employee.startDate)}</p>
+                  <p className="font-bold text-slate-800 dark:text-white text-sm">
+                    {calculateTenure(employee.startDate)}
+                  </p>
                 </div>
               </div>
 
@@ -222,7 +239,9 @@ export default function EmpleadosPage() {
                   <span className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
                     <Clock size={16} /> Faltas este mes
                   </span>
-                  <span className={`font-bold ${employee.absences > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  <span
+                    className={`font-bold ${employee.absences > 0 ? 'text-red-500' : 'text-green-500'}`}
+                  >
                     {employee.absences} días
                   </span>
                 </div>
@@ -251,14 +270,28 @@ export default function EmpleadosPage() {
       >
         <form onSubmit={handleSave} className="space-y-4">
           <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nombre Completo</label>
-            <input name="name" defaultValue={currentEmployee?.name} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Nombre Completo
+            </label>
+            <input
+              name="name"
+              defaultValue={currentEmployee?.name}
+              required
+              className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Puesto / Rol</label>
-              <select name="role" defaultValue={currentEmployee?.role || 'Chofer'} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Puesto / Rol
+              </label>
+              <select
+                name="role"
+                defaultValue={currentEmployee?.role || 'Chofer'}
+                required
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              >
                 <option value="Admin">Admin</option>
                 <option value="Oficina">Oficina</option>
                 <option value="Chofer">Chofer</option>
@@ -269,26 +302,53 @@ export default function EmpleadosPage() {
               </select>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Teléfono</label>
-              <input name="phone" defaultValue={currentEmployee?.phone} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Teléfono
+              </label>
+              <input
+                name="phone"
+                defaultValue={currentEmployee?.phone}
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              />
             </div>
           </div>
 
           {!currentEmployee && (
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Contraseña</label>
-              <input type="password" name="password" required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Contraseña
+              </label>
+              <input
+                type="password"
+                name="password"
+                required
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              />
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Fecha Ingreso</label>
-              <input type="date" name="startDate" defaultValue={currentEmployee?.startDate} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Fecha Ingreso
+              </label>
+              <input
+                type="date"
+                name="startDate"
+                defaultValue={currentEmployee?.startDate}
+                required
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado</label>
-              <select name="status" defaultValue={currentEmployee?.status || 'Activo'} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Estado
+              </label>
+              <select
+                name="status"
+                defaultValue={currentEmployee?.status || 'Activo'}
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              >
                 <option value="Activo">Activo</option>
                 <option value="Vacaciones">Vacaciones</option>
                 <option value="Inactivo">Inactivo</option>
@@ -300,21 +360,38 @@ export default function EmpleadosPage() {
             <h4 className="font-bold text-slate-800 dark:text-white mb-3">Métricas</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Ventas (Huevos/Mes)</label>
-                <input type="number" name="monthlySales" defaultValue={currentEmployee?.monthlySales} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Ventas (Huevos/Mes)
+                </label>
+                <input
+                  type="number"
+                  name="monthlySales"
+                  defaultValue={currentEmployee?.monthlySales}
+                  className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Faltas (Mes)</label>
-                <input type="number" name="absences" defaultValue={currentEmployee?.absences} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Faltas (Mes)
+                </label>
+                <input
+                  type="number"
+                  name="absences"
+                  defaultValue={currentEmployee?.absences}
+                  className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
               </div>
             </div>
           </div>
 
           <div className="pt-4 flex justify-between gap-3">
-            {currentEmployee && currentEmployee.role !== 'Admin' && (
-              showDeleteConfirm ? (
+            {currentEmployee &&
+              currentEmployee.role !== 'Admin' &&
+              (showDeleteConfirm ? (
                 <div className="flex items-center gap-2 animate-fadeIn">
-                  <span className="text-sm font-bold text-red-600 dark:text-red-400 mr-2">¿Estás seguro?</span>
+                  <span className="text-sm font-bold text-red-600 dark:text-red-400 mr-2">
+                    ¿Estás seguro?
+                  </span>
                   <button
                     type="button"
                     onClick={handleDelete}
@@ -339,11 +416,21 @@ export default function EmpleadosPage() {
                   <Trash2 size={18} />
                   Eliminar
                 </button>
-              )
-            )}
+              ))}
             <div className="flex gap-3 ml-auto">
-              <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancelar</button>
-              <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors">Guardar Cambios</button>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors"
+              >
+                Guardar Cambios
+              </button>
             </div>
           </div>
         </form>

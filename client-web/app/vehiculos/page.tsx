@@ -37,9 +37,11 @@ export default function VehiculosPage() {
         name: `${v.marca} ${v.modelo}`,
         plate: v.patente,
         mileage: v.kilometraje,
-        lastOilChange: v.ultimoCambioAceite ? new Date(v.ultimoCambioAceite).toISOString().split('T')[0] : '',
+        lastOilChange: v.ultimoCambioAceite
+          ? new Date(v.ultimoCambioAceite).toISOString().split('T')[0]
+          : '',
         oilType: v.tipoAceite || '',
-        nextOilChangeKm: v.kilometrajeProximoCambioAceite || (v.kilometraje + 10000),
+        nextOilChangeKm: v.kilometrajeProximoCambioAceite || v.kilometraje + 10000,
         notes: v.notas || '',
         tireCondition: v.estadoCubiertas || 'Bueno',
         status: v.estado || 'Activo',
@@ -115,7 +117,9 @@ export default function VehiculosPage() {
       modelo: modelo,
       kilometraje: Number(rawData.mileage),
       estado: rawData.status,
-      ultimoCambioAceite: rawData.lastOilChange ? new Date(rawData.lastOilChange as string).toISOString() : null,
+      ultimoCambioAceite: rawData.lastOilChange
+        ? new Date(rawData.lastOilChange as string).toISOString()
+        : null,
       tipoAceite: rawData.oilType,
       kilometrajeProximoCambioAceite: Number(rawData.nextOilChangeKm),
       estadoCubiertas: rawData.tireCondition,
@@ -123,7 +127,7 @@ export default function VehiculosPage() {
       consumoPromedioLts100Km: 10, // Default or add field
       capacidadCarga: 1000, // Default or add field
       id_Chofer_Asignado: null,
-      enRuta: currentVehicle?.status === 'Activo' && currentVehicle?.notes?.includes('reparto') // Preserve logic if needed
+      enRuta: currentVehicle?.status === 'Activo' && currentVehicle?.notes?.includes('reparto'), // Preserve logic if needed
     };
 
     try {
@@ -158,7 +162,9 @@ export default function VehiculosPage() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-black text-slate-800 dark:text-white">Vehículos</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">Gestión de flota y mantenimiento</p>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Gestión de flota y mantenimiento
+            </p>
           </div>
           <button
             onClick={handleAdd}
@@ -171,12 +177,21 @@ export default function VehiculosPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {vehicles.map((vehicle) => (
-            <div key={vehicle.id} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all group relative">
+            <div
+              key={vehicle.id}
+              className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all group relative"
+            >
               <div className="absolute top-4 right-4">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold
-                  ${vehicle.status === 'Activo' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                    vehicle.status === 'Mantenimiento' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                      'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'}`}>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-bold
+                  ${
+                    vehicle.status === 'Activo'
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : vehicle.status === 'Mantenimiento'
+                        ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'
+                  }`}
+                >
                   {vehicle.status}
                 </span>
               </div>
@@ -186,8 +201,12 @@ export default function VehiculosPage() {
                   <Truck size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">{vehicle.name}</h3>
-                  <p className="text-sm font-mono text-slate-500 dark:text-slate-400">{vehicle.plate}</p>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                    {vehicle.name}
+                  </h3>
+                  <p className="text-sm font-mono text-slate-500 dark:text-slate-400">
+                    {vehicle.plate}
+                  </p>
                 </div>
               </div>
 
@@ -197,7 +216,9 @@ export default function VehiculosPage() {
                     <Gauge size={18} />
                     <span className="text-sm font-medium">Kilometraje</span>
                   </div>
-                  <span className="font-bold text-slate-800 dark:text-white">{vehicle.mileage.toLocaleString()} km</span>
+                  <span className="font-bold text-slate-800 dark:text-white">
+                    {vehicle.mileage.toLocaleString()} km
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
@@ -206,7 +227,9 @@ export default function VehiculosPage() {
                     <span className="text-sm font-medium">Próx. Cambio</span>
                   </div>
                   <div className="text-right">
-                    <span className={`block font-bold ${vehicle.mileage >= vehicle.nextOilChangeKm ? 'text-red-500' : 'text-slate-800 dark:text-white'}`}>
+                    <span
+                      className={`block font-bold ${vehicle.mileage >= vehicle.nextOilChangeKm ? 'text-red-500' : 'text-slate-800 dark:text-white'}`}
+                    >
                       {vehicle.nextOilChangeKm.toLocaleString()} km
                     </span>
                     <span className="text-xs text-slate-400 block">{vehicle.oilType}</span>
@@ -218,10 +241,16 @@ export default function VehiculosPage() {
                     <Disc size={18} />
                     <span className="text-sm font-medium">Cubiertas</span>
                   </div>
-                  <span className={`font-bold text-sm px-2 py-0.5 rounded-lg
-                        ${vehicle.tireCondition === 'Bueno' ? 'text-green-600 bg-green-50 dark:bg-green-900/20' :
-                      vehicle.tireCondition === 'Regular' ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20' :
-                        'text-red-600 bg-red-50 dark:bg-red-900/20'}`}>
+                  <span
+                    className={`font-bold text-sm px-2 py-0.5 rounded-lg
+                        ${
+                          vehicle.tireCondition === 'Bueno'
+                            ? 'text-green-600 bg-green-50 dark:bg-green-900/20'
+                            : vehicle.tireCondition === 'Regular'
+                              ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                              : 'text-red-600 bg-red-50 dark:bg-red-900/20'
+                        }`}
+                  >
                     {vehicle.tireCondition}
                   </span>
                 </div>
@@ -232,7 +261,9 @@ export default function VehiculosPage() {
                       <AlertTriangle size={14} />
                       <span className="text-xs font-bold uppercase">Notas</span>
                     </div>
-                    <p className="text-xs text-yellow-800 dark:text-yellow-400 italic">"{vehicle.notes}"</p>
+                    <p className="text-xs text-yellow-800 dark:text-yellow-400 italic">
+                      "{vehicle.notes}"
+                    </p>
                   </div>
                 )}
               </div>
@@ -257,26 +288,54 @@ export default function VehiculosPage() {
         <form id="vehicleForm" onSubmit={handleSave} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nombre / Modelo</label>
-              <input name="name" defaultValue={currentVehicle?.name} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Nombre / Modelo
+              </label>
+              <input
+                name="name"
+                defaultValue={currentVehicle?.name}
+                required
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              />
               {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Patente</label>
-              <input name="plate" defaultValue={currentVehicle?.plate} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Patente
+              </label>
+              <input
+                name="plate"
+                defaultValue={currentVehicle?.plate}
+                required
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              />
               {errors.plate && <p className="text-red-500 text-xs">{errors.plate}</p>}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Kilometraje Actual</label>
-              <input type="number" name="mileage" defaultValue={currentVehicle?.mileage} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Kilometraje Actual
+              </label>
+              <input
+                type="number"
+                name="mileage"
+                defaultValue={currentVehicle?.mileage}
+                required
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              />
               {errors.mileage && <p className="text-red-500 text-xs">{errors.mileage}</p>}
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado</label>
-              <select name="status" defaultValue={currentVehicle?.status || 'Activo'} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Estado
+              </label>
+              <select
+                name="status"
+                defaultValue={currentVehicle?.status || 'Activo'}
+                className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+              >
                 <option value="Activo">Activo</option>
                 <option value="Mantenimiento">Mantenimiento</option>
                 <option value="Inactivo">Inactivo</option>
@@ -289,41 +348,92 @@ export default function VehiculosPage() {
             <h4 className="font-bold text-slate-800 dark:text-white mb-3">Mantenimiento</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Último Cambio Aceite</label>
-                <input type="date" name="lastOilChange" defaultValue={currentVehicle?.lastOilChange} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
-                {errors.lastOilChange && <p className="text-red-500 text-xs">{errors.lastOilChange}</p>}
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Último Cambio Aceite
+                </label>
+                <input
+                  type="date"
+                  name="lastOilChange"
+                  defaultValue={currentVehicle?.lastOilChange}
+                  className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+                {errors.lastOilChange && (
+                  <p className="text-red-500 text-xs">{errors.lastOilChange}</p>
+                )}
               </div>
               <div className="space-y-1">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Próximo Cambio (Km)</label>
-                <input type="number" name="nextOilChangeKm" defaultValue={currentVehicle?.nextOilChangeKm} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
-                {errors.nextOilChangeKm && <p className="text-red-500 text-xs">{errors.nextOilChangeKm}</p>}
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Próximo Cambio (Km)
+                </label>
+                <input
+                  type="number"
+                  name="nextOilChangeKm"
+                  defaultValue={currentVehicle?.nextOilChangeKm}
+                  className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                />
+                {errors.nextOilChangeKm && (
+                  <p className="text-red-500 text-xs">{errors.nextOilChangeKm}</p>
+                )}
               </div>
               <div className="space-y-1 col-span-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tipo de Aceite</label>
-                <input name="oilType" defaultValue={currentVehicle?.oilType} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" placeholder="Ej: 5W-30 Sintético" />
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Tipo de Aceite
+                </label>
+                <input
+                  name="oilType"
+                  defaultValue={currentVehicle?.oilType}
+                  className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  placeholder="Ej: 5W-30 Sintético"
+                />
                 {errors.oilType && <p className="text-red-500 text-xs">{errors.oilType}</p>}
               </div>
               <div className="space-y-1 col-span-2">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado Cubiertas</label>
-                <select name="tireCondition" defaultValue={currentVehicle?.tireCondition || 'Bueno'} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white">
+                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Estado Cubiertas
+                </label>
+                <select
+                  name="tireCondition"
+                  defaultValue={currentVehicle?.tireCondition || 'Bueno'}
+                  className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                >
                   <option value="Bueno">Bueno</option>
                   <option value="Regular">Regular</option>
                   <option value="Malo">Malo</option>
                 </select>
-                {errors.tireCondition && <p className="text-red-500 text-xs">{errors.tireCondition}</p>}
+                {errors.tireCondition && (
+                  <p className="text-red-500 text-xs">{errors.tireCondition}</p>
+                )}
               </div>
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Notas / Observaciones</label>
-            <textarea name="notes" defaultValue={currentVehicle?.notes} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white h-24" placeholder="Detalles adicionales..." />
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              Notas / Observaciones
+            </label>
+            <textarea
+              name="notes"
+              defaultValue={currentVehicle?.notes}
+              className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white h-24"
+              placeholder="Detalles adicionales..."
+            />
             {errors.notes && <p className="text-red-500 text-xs">{errors.notes}</p>}
           </div>
 
           <div className="pt-4 flex justify-end gap-3">
-            <button type="button" onClick={handleCloseModal} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">Cancelar</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors">Guardar Cambios</button>
+            <button
+              type="button"
+              onClick={handleCloseModal}
+              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition-colors"
+            >
+              Guardar Cambios
+            </button>
           </div>
         </form>
       </Modal>
