@@ -27,6 +27,7 @@ public class AlertaService : IAlertaService
             .Take(10)
             .ToListAsync();
 
+
         foreach (var notif in notificaciones)
         {
             alertas.Add(new AlertaDTO
@@ -40,33 +41,79 @@ public class AlertaService : IAlertaService
             });
         }
 
-        // 2. Generar Warnings de Stock Bajo
-        // Buscamos items con stock menor a 10 en vehículos
-        var stockCritico = await _context.StockVehiculos
+        // 2. Generar Warnings de Stock Bajo (Agregado por Vehículo)
+        // Buscamos vehículos EN RUTA con stock total menor a 15 maples
+        var stocksEnRuta = await _context.StockVehiculos
             .Include(s => s.Vehiculo)
             .Include(s => s.Producto)
-            .Where(s => s.Cantidad < 10)
+            .Where(s => s.Vehiculo.EnRuta)
             .ToListAsync();
 
-        foreach (var stock in stockCritico)
+        var vehiculosCriticos = stocksEnRuta
+            .GroupBy(s => s.Vehiculo)
+            .Select(g => new 
+            {
+                Vehiculo = g.Key,
+                TotalMaples = g.Where(s => s.Producto.UnidadDeMedida == "Maple").Sum(s => s.Cantidad)
+            })
+            .Where(x => x.TotalMaples < 15)
+            .ToList();
+
+        foreach (var item in vehiculosCriticos)
         {
-            if (stock.Vehiculo != null && stock.Producto != null)
+            if (item.Vehiculo != null)
             {
                 alertas.Add(new AlertaDTO
                 {
                     Id = idCounter++,
-                    Titulo = "Stock Crítico",
-                    Mensaje = $"El vehículo {stock.Vehiculo.Marca} {stock.Vehiculo.Modelo} (Patente {stock.Vehiculo.Patente}) tiene solo {stock.Cantidad} {stock.Producto.UnidadDeMedida} de {stock.Producto.Nombre}.",
+                    Titulo = "Stock Crítico Global",
+                    Mensaje = $"El vehículo {item.Vehiculo.Marca} {item.Vehiculo.Modelo} (Patente {item.Vehiculo.Patente}) tiene solo {item.TotalMaples:N0} maples en total (Mínimo Global: 15).",
                     Tipo = "Warning",
                     Fecha = DateTime.UtcNow, // Tiempo real
-                    Icono = "Package"
+                    Icono = "Package",
+                    Url = "/inventario"
                 });
             }
         }
 
-        // 3. Generar Warnings de Vehículos En Ruta sin movimiento reciente (Opcional, ejemplo)
-        // Por ahora nos basamos en stock como pidió el usuario "situaciones en la que parezca importante"
-        // Podríamos agregar deuda de clientes excesiva, etc.
+        // 3. Clientes con Deuda Alta (> $50,000)
+        var clientesDeudores = await _context.Clientes
+            .Where(c => c.Deuda > 50000)
+            .ToListAsync();
+
+        foreach (var cliente in clientesDeudores)
+        {
+            alertas.Add(new AlertaDTO
+            {
+                Id = idCounter++,
+                Titulo = "Deuda Alta",
+                Mensaje = $"El cliente {cliente.NombreCompleto} tiene una deuda de ${cliente.Deuda:N2}.",
+                Tipo = "Warning",
+                Fecha = DateTime.UtcNow,
+                Icono = "AlertCircle",
+                Url = $"/clientes/{cliente.ClienteId}"
+            });
+        }
+
+        // 4. Clientes Inactivos (Sin compras en 30 días)
+        var fechaLimite = DateTime.UtcNow.AddDays(-30);
+        var clientesInactivos = await _context.Clientes
+            .Where(c => c.UltimaCompra < fechaLimite && c.Estado == "Activo")
+            .ToListAsync();
+
+        foreach (var cliente in clientesInactivos)
+        {
+            alertas.Add(new AlertaDTO
+            {
+                Id = idCounter++,
+                Titulo = "Cliente Inactivo",
+                Mensaje = $"El cliente {cliente.NombreCompleto} no realiza compras desde hace más de 30 días.",
+                Tipo = "Info",
+                Fecha = DateTime.UtcNow,
+                Icono = "UserX",
+                Url = $"/clientes/{cliente.ClienteId}"
+            });
+        }
 
         return alertas.OrderByDescending(a => a.Fecha).ToList();
     }

@@ -1,6 +1,7 @@
 using SGA.Models;
 using SGA.Models.Enums;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace SGA.Data;
 

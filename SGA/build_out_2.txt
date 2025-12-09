@@ -1,0 +1,23 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\VehiculosController.cs(41,32): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(74,21): error CS0117: 'AlertaDTO' no contiene una definición para 'Url' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(94,17): error CS0117: 'AlertaDTO' no contiene una definición para 'Url' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(114,17): error CS0117: 'AlertaDTO' no contiene una definición para 'Url' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(49,25): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(57,44): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\ReporteService.cs(300,22): warning CS8601: Posible asignación de referencia nula. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+
+ERROR al compilar.
+
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\VehiculosController.cs(41,32): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(49,25): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(57,44): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\ReporteService.cs(300,22): warning CS8601: Posible asignación de referencia nula. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(74,21): error CS0117: 'AlertaDTO' no contiene una definición para 'Url' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(94,17): error CS0117: 'AlertaDTO' no contiene una definición para 'Url' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(114,17): error CS0117: 'AlertaDTO' no contiene una definición para 'Url' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+    4 Advertencia(s)
+    3 Errores
+
+Tiempo transcurrido 00:00:01.67
