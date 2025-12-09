@@ -44,7 +44,13 @@ public class VehiculoService : IVehiculoService
             CapacidadCarga = dto.CapacidadCarga,
             ID_Chofer_Asignado = dto.ID_Chofer_Asignado,
             Kilometraje = dto.Kilometraje,
-            EnRuta = false // Default
+            EnRuta = false, // Default
+            Estado = dto.Estado,
+            UltimoCambioAceite = dto.UltimoCambioAceite,
+            TipoAceite = dto.TipoAceite,
+            KilometrajeProximoCambioAceite = dto.KilometrajeProximoCambioAceite,
+            EstadoCubiertas = dto.EstadoCubiertas,
+            Notas = dto.Notas
         };
 
         _context.Vehiculos.Add(vehiculo);
@@ -65,11 +71,7 @@ public class VehiculoService : IVehiculoService
             throw new InvalidOperationException($"Un vehículo con la patente {dto.Patente} ya existe.");
         }
 
-        // Ensure kilometrage does not decrease
-        if (dto.Kilometraje < vehiculo.Kilometraje)
-        {
-             throw new InvalidOperationException($"El kilometraje no puede ser menor al actual ({vehiculo.Kilometraje}).");
-        }
+
 
         vehiculo.Patente = dto.Patente;
         vehiculo.Marca = dto.Marca;
@@ -79,6 +81,12 @@ public class VehiculoService : IVehiculoService
         vehiculo.ID_Chofer_Asignado = dto.ID_Chofer_Asignado;
         vehiculo.Kilometraje = dto.Kilometraje;
         vehiculo.EnRuta = dto.EnRuta;
+        vehiculo.Estado = dto.Estado;
+        vehiculo.UltimoCambioAceite = dto.UltimoCambioAceite;
+        vehiculo.TipoAceite = dto.TipoAceite;
+        vehiculo.KilometrajeProximoCambioAceite = dto.KilometrajeProximoCambioAceite;
+        vehiculo.EstadoCubiertas = dto.EstadoCubiertas;
+        vehiculo.Notas = dto.Notas;
 
         await _context.SaveChangesAsync();
         return vehiculo;
