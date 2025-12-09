@@ -4,22 +4,10 @@ import Header from '@/components/Header';
 import Modal from '@/components/Modal';
 import { Truck, Plus, Edit2, Droplets, Gauge, AlertTriangle, Disc } from 'lucide-react';
 import { useState } from 'react';
-
-interface Vehicle {
-  id: number;
-  name: string;
-  plate: string;
-  mileage: number;
-  lastOilChange: string;
-  oilType: string;
-  nextOilChangeKm: number;
-  notes: string;
-  tireCondition: 'Bueno' | 'Regular' | 'Malo';
-  status: 'Activo' | 'Mantenimiento' | 'Inactivo';
-}
-
 import api from '@/lib/axios';
 import { useEffect } from 'react';
+import { vehicleSchema } from '@/lib/schemas';
+import { z } from 'zod';
 
 interface Vehicle {
   id: number;
@@ -39,6 +27,7 @@ export default function VehiculosPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentVehicle, setCurrentVehicle] = useState<Vehicle | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const fetchVehicles = async () => {
     try {
@@ -69,21 +58,25 @@ export default function VehiculosPage() {
 
   const handleEdit = (vehicle: Vehicle) => {
     setCurrentVehicle(vehicle);
+    setErrors({});
     setIsModalOpen(true);
   };
 
   const handleAdd = () => {
     setCurrentVehicle(null); // New vehicle
+    setErrors({});
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setCurrentVehicle(null);
+    setErrors({});
   };
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors({});
     const formData = new FormData(e.currentTarget);
 
     // Parse name to split brand/model carefully. Simple approach for now.
@@ -93,17 +86,40 @@ export default function VehiculosPage() {
     const marca = parts[0] || 'Desconocido';
     const modelo = parts.slice(1).join(' ') || 'Modelo';
 
+    const rawData = {
+      name: fullName,
+      plate: formData.get('plate'),
+      mileage: formData.get('mileage'),
+      status: formData.get('status'),
+      lastOilChange: formData.get('lastOilChange') || null,
+      oilType: formData.get('oilType'),
+      nextOilChangeKm: formData.get('nextOilChangeKm'),
+      tireCondition: formData.get('tireCondition'),
+      notes: formData.get('notes'),
+    };
+
+    const validationResult = vehicleSchema.safeParse(rawData);
+
+    if (!validationResult.success) {
+      const newErrors: Record<string, string> = {};
+      validationResult.error.issues.forEach((err) => {
+        newErrors[err.path[0] as string] = err.message;
+      });
+      setErrors(newErrors);
+      return;
+    }
+
     const payload = {
-      patente: formData.get('plate'),
+      patente: rawData.plate,
       marca: marca,
       modelo: modelo,
-      kilometraje: Number(formData.get('mileage')),
-      estado: formData.get('status'),
-      ultimoCambioAceite: formData.get('lastOilChange') ? new Date(formData.get('lastOilChange') as string).toISOString() : null,
-      tipoAceite: formData.get('oilType'),
-      kilometrajeProximoCambioAceite: Number(formData.get('nextOilChangeKm')),
-      estadoCubiertas: formData.get('tireCondition'),
-      notas: formData.get('notes'),
+      kilometraje: Number(rawData.mileage),
+      estado: rawData.status,
+      ultimoCambioAceite: rawData.lastOilChange ? new Date(rawData.lastOilChange as string).toISOString() : null,
+      tipoAceite: rawData.oilType,
+      kilometrajeProximoCambioAceite: Number(rawData.nextOilChangeKm),
+      estadoCubiertas: rawData.tireCondition,
+      notas: rawData.notes,
       consumoPromedioLts100Km: 10, // Default or add field
       capacidadCarga: 1000, // Default or add field
       id_Chofer_Asignado: null,
@@ -118,9 +134,19 @@ export default function VehiculosPage() {
       }
       handleCloseModal();
       fetchVehicles();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving vehicle:', error);
-      alert('Error al guardar el vehículo. Verifique los datos.');
+      if (error.response && error.response.data && error.response.data.errors) {
+        // Handle backend validation errors if any
+        const backendErrors: Record<string, string> = {};
+        Object.entries(error.response.data.errors).forEach(([key, val]: [string, any]) => {
+          backendErrors[key.toLowerCase()] = val[0];
+        });
+        // Map backend fields to frontend fields if necessary, or just show alert
+        alert('Error de validación del servidor: ' + JSON.stringify(backendErrors));
+      } else {
+        alert('Error al guardar el vehículo. Verifique los datos.');
+      }
     }
   };
 
@@ -233,10 +259,12 @@ export default function VehiculosPage() {
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Nombre / Modelo</label>
               <input name="name" defaultValue={currentVehicle?.name} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Patente</label>
               <input name="plate" defaultValue={currentVehicle?.plate} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              {errors.plate && <p className="text-red-500 text-xs">{errors.plate}</p>}
             </div>
           </div>
 
@@ -244,6 +272,7 @@ export default function VehiculosPage() {
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Kilometraje Actual</label>
               <input type="number" name="mileage" defaultValue={currentVehicle?.mileage} required className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+              {errors.mileage && <p className="text-red-500 text-xs">{errors.mileage}</p>}
             </div>
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado</label>
@@ -252,6 +281,7 @@ export default function VehiculosPage() {
                 <option value="Mantenimiento">Mantenimiento</option>
                 <option value="Inactivo">Inactivo</option>
               </select>
+              {errors.status && <p className="text-red-500 text-xs">{errors.status}</p>}
             </div>
           </div>
 
@@ -261,14 +291,17 @@ export default function VehiculosPage() {
               <div className="space-y-1">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Último Cambio Aceite</label>
                 <input type="date" name="lastOilChange" defaultValue={currentVehicle?.lastOilChange} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                {errors.lastOilChange && <p className="text-red-500 text-xs">{errors.lastOilChange}</p>}
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Próximo Cambio (Km)</label>
                 <input type="number" name="nextOilChangeKm" defaultValue={currentVehicle?.nextOilChangeKm} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" />
+                {errors.nextOilChangeKm && <p className="text-red-500 text-xs">{errors.nextOilChangeKm}</p>}
               </div>
               <div className="space-y-1 col-span-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Tipo de Aceite</label>
                 <input name="oilType" defaultValue={currentVehicle?.oilType} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white" placeholder="Ej: 5W-30 Sintético" />
+                {errors.oilType && <p className="text-red-500 text-xs">{errors.oilType}</p>}
               </div>
               <div className="space-y-1 col-span-2">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Estado Cubiertas</label>
@@ -277,6 +310,7 @@ export default function VehiculosPage() {
                   <option value="Regular">Regular</option>
                   <option value="Malo">Malo</option>
                 </select>
+                {errors.tireCondition && <p className="text-red-500 text-xs">{errors.tireCondition}</p>}
               </div>
             </div>
           </div>
@@ -284,6 +318,7 @@ export default function VehiculosPage() {
           <div className="space-y-1">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Notas / Observaciones</label>
             <textarea name="notes" defaultValue={currentVehicle?.notes} className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white h-24" placeholder="Detalles adicionales..." />
+            {errors.notes && <p className="text-red-500 text-xs">{errors.notes}</p>}
           </div>
 
           <div className="pt-4 flex justify-end gap-3">

@@ -14,13 +14,15 @@ public class Cliente
     public string NombreCompleto { get; set; } = string.Empty;
 
     [MaxLength(20)]
+    [RegularExpression(@"^\d+$", ErrorMessage = "El DNI solo debe contener números")]
     public string? DNI { get; set; }
 
     [MaxLength(20)]
+    [Phone(ErrorMessage = "El formato del teléfono no es válido")]
     public string? Telefono { get; set; }
 
     [MaxLength(100)]
-    [EmailAddress]
+    [EmailAddress(ErrorMessage = "El email no es válido")]
     public string? Email { get; set; }
 
     [MaxLength(200)]
