@@ -34,4 +34,19 @@ public class Vehiculo
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal Kilometraje { get; set; }
+
+    public string Estado { get; set; } = "Activo";
+
+    public DateTime? UltimoCambioAceite { get; set; }
+
+    [MaxLength(50)]
+    public string? TipoAceite { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal? KilometrajeProximoCambioAceite { get; set; }
+
+    [MaxLength(20)]
+    public string? EstadoCubiertas { get; set; }
+
+    public string? Notas { get; set; }
 }

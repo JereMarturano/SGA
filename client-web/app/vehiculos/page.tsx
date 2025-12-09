@@ -48,12 +48,12 @@ export default function VehiculosPage() {
         name: `${v.marca} ${v.modelo}`,
         plate: v.patente,
         mileage: v.kilometraje,
-        lastOilChange: 'N/A', // Not in DB yet
-        oilType: 'N/A',       // Not in DB yet
-        nextOilChangeKm: v.kilometraje + 10000, // Mock calculation
-        notes: v.enRuta ? 'Actualmente en reparto' : '',
-        tireCondition: 'Bueno', // Not in DB yet
-        status: v.enRuta ? 'Activo' : 'Activo', // Simplified status mapping
+        lastOilChange: v.ultimoCambioAceite ? new Date(v.ultimoCambioAceite).toISOString().split('T')[0] : '',
+        oilType: v.tipoAceite || '',
+        nextOilChangeKm: v.kilometrajeProximoCambioAceite || (v.kilometraje + 10000),
+        notes: v.notas || '',
+        tireCondition: v.estadoCubiertas || 'Bueno',
+        status: v.estado || 'Activo',
       }));
       setVehicles(data);
     } catch (error) {
@@ -84,11 +84,44 @@ export default function VehiculosPage() {
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // For now, we are just refreshing the list because the edit endpoint might not be fully ready for all these fields
-    // In a full implementation, we would PUT to /api/vehiculos/:id
-    alert('La edición completa de vehículos se implementará en la próxima etapa. Los datos se han recargado.');
-    handleCloseModal();
-    fetchVehicles();
+    const formData = new FormData(e.currentTarget);
+
+    // Parse name to split brand/model carefully. Simple approach for now.
+    // The user inputs "Brand Model" in one field.
+    const fullName = formData.get('name') as string;
+    const parts = fullName.split(' ');
+    const marca = parts[0] || 'Desconocido';
+    const modelo = parts.slice(1).join(' ') || 'Modelo';
+
+    const payload = {
+      patente: formData.get('plate'),
+      marca: marca,
+      modelo: modelo,
+      kilometraje: Number(formData.get('mileage')),
+      estado: formData.get('status'),
+      ultimoCambioAceite: formData.get('lastOilChange') ? new Date(formData.get('lastOilChange') as string).toISOString() : null,
+      tipoAceite: formData.get('oilType'),
+      kilometrajeProximoCambioAceite: Number(formData.get('nextOilChangeKm')),
+      estadoCubiertas: formData.get('tireCondition'),
+      notas: formData.get('notes'),
+      consumoPromedioLts100Km: 10, // Default or add field
+      capacidadCarga: 1000, // Default or add field
+      id_Chofer_Asignado: null,
+      enRuta: currentVehicle?.status === 'Activo' && currentVehicle?.notes?.includes('reparto') // Preserve logic if needed
+    };
+
+    try {
+      if (currentVehicle) {
+        await api.put(`/vehiculos/${currentVehicle.id}`, payload);
+      } else {
+        await api.post('/vehiculos', payload);
+      }
+      handleCloseModal();
+      fetchVehicles();
+    } catch (error) {
+      console.error('Error saving vehicle:', error);
+      alert('Error al guardar el vehículo. Verifique los datos.');
+    }
   };
 
   return (

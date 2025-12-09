@@ -21,6 +21,20 @@ public class CreateVehiculoDto
     public int? ID_Chofer_Asignado { get; set; }
 
     public decimal Kilometraje { get; set; }
+
+    public string Estado { get; set; } = "Activo";
+
+    public DateTime? UltimoCambioAceite { get; set; }
+
+    [MaxLength(50)]
+    public string? TipoAceite { get; set; }
+
+    public decimal? KilometrajeProximoCambioAceite { get; set; }
+
+    [MaxLength(20)]
+    public string? EstadoCubiertas { get; set; }
+
+    public string? Notas { get; set; }
 }
 
 public class UpdateVehiculoDto
@@ -44,4 +58,18 @@ public class UpdateVehiculoDto
     public decimal Kilometraje { get; set; }
 
     public bool EnRuta { get; set; }
+
+    public string Estado { get; set; } = "Activo";
+
+    public DateTime? UltimoCambioAceite { get; set; }
+
+    [MaxLength(50)]
+    public string? TipoAceite { get; set; }
+
+    public decimal? KilometrajeProximoCambioAceite { get; set; }
+
+    [MaxLength(20)]
+    public string? EstadoCubiertas { get; set; }
+
+    public string? Notas { get; set; }
 }
