@@ -5,6 +5,7 @@ import { LayoutDashboard, Users, Truck, PieChart, Menu, User, X, LogOut, Setting
 import Link from 'next/link';
 import Image from 'next/image';
 import NotificationBell from './NotificationBell';
+import OperationalAlerts from './OperationalAlerts';
 import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -64,6 +65,7 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
+          <OperationalAlerts />
           <NotificationBell />
 
           <div className="relative hidden sm:block">

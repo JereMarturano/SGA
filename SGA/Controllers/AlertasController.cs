@@ -27,4 +27,5 @@ public class AlertasController : ControllerBase
             return StatusCode(500, $"Error interno: {ex.Message}");
         }
     }
+
 }

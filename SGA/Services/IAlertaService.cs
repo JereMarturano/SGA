@@ -15,4 +15,6 @@ public class AlertaDTO
     public string Tipo { get; set; } = "Info"; // "Info", "Warning", "Critical"
     public DateTime Fecha { get; set; }
     public string Icono { get; set; } = "Info"; // "Package", "Truck", "DollarSign", etc.
+    public string? Url { get; set; }
+
 }
