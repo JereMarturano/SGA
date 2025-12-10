@@ -61,4 +61,11 @@ public class VentasController : ControllerBase
         var ventas = await _ventaService.ObtenerVentasPorVehiculoYFechaAsync(vehiculoId, fechaConsulta);
         return Ok(ventas);
     }
+
+    [HttpGet("usuario/{usuarioId}")]
+    public async Task<ActionResult<List<HistorialVentaDTO>>> ObtenerPorUsuario(int usuarioId, [FromQuery] int? mes, [FromQuery] int? anio)
+    {
+        var ventas = await _ventaService.ObtenerVentasPorUsuarioAsync(usuarioId, mes, anio);
+        return Ok(ventas);
+    }
 }

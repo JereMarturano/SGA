@@ -209,6 +209,7 @@ public class VentaService : IVentaService
     {
         return await _context.Ventas
             .Where(v => v.ClienteId == clienteId)
+            .Include(v => v.Cliente) // Include Cliente
             .Include(v => v.Usuario)
             .Include(v => v.Detalles)
                 .ThenInclude(d => d.Producto)
@@ -220,6 +221,44 @@ public class VentaService : IVentaService
                 Total = v.Total,
                 MetodoPago = v.MetodoPago.ToString(),
                 Vendedor = v.Usuario != null ? v.Usuario.Nombre : "Desconocido",
+                Cliente = v.Cliente != null ? v.Cliente.NombreCompleto : "Desconocido",
+                Productos = v.Detalles.Select(d => new DetalleVentaHistorialDTO
+                {
+                    Producto = d.Producto != null ? d.Producto.Nombre : "Desconocido",
+                    Cantidad = d.Cantidad,
+                    PrecioUnitario = d.PrecioUnitario,
+                    Subtotal = d.Subtotal
+                }).ToList()
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<HistorialVentaDTO>> ObtenerVentasPorUsuarioAsync(int usuarioId, int? mes = null, int? anio = null)
+    {
+        var query = _context.Ventas
+            .Where(v => v.UsuarioId == usuarioId);
+
+        if (mes.HasValue && anio.HasValue)
+        {
+            var fechaInicio = new DateTime(anio.Value, mes.Value, 1);
+            var fechaFin = fechaInicio.AddMonths(1);
+            query = query.Where(v => v.Fecha >= fechaInicio && v.Fecha < fechaFin);
+        }
+
+        return await query
+            .Include(v => v.Usuario)
+            .Include(v => v.Cliente)
+            .Include(v => v.Detalles)
+                .ThenInclude(d => d.Producto)
+            .OrderByDescending(v => v.Fecha)
+            .Select(v => new HistorialVentaDTO
+            {
+                VentaId = v.VentaId,
+                Fecha = v.Fecha.ToString("yyyy-MM-dd HH:mm"),
+                Total = v.Total,
+                MetodoPago = v.MetodoPago.ToString(),
+                Vendedor = v.Usuario != null ? v.Usuario.Nombre : "Desconocido",
+                Cliente = v.Cliente != null ? v.Cliente.NombreCompleto : "Mostrador",
                 Productos = v.Detalles.Select(d => new DetalleVentaHistorialDTO
                 {
                     Producto = d.Producto != null ? d.Producto.Nombre : "Desconocido",

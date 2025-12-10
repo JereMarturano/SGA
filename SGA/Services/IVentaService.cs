@@ -9,5 +9,6 @@ public interface IVentaService
     Task<Venta?> ObtenerVentaPorIdAsync(int id);
     Task<List<Venta>> ObtenerVentasPorVehiculoYFechaAsync(int vehiculoId, DateTime fecha);
     Task<List<HistorialVentaDTO>> ObtenerVentasPorClienteAsync(int clienteId);
+    Task<List<HistorialVentaDTO>> ObtenerVentasPorUsuarioAsync(int usuarioId, int? mes = null, int? anio = null);
     Task CancelarVentaAsync(int ventaId, string motivo);
 }
