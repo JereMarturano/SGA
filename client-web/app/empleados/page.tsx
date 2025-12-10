@@ -14,6 +14,7 @@ interface Employee {
   absences: number;
   status: 'Activo' | 'Vacaciones' | 'Inactivo';
   phone: string;
+  dni: string;
 }
 
 import api from '@/lib/axios';
@@ -28,6 +29,7 @@ interface Employee {
   absences: number;
   status: 'Activo' | 'Vacaciones' | 'Inactivo';
   phone: string;
+  dni: string;
 }
 
 export default function EmpleadosPage() {
@@ -56,6 +58,7 @@ export default function EmpleadosPage() {
         absences: u.faltasDelMes || 0,
         status: u.estado || 'Activo',
         phone: u.telefono || 'N/A',
+        dni: u.dni || '',
       }));
       setEmployees(data);
     } catch (error) {
@@ -93,8 +96,15 @@ export default function EmpleadosPage() {
 
     if (!currentEmployee) {
       // Create logic
+      const dni = formData.get('dni') as string;
+      if (dni.length !== 8) {
+        alert('El DNI debe tener 8 dígitos.');
+        return;
+      }
+
       const createData = {
         nombre: formData.get('name'),
+        dni: dni,
         role: formData.get('role'),
         telefono: formData.get('phone'),
         fechaIngreso: formData.get('startDate'),
@@ -106,28 +116,39 @@ export default function EmpleadosPage() {
         await api.post('/empleados', createData);
         handleCloseModal();
         fetchEmployees();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error creating employee:', error);
-        alert('Error al crear empleado.');
+        alert('Error al crear empleado: ' + (error.response?.data?.message || error.message));
       }
     } else {
       // Update logic
-      const updateData = {
+      const dni = formData.get('dni') as string;
+      if (dni && dni.length !== 8) {
+        alert('El DNI debe tener 8 dígitos.');
+        return;
+      }
+
+      const updateData: any = {
         nombre: formData.get('name'),
         role: formData.get('role'),
         telefono: formData.get('phone'),
         fechaIngreso: formData.get('startDate'), // "YYYY-MM-DD"
         estado: formData.get('status'),
-        // metrics ignored for update
+        dni: dni,
       };
+
+      const password = formData.get('password') as string;
+      if (password && password.trim() !== '') {
+        updateData.password = password;
+      }
 
       try {
         await api.put(`/empleados/${currentEmployee.id}`, updateData);
         handleCloseModal();
         fetchEmployees();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error updating employee:', error);
-        alert('Error al actualizar empleado.');
+        alert('Error al actualizar empleado: ' + (error.response?.data?.message || error.message));
       }
     }
   };
@@ -203,13 +224,12 @@ export default function EmpleadosPage() {
                 </div>
                 <span
                   className={`px-2 py-1 rounded-lg text-xs font-bold
-                  ${
-                    employee.status === 'Activo'
+                  ${employee.status === 'Activo'
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                       : employee.status === 'Vacaciones'
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                  }`}
+                    }`}
                 >
                   {employee.status}
                 </span>
@@ -248,6 +268,10 @@ export default function EmpleadosPage() {
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-600 dark:text-slate-300">Teléfono</span>
                   <span className="text-slate-800 dark:text-slate-200">{employee.phone}</span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-600 dark:text-slate-300">DNI</span>
+                  <span className="text-slate-800 dark:text-slate-200">{employee.dni}</span>
                 </div>
               </div>
 
@@ -311,21 +335,32 @@ export default function EmpleadosPage() {
                 className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               />
             </div>
-          </div>
-
-          {!currentEmployee && (
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Contraseña
+                DNI
               </label>
               <input
-                type="password"
-                name="password"
+                name="dni"
+                defaultValue={currentEmployee?.dni}
                 required
+                maxLength={8}
                 className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               />
             </div>
-          )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {currentEmployee ? 'Nueva Contraseña (Opcional)' : 'Contraseña'}
+            </label>
+            <input
+              type="password"
+              name="password"
+              placeholder={currentEmployee ? 'Dejar en blanco para mantener' : ''}
+              required={!currentEmployee}
+              className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">

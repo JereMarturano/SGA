@@ -36,6 +36,11 @@ public class ViajeService : IViajeService
             .AnyAsync(v => v.ChoferId == choferId && v.Estado == EstadoViaje.EnCurso);
         if (existingTrip) throw new InvalidOperationException("El chofer ya tiene un viaje activo.");
 
+        // Validar si el chofer está activo
+        var chofer = await _context.Usuarios.FindAsync(choferId);
+        if (chofer == null) throw new KeyNotFoundException("Chofer no encontrado");
+        if (chofer.Estado != "Activo") throw new InvalidOperationException("El chofer no está activo y no se le puede asignar un viaje.");
+
         var viaje = new Viaje
         {
             VehiculoId = vehiculoId,

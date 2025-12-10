@@ -50,6 +50,7 @@ public class EmpleadosController : ControllerBase
                 Telefono = u.Telefono,
                 FechaIngreso = u.FechaIngreso,
                 Estado = u.Estado,
+                DNI = u.DNI,
                 VentasDelMes = stats.TotalHuevosVendidos, // Using Egg Count as "Ventas" metric based on previous context, or stats.TotalVentas?
                                                           // Let's use TotalHuevosVendidos as the prompt implies "Sales" usually means volume in this egg business.
                                                           // Actually, let's use TotalVentas (money) or check what frontend expects.

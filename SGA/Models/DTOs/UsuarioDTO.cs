@@ -10,6 +10,7 @@ public class UsuarioDTO
     public string? Telefono { get; set; }
     public DateTime FechaIngreso { get; set; }
     public string Estado { get; set; } = "Activo";
+    public string DNI { get; set; } = string.Empty;
     public decimal VentasDelMes { get; set; }
     public int FaltasDelMes { get; set; }
 }

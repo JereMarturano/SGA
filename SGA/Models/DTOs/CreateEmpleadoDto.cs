@@ -14,6 +14,10 @@ public class CreateEmpleadoDto
     [Required]
     public string Contrasena { get; set; } = string.Empty;
 
+    [Required]
+    [StringLength(8, MinimumLength = 8, ErrorMessage = "El DNI debe tener exactamente 8 dígitos")]
+    public string DNI { get; set; } = string.Empty;
+
     [MaxLength(20)]
     public string? Telefono { get; set; }
 

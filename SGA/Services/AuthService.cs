@@ -26,6 +26,8 @@ public class AuthService : IAuthService
             .FirstOrDefaultAsync(u => u.DNI == dni);
 
         if (user == null) return null;
+        
+        if (user.Estado != "Activo") return null;
 
         // Verify password
         if (!PasswordHelper.VerifyPassword(password, user.ContrasenaHash))
