@@ -519,7 +519,7 @@ export default function StockCallePage() {
             <Truck size={32} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 dark:text-white">Stock en Calle</h1>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-white">Gestión de Viaje</h1>
             <p className="text-slate-500 dark:text-slate-400">
               Estado actual de los vehículos y su mercadería.
             </p>

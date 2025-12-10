@@ -392,7 +392,7 @@ export default function Dashboard() {
             color="blue"
           />
           <KPICard
-            title="Stock en Calle"
+            title="Gestión de Viaje"
             value={`${stats.vehiculosEnRuta} En Ruta`}
             icon={Truck}
             color="orange"
