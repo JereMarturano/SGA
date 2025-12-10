@@ -274,7 +274,7 @@ public class VentaService : IVentaService
                 var movimiento = new MovimientoStock
                 {
                     Fecha = TimeHelper.Now,
-                    TipoMovimiento = TipoMovimientoStock.Devolucion, // Or Ajuste
+                    TipoMovimiento = TipoMovimientoStock.DevolucionCliente, // Or Ajuste
                     VehiculoId = venta.VehiculoId,
                     ProductoId = detalle.ProductoId,
                     Cantidad = detalle.Cantidad, // Entrada
