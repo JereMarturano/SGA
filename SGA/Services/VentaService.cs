@@ -11,11 +11,13 @@ public class VentaService : IVentaService
 {
     private readonly AppDbContext _context;
     private readonly INotificacionService _notificacionService;
+    private readonly IViajeService _viajeService;
 
-    public VentaService(AppDbContext context, INotificacionService notificacionService)
+    public VentaService(AppDbContext context, INotificacionService notificacionService, IViajeService viajeService)
     {
         _context = context;
         _notificacionService = notificacionService;
+        _viajeService = viajeService;
     }
 
     public async Task<Venta> RegistrarVentaAsync(RegistrarVentaRequest request)
@@ -23,7 +25,22 @@ public class VentaService : IVentaService
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 1. Crear la Venta
+            // 1. Validaciones Previas
+            var usuario = await _context.Usuarios.FindAsync(request.UsuarioId);
+            if (usuario == null) throw new KeyNotFoundException("Usuario no encontrado.");
+
+            if (usuario.Rol == RolUsuario.Chofer)
+            {
+                var viajeActivo = await _viajeService.ObtenerViajeActivoPorUsuarioAsync(request.UsuarioId);
+                // Debe tener viaje activo Y coincidir con vehículo
+                if (viajeActivo == null)
+                    throw new InvalidOperationException("No tienes un viaje activo autorizado. Solicita autorización al administrador.");
+                
+                if (viajeActivo.VehiculoId != request.VehiculoId)
+                    throw new InvalidOperationException($"Tu viaje activo es con el vehículo patente {viajeActivo.Vehiculo?.Patente} ({viajeActivo.VehiculoId}), no con el vehículo {request.VehiculoId}.");
+            }
+
+            // 2. Crear la Venta
             var venta = new Venta
             {
                 Fecha = request.Fecha ?? TimeHelper.Now,
@@ -33,6 +50,7 @@ public class VentaService : IVentaService
                 MetodoPago = request.MetodoPago,
                 DescuentoPorcentaje = request.DescuentoPorcentaje,
                 FechaVencimientoPago = request.FechaVencimientoPago,
+                Activa = true,
                 Total = 0 // Se calcula abajo
             };
 
@@ -211,5 +229,77 @@ public class VentaService : IVentaService
                 }).ToList()
             })
             .ToListAsync();
+    }
+
+    public async Task CancelarVentaAsync(int ventaId, string motivo)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var venta = await _context.Ventas
+                .Include(v => v.Detalles)
+                .Include(v => v.Cliente)
+                .FirstOrDefaultAsync(v => v.VentaId == ventaId);
+
+            if (venta == null) throw new KeyNotFoundException("Venta no encontrada");
+            if (!venta.Activa) throw new InvalidOperationException("La venta ya está anulada.");
+
+            // 1. Marcar como inactiva
+            venta.Activa = false;
+
+            // 2. Revertir Cliente
+            if (venta.Cliente != null)
+            {
+                venta.Cliente.VentasTotales -= venta.Total;
+                
+                if (venta.MetodoPago == MetodoPago.CuentaCorriente)
+                {
+                    venta.Cliente.Deuda -= venta.Total;
+                }
+            }
+
+            // 3. Revertir Stock
+            foreach (var detalle in venta.Detalles)
+            {
+                var stockVehiculo = await _context.StockVehiculos
+                    .FirstOrDefaultAsync(s => s.VehiculoId == venta.VehiculoId && s.ProductoId == detalle.ProductoId);
+                
+                if (stockVehiculo != null)
+                {
+                    stockVehiculo.Cantidad += detalle.Cantidad; // Devolver stock
+                    stockVehiculo.UltimaActualizacion = TimeHelper.Now;
+                }
+
+                // Registrar Movimiento de Ajuste
+                var movimiento = new MovimientoStock
+                {
+                    Fecha = TimeHelper.Now,
+                    TipoMovimiento = TipoMovimientoStock.Devolucion, // Or Ajuste
+                    VehiculoId = venta.VehiculoId,
+                    ProductoId = detalle.ProductoId,
+                    Cantidad = detalle.Cantidad, // Entrada
+                    UsuarioId = venta.UsuarioId,
+                    Observaciones = $"Anulación Venta #{venta.VentaId}: {motivo}"
+                };
+                _context.MovimientosStock.Add(movimiento);
+            }
+
+            // Registrar Acción de Auditoría
+            await _notificacionService.RegistrarAccionAsync(
+                "Anular Venta", 
+                "Venta", 
+                venta.VentaId.ToString(), 
+                venta.UsuarioId, 
+                $"Venta anulada. Motivo: {motivo}"
+            );
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 }

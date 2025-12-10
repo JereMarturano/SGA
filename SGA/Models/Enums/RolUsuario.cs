@@ -8,5 +8,6 @@ public enum RolUsuario
     Galponero,
     Vendedor,
     Encargado,
-    Recolector
+    Recolector,
+    Seleccionador
 }

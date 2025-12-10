@@ -40,6 +40,8 @@ public class Venta
 
     public DateTime? FechaVencimientoPago { get; set; }
 
+    public bool Activa { get; set; } = true;
+
     // Lista de items vendidos
     public List<DetalleVenta> Detalles { get; set; } = new();
 }
