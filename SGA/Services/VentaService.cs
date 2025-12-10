@@ -147,7 +147,8 @@ public class VentaService : IVentaService
                 );
 
                 // Obtener Nombres para el mensaje detallado
-                var usuario = await _context.Usuarios.FindAsync(request.UsuarioId);
+                // Obtener Nombres para el mensaje detallado
+                // var usuario already exists from line 29
                 var cliente = await _context.Clientes.FindAsync(request.ClienteId);
 
                 var nombreUsuario = usuario?.Nombre ?? "Usuario Desconocido";

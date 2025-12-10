@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models.DTOs;
 using SGA.Models;
+using SGA.Models.Enums;
 
 namespace SGA.Services;
 
@@ -286,7 +287,7 @@ public class ReporteService : IReporteService
             .Include(m => m.Usuario)
             .Include(m => m.Vehiculo)
             .Include(m => m.Producto)
-            .Where(m => m.TipoMovimiento == Models.Enums.TipoMovimientoStock.Merma)
+            .Where(m => m.TipoMovimiento == TipoMovimientoStock.Merma)
             .OrderByDescending(m => m.Fecha)
             .ToListAsync();
 
