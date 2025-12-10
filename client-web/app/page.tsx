@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 
 interface ViajeActivo {
   viajeId: number;
+  vehiculoId: number;
   vehiculo: { patente: string; modelo: string };
 }
 
@@ -21,6 +22,8 @@ export default function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const [activeTrip, setActiveTrip] = useState<ViajeActivo | null>(null);
   const [checkingTrip, setCheckingTrip] = useState(true);
+  const [misVentas, setMisVentas] = useState<any[]>([]);
+  const [ventasTotalHoy, setVentasTotalHoy] = useState(0);
 
   // Admin Stats
   const [stats, setStats] = useState({
@@ -46,6 +49,15 @@ export default function Dashboard() {
         try {
           const res = await api.get(`/viajes/activo-por-usuario/${user.UsuarioId}`);
           setActiveTrip(res.data);
+
+          if (res.data?.vehiculoId) {
+            // Fetch recent sales for this vehicle (today)
+            const today = new Date().toISOString().split('T')[0];
+            const ventasRes = await api.get(`/ventas/vehiculo/${res.data.vehiculoId}?fecha=${today}`);
+            setMisVentas(ventasRes.data);
+            const total = ventasRes.data.reduce((acc: number, v: any) => acc + v.total, 0);
+            setVentasTotalHoy(total);
+          }
         } catch (error) {
           console.log("No active trip found or error", error);
           setActiveTrip(null);
@@ -150,13 +162,19 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="space-y-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-800 flex items-center gap-4">
-                <Truck size={32} className="text-blue-600 dark:text-blue-400" />
-                <div>
-                  <h3 className="font-bold text-blue-900 dark:text-blue-100 text-lg">Viaje Activo</h3>
-                  <p className="text-blue-700 dark:text-blue-300">
-                    Vehículo: {activeTrip.vehiculo?.modelo} ({activeTrip.vehiculo?.patente})
-                  </p>
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-800 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <Truck size={32} className="text-blue-600 dark:text-blue-400" />
+                  <div>
+                    <h3 className="font-bold text-blue-900 dark:text-blue-100 text-lg">Viaje Activo</h3>
+                    <p className="text-blue-700 dark:text-blue-300">
+                      Vehículo: {activeTrip.vehiculo?.modelo} ({activeTrip.vehiculo?.patente})
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right hidden sm:block">
+                  <p className="text-sm text-blue-800 dark:text-blue-300">Vendido Hoy</p>
+                  <p className="text-2xl font-black text-blue-900 dark:text-white">${ventasTotalHoy.toLocaleString('es-AR')}</p>
                 </div>
               </div>
 
@@ -172,7 +190,7 @@ export default function Dashboard() {
                 </Link>
 
                 <Link
-                  href={`/stock-vehiculo/${activeTrip.vehiculo?.patente}`}
+                  href={`/stock-vehiculo/${activeTrip.vehiculoId}`}
                   className="group bg-slate-800 hover:bg-slate-900 text-white p-8 rounded-3xl font-bold transition-all shadow-lg hover:scale-[1.02] flex flex-col items-center justify-center gap-4 text-center"
                 >
                   <div className="bg-white/20 p-4 rounded-2xl group-hover:rotate-12 transition-transform">
@@ -180,6 +198,28 @@ export default function Dashboard() {
                   </div>
                   <span className="text-2xl">Stock en Vehículo</span>
                 </Link>
+              </div>
+
+              {/* Recent Sales List */}
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Mis Ventas de Hoy</h3>
+                <div className="space-y-2 max-h-80 overflow-y-auto">
+                  {misVentas.length === 0 ? (
+                    <p className="text-slate-400 text-center py-4">Aun no has realizado ventas hoy.</p>
+                  ) : (
+                    misVentas.map((venta: any) => (
+                      <div key={venta.ventaId} className="flex justify-between items-center p-3 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg border-b border-slate-50 dark:border-slate-800 last:border-0">
+                        <div>
+                          <p className="font-bold text-slate-700 dark:text-slate-200">{venta.cliente?.nombre} {venta.cliente?.apellido}</p>
+                          <p className="text-xs text-slate-400">{new Date(venta.fecha).toLocaleTimeString().slice(0, 5)} hs</p>
+                        </div>
+                        <span className="font-mono font-bold text-green-600 dark:text-green-400">
+                          ${venta.total.toLocaleString()}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           )}

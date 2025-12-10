@@ -85,6 +85,7 @@ export default function CargaCamionetaPage() {
   // UI States
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("¡Carga registrada y Viaje Iniciado!");
   const [historial, setHistorial] = useState<HistorialItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -185,13 +186,40 @@ export default function CargaCamionetaPage() {
 
       await api.post('/inventario/cargar-vehiculo', payload);
 
+      // AUTOMATICALLY START TRIP (Only if not already on route)
+      let tripStarted = false;
+
+      if (!vehiculo?.enRuta) {
+        try {
+          await api.post('/viajes/iniciar', {
+            VehiculoId: Number(selectedVehiculo),
+            ChoferId: Number(selectedChofer),
+            Observaciones: 'Iniciado automáticamente desde Carga de Camioneta'
+          });
+          tripStarted = true;
+        } catch (tripError: any) {
+          console.error("Error starting trip automatically", tripError);
+          alert(`La carga se guardó, pero NO SE PUDO INICIAR EL VIAJE: ${tripError.response?.data || tripError.message}`);
+        }
+      } else {
+        // If already on route, we consider it a success for the "Load" action (adding stock to existing trip)
+        tripStarted = true;
+      }
+
       await fetchHistorial();
 
       // Resetear form
       setItems([]);
       setSelectedVehiculo(null);
+      setSelectedChofer(null);
       setIsConfirmModalOpen(false);
-      setShowToast(true);
+
+      const message = vehiculo?.enRuta
+        ? "¡Carga agregada al viaje en curso!"
+        : "¡Carga registrada y Viaje Iniciado!";
+
+      setToastMessage(message);
+      setShowToast(tripStarted);
     } catch (error: any) {
       console.error('Error al cargar vehículo:', error);
       alert(`Error al cargar vehículo: ${error.response?.data?.message || error.message}`);
@@ -226,7 +254,7 @@ export default function CargaCamionetaPage() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-8 pb-32 transition-colors duration-300">
       <Toast
-        message="¡Carga registrada exitosamente!"
+        message={toastMessage}
         isVisible={showToast}
         onClose={() => setShowToast(false)}
       />
@@ -249,11 +277,10 @@ export default function CargaCamionetaPage() {
             <button
               onClick={handleConfirmSubmit}
               disabled={isSubmitting}
-              className={`px-6 py-2.5 font-bold rounded-xl transition-all shadow-lg flex items-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                getSelectedVehiculoObj()?.enRuta
-                  ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/30'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'
-              }`}
+              className={`px-6 py-2.5 font-bold rounded-xl transition-all shadow-lg flex items-center gap-2 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${getSelectedVehiculoObj()?.enRuta
+                ? 'bg-red-600 hover:bg-red-700 text-white shadow-red-500/30'
+                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/30'
+                }`}
             >
               {isSubmitting ? (
                 'Procesando...'
@@ -297,10 +324,10 @@ export default function CargaCamionetaPage() {
               </div>
               <div>
                 <p className="font-bold text-blue-900 dark:text-blue-100 text-lg">
-                  ¿Confirmar movimiento?
+                  ¿Confirmar Carga y Salida?
                 </p>
                 <p className="text-sm text-blue-700 dark:text-blue-300 mt-1 leading-relaxed">
-                  Se agregarán los productos al stock del vehículo{' '}
+                  Se cargará el stock y se <strong>INICIARÁ EL VIAJE</strong> para{' '}
                   <span className="font-black bg-blue-200 dark:bg-blue-800 px-1.5 py-0.5 rounded">
                     {getSelectedVehiculoObj()?.nombre}
                   </span>
@@ -403,11 +430,10 @@ export default function CargaCamionetaPage() {
                   <button
                     key={v.id}
                     onClick={() => setSelectedVehiculo(v.id)}
-                    className={`w-full relative overflow-hidden p-4 rounded-2xl border-2 text-left transition-all duration-300 group ${
-                      selectedVehiculo === v.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/20 scale-[1.02]'
-                        : 'border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
+                    className={`w-full relative overflow-hidden p-4 rounded-2xl border-2 text-left transition-all duration-300 group ${selectedVehiculo === v.id
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 shadow-lg shadow-blue-500/20 scale-[1.02]'
+                      : 'border-slate-100 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
                   >
                     <div className="flex items-center gap-4 relative z-10">
                       <div

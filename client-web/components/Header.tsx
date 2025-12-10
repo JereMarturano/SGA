@@ -87,8 +87,12 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
-          <OperationalAlerts />
-          <NotificationBell />
+          {user?.Rol !== 'Chofer' && (
+            <>
+              <OperationalAlerts />
+              <NotificationBell />
+            </>
+          )}
 
           <div className="relative hidden sm:block">
             <button
@@ -140,16 +144,7 @@ export default function Header() {
                         <span>Restauración</span>
                       </Link>
                     )}
-                    {user?.Rol === 'Admin' && (
-                      <Link
-                        href="/viajes"
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
-                        <Truck size={16} />
-                        <span>Gestión Viajes</span>
-                      </Link>
-                    )}
+
 
                     <Link
                       href="/configuracion"

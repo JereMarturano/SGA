@@ -73,7 +73,8 @@ public class InventarioService : IInventarioService
             var vehiculo = await _context.Vehiculos.FindAsync(vehiculoId);
             if (vehiculo != null)
             {
-                vehiculo.EnRuta = true;
+                // NO marcamos EnRuta aquí. Se marca al Iniciar Viaje.
+                // vehiculo.EnRuta = true; 
                 if (choferId.HasValue)
                 {
                     vehiculo.ID_Chofer_Asignado = choferId.Value;

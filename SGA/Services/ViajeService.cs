@@ -20,7 +20,16 @@ public class ViajeService : IViajeService
         // Validar si el vehículo está en uso
         var vehiculo = await _context.Vehiculos.FindAsync(vehiculoId);
         if (vehiculo == null) throw new KeyNotFoundException("Vehículo no encontrado");
-        if (vehiculo.EnRuta) throw new InvalidOperationException("El vehículo ya está en ruta.");
+        if (vehiculo.EnRuta) 
+        {
+            // Verify if it's really in use or just stale state
+            var activeTrip = await _context.Viajes.AnyAsync(v => v.VehiculoId == vehiculoId && v.Estado == EstadoViaje.EnCurso);
+            if (activeTrip) 
+            {
+                throw new InvalidOperationException("El vehículo ya está en ruta con un viaje activo.");
+            }
+            // If stale (EnRuta=true but no active trip), we allow proceeding and overwrite.
+        }
 
         // Validar si el chofer ya tiene viaje activo
         var existingTrip = await _context.Viajes
