@@ -765,33 +765,56 @@ export default function CargaCamionetaPage() {
               {historial.length === 0 ? (
                 <p className="text-slate-400 text-center py-4">No hay cargas recientes.</p>
               ) : (
-                <div className="space-y-3">
-                  {historial.map((h) => (
-                    <div
-                      key={h.id}
-                      className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 transition-colors cursor-default"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="bg-green-100 dark:bg-green-900/30 p-2.5 rounded-full text-green-600 dark:text-green-400">
-                          <Check size={16} strokeWidth={3} />
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800 dark:text-white">{h.vehiculo}</p>
-                          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                            {h.fecha}
-                          </p>
+                <div className="space-y-6">
+                  {Object.entries(
+                    historial.reduce((groups, item) => {
+                      const date = new Date(item.fecha).toLocaleDateString('es-AR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      });
+                      if (!groups[date]) groups[date] = [];
+                      groups[date].push(item);
+                      return groups;
+                    }, {} as Record<string, HistorialItem[]>)
+                  ).sort((a, b) => new Date(b[1][0].fecha).getTime() - new Date(a[1][0].fecha).getTime()) // Ordenar grupos por fecha descendente
+                    .map(([date, items]) => (
+                      <div key={date}>
+                        <h4 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-2 border-b border-slate-100 dark:border-slate-700 pb-1">
+                          {date}
+                        </h4>
+                        <div className="space-y-3">
+                          {items
+                            .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()) // Ordenar items dentro del grupo por hora descendente
+                            .map((h) => (
+                              <div
+                                key={h.id}
+                                className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 transition-colors cursor-default"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="bg-green-100 dark:bg-green-900/30 p-2.5 rounded-full text-green-600 dark:text-green-400">
+                                    <Check size={16} strokeWidth={3} />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-slate-800 dark:text-white">{h.vehiculo}</p>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                                      {new Date(h.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-black text-slate-800 dark:text-white">
+                                    {h.totalHuevos.toLocaleString()}
+                                  </p>
+                                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                                    huevos
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-black text-slate-800 dark:text-white">
-                          {h.totalHuevos.toLocaleString()}
-                        </p>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-                          huevos
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </div>

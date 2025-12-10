@@ -62,7 +62,7 @@ public class InventarioController : ControllerBase
             .Select(g => new 
             {
                 Id = g.First().MovimientoId,
-                Fecha = g.Key.Fecha.ToLocalTime().ToString("HH:mm"),
+                Fecha = g.Key.Fecha.ToString("o"), // Full ISO string for frontend parsing
                 Vehiculo = $"{g.Key.Marca} {g.Key.Modelo}",
                 TotalHuevos = g.Sum(x => Math.Abs(x.Cantidad)), // Use Abs just in case, though it should be positive
                 ItemsCount = g.Count()
