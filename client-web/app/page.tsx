@@ -26,6 +26,14 @@ export default function Dashboard() {
   const [misVentas, setMisVentas] = useState<any[]>([]);
   const [ventasTotalHoy, setVentasTotalHoy] = useState(0);
 
+  // Chofer Stats
+  const [cashControl, setCashControl] = useState({
+    efectivo: 0,
+    mp: 0,
+    ctaCte: 0,
+    total: 0
+  });
+
   // Admin Stats
   const [stats, setStats] = useState({
     ventasDia: 0,
@@ -63,6 +71,16 @@ export default function Dashboard() {
             setMisVentas(ventasRes.data);
             const total = ventasRes.data.reduce((acc: number, v: any) => acc + v.total, 0);
             setVentasTotalHoy(total);
+
+            // Calculate Cash Control
+            const control = ventasRes.data.reduce((acc: any, v: any) => {
+              if (v.metodoPago === 0 || v.metodoPago === 'Efectivo') acc.efectivo += v.total;
+              else if (v.metodoPago === 1 || v.metodoPago === 'MercadoPago') acc.mp += v.total;
+              else if (v.metodoPago === 2 || v.metodoPago === 'CuentaCorriente') acc.ctaCte += v.total;
+              acc.total += v.total;
+              return acc;
+            }, { efectivo: 0, mp: 0, ctaCte: 0, total: 0 });
+            setCashControl(control);
           }
         } catch (error) {
           console.log("No active trip found or error", error);
@@ -181,6 +199,43 @@ export default function Dashboard() {
                 <div className="text-right hidden sm:block">
                   <p className="text-sm text-blue-800 dark:text-blue-300">Vendido Hoy</p>
                   <p className="text-2xl font-black text-blue-900 dark:text-white">${ventasTotalHoy.toLocaleString('es-AR')}</p>
+                </div>
+              </div>
+
+              {/* Cash Control Card */}
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg text-green-600 dark:text-green-400">
+                    <DollarSign size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 dark:text-white">Control de Caja</h3>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center border border-slate-100 dark:border-slate-700">
+                    <p className="text-xs font-bold text-slate-500 uppercase mb-1">Efectivo</p>
+                    <p className="font-black text-green-600 dark:text-green-400 text-lg sm:text-xl">
+                      ${cashControl.efectivo.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center border border-slate-100 dark:border-slate-700">
+                    <p className="text-xs font-bold text-slate-500 uppercase mb-1">Mercado Pago</p>
+                    <p className="font-black text-blue-500 dark:text-blue-400 text-lg sm:text-xl">
+                      ${cashControl.mp.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center border border-slate-100 dark:border-slate-700">
+                    <p className="text-xs font-bold text-slate-500 uppercase mb-1">Cta. Cte.</p>
+                    <p className="font-black text-orange-500 dark:text-orange-400 text-lg sm:text-xl">
+                      ${cashControl.ctaCte.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Total Recaudado (Sin Cta Cte)</span>
+                  <span className="font-bold text-slate-800 dark:text-white text-lg">
+                    ${(cashControl.efectivo + cashControl.mp).toLocaleString()}
+                  </span>
                 </div>
               </div>
 

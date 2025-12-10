@@ -89,9 +89,30 @@ public class ViajeService : IViajeService
 
     public async Task<Viaje?> ObtenerViajeActivoPorUsuarioAsync(int usuarioId)
     {
-        return await _context.Viajes
+        var viaje = await _context.Viajes
             .Include(v => v.Vehiculo)
             .FirstOrDefaultAsync(v => v.ChoferId == usuarioId && v.Estado == EstadoViaje.EnCurso);
+
+        // Self-healing: Si existe viaje activo pero el vehículo NO está en ruta (EnRuta == false),
+        // es una inconsistencia. Cerramos el viaje automáticamente.
+        if (viaje != null && viaje.Vehiculo != null && !viaje.Vehiculo.EnRuta)
+        {
+            viaje.Estado = EstadoViaje.Finalizado;
+            viaje.FechaRegreso = TimeHelper.Now;
+            viaje.Observaciones += " | Auto-Correction: Inconsistencia detectada (Vehículo no en ruta)";
+            
+            await _context.SaveChangesAsync();
+            return null;
+        }
+
+        return viaje;
+    }
+
+    public async Task<Viaje?> ObtenerViajeActivoPorVehiculoAsync(int vehiculoId)
+    {
+        return await _context.Viajes
+            .Include(v => v.Vehiculo)
+            .FirstOrDefaultAsync(v => v.VehiculoId == vehiculoId && v.Estado == EstadoViaje.EnCurso);
     }
 
     public async Task<List<Viaje>> ObtenerViajesActivosAsync()
