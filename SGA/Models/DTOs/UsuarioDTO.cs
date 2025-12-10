@@ -13,4 +13,7 @@ public class UsuarioDTO
     public string DNI { get; set; } = string.Empty;
     public decimal VentasDelMes { get; set; }
     public int FaltasDelMes { get; set; }
+    public decimal TotalEfectivo { get; set; }
+    public decimal TotalMercadoPago { get; set; }
+    public decimal TotalCuentaCorriente { get; set; }
 }

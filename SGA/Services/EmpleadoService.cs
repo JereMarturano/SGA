@@ -113,6 +113,11 @@ public class EmpleadoService : IEmpleadoService
         stats.TotalHuevosVendidos = huevosVendidosTotal;
         stats.VentasPorDia = stats.VentasPorDia.OrderBy(v => v.Fecha).ToList();
 
+        // Calculate Payment Totals
+        stats.TotalEfectivo = ventas.Where(v => v.MetodoPago == MetodoPago.Efectivo).Sum(v => v.Total);
+        stats.TotalMercadoPago = ventas.Where(v => v.MetodoPago == MetodoPago.MercadoPago).Sum(v => v.Total);
+        stats.TotalCuentaCorriente = ventas.Where(v => v.MetodoPago == MetodoPago.CuentaCorriente).Sum(v => v.Total);
+
         return stats;
     }
 

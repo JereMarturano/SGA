@@ -55,7 +55,10 @@ public class EmpleadosController : ControllerBase
                                                           // Let's use TotalHuevosVendidos as the prompt implies "Sales" usually means volume in this egg business.
                                                           // Actually, let's use TotalVentas (money) or check what frontend expects.
                                                           // Frontend says "Ventas (Huevos/Mes)". So it expects Quantity.
-                FaltasDelMes = faltas.Count
+                FaltasDelMes = faltas.Count,
+                TotalEfectivo = stats.TotalEfectivo,
+                TotalMercadoPago = stats.TotalMercadoPago,
+                TotalCuentaCorriente = stats.TotalCuentaCorriente
             });
         }
 

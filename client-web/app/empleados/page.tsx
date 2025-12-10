@@ -15,6 +15,9 @@ interface Employee {
   status: 'Activo' | 'Vacaciones' | 'Inactivo';
   phone: string;
   dni: string;
+  totalEfectivo: number;
+  totalMercadoPago: number;
+  totalCuentaCorriente: number;
 }
 
 import api from '@/lib/axios';
@@ -59,6 +62,9 @@ export default function EmpleadosPage() {
         status: u.estado || 'Activo',
         phone: u.telefono || 'N/A',
         dni: u.dni || '',
+        totalEfectivo: u.totalEfectivo || 0,
+        totalMercadoPago: u.totalMercadoPago || 0,
+        totalCuentaCorriente: u.totalCuentaCorriente || 0,
       }));
       setEmployees(data);
     } catch (error) {
@@ -254,6 +260,25 @@ export default function EmpleadosPage() {
                 </div>
               </div>
 
+
+              {/* Financial Stats for Chofer */}
+              {(employee.role === 'Chofer' || employee.role === 'Vendedor') && (
+                <div className="grid grid-cols-3 gap-2 mb-4 bg-slate-50 dark:bg-slate-900/40 p-2 rounded-xl">
+                  <div className="text-center">
+                    <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Efectivo</p>
+                    <p className="font-bold text-green-600 dark:text-green-400 text-sm">${employee.totalEfectivo.toLocaleString()}</p>
+                  </div>
+                  <div className="text-center border-l border-r border-slate-200 dark:border-slate-700">
+                    <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">MP</p>
+                    <p className="font-bold text-blue-500 dark:text-blue-400 text-sm">${employee.totalMercadoPago.toLocaleString()}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">Cta Cte</p>
+                    <p className="font-bold text-orange-500 dark:text-orange-400 text-sm">${employee.totalCuentaCorriente.toLocaleString()}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-slate-600 dark:text-slate-300 flex items-center gap-2">
@@ -285,7 +310,7 @@ export default function EmpleadosPage() {
             </div>
           ))}
         </div>
-      </main>
+      </main >
 
       <Modal
         isOpen={isModalOpen}
@@ -470,6 +495,6 @@ export default function EmpleadosPage() {
           </div>
         </form>
       </Modal>
-    </div>
+    </div >
   );
 }
