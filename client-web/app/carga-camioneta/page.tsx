@@ -34,6 +34,7 @@ interface Producto {
   productoId: number;
   nombre: string;
   tipoProducto: number;
+  stockActual: number;
 }
 
 // Interfaces para UI
@@ -47,6 +48,7 @@ interface VehiculoUI {
 interface ProductoUI {
   id: number;
   nombre: string;
+  stockActual: number;
 }
 
 interface Usuario {
@@ -117,6 +119,7 @@ export default function CargaCamionetaPage() {
         const productosMapped = pRes.data.map((p: Producto) => ({
           id: p.productoId,
           nombre: p.nombre,
+          stockActual: p.stockActual,
         }));
 
         setVehiculos(vehiculosMapped);
@@ -208,6 +211,15 @@ export default function CargaCamionetaPage() {
 
       await fetchHistorial();
 
+      // Recargar productos para actualizar stock
+      const pRes = await api.get('/productos');
+      const productosMapped = pRes.data.map((p: Producto) => ({
+        id: p.productoId,
+        nombre: p.nombre,
+        stockActual: p.stockActual,
+      }));
+      setProductosBase(productosMapped);
+
       // Resetear form
       setItems([]);
       setSelectedVehiculo(null);
@@ -242,6 +254,33 @@ export default function CargaCamionetaPage() {
   };
 
   const getSelectedVehiculoObj = () => vehiculos.find((v) => v.id === selectedVehiculo);
+
+  // Helper local para calcular stock usado
+  const getUsedStockUntilIndex = (itemsList: typeof items, prodId: number, targetIndex: number) => {
+    return itemsList
+      .slice(0, targetIndex)
+      .filter(i => i.productoId === prodId)
+      .reduce((acc, i) => {
+        const u = unidadesMedida.find(unit => unit.id === i.unidadId);
+        return acc + (i.cantidad * (u?.factor || 1));
+      }, 0);
+  };
+
+  // Validation function
+  const hasInsufficientStock = items.some((item, index) => {
+    const prod = productosBase.find(p => p.id === item.productoId);
+    if (!prod) return false;
+
+    // Calculamos cuánto se usó de este producto en filas anteriores
+    const stockConsumidoPrevio = getUsedStockUntilIndex(items, item.productoId, index);
+    const stockDisponible = prod.stockActual - stockConsumidoPrevio;
+
+    const unidad = unidadesMedida.find(u => u.id === item.unidadId);
+    const factor = unidad?.factor || 1;
+    const totalSolicitado = item.cantidad * factor;
+
+    return totalSolicitado > stockDisponible;
+  });
 
   if (loadingData) {
     return (
@@ -530,9 +569,16 @@ export default function CargaCamionetaPage() {
                   </div>
                 </div>
 
+                {hasInsufficientStock && (
+                  <div className="mb-4 bg-red-500/20 border border-red-500/50 p-3 rounded-xl flex items-center gap-2 text-red-200 text-sm font-bold animate-pulse">
+                    <AlertTriangle size={18} />
+                    <span>Stock insuficiente en uno o más items.</span>
+                  </div>
+                )}
+
                 <button
                   onClick={handlePreSubmit}
-                  disabled={!selectedVehiculo || !selectedChofer || items.length === 0}
+                  disabled={!selectedVehiculo || !selectedChofer || items.length === 0 || hasInsufficientStock}
                   className="w-full bg-blue-500 hover:bg-blue-400 dark:bg-white dark:text-blue-600 dark:hover:bg-blue-50 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/50 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98] relative z-10"
                 >
                   <Save size={20} />
@@ -574,92 +620,139 @@ export default function CargaCamionetaPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="bg-white dark:bg-slate-800 p-2 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-2 items-center group animate-in slide-in-from-bottom-4 duration-300 fill-mode-backwards"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      {/* Icono Producto */}
-                      <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-500 shrink-0">
-                        <Egg size={24} />
-                      </div>
+                  {items.map((item, index) => {
+                    const prod = productosBase.find(p => p.id === item.productoId);
+                    const unidad = unidadesMedida.find(u => u.id === item.unidadId);
 
-                      <div className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-4 w-full p-2">
-                        {/* Selector Producto */}
-                        <div className="sm:col-span-6">
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-                            Producto
-                          </label>
-                          <div className="relative">
-                            <select
-                              value={item.productoId}
-                              onChange={(e) =>
-                                handleUpdateItem(index, 'productoId', Number(e.target.value))
-                              }
-                              className="w-full p-3 pl-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
-                            >
-                              {productosBase.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.nombre}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                              <ChevronRight size={16} className="rotate-90" />
-                            </div>
-                          </div>
-                        </div>
+                    // Calculamos stock usado HASTA este índice para este producto
+                    const stockConsumidoPrevio = getUsedStockUntilIndex(items, item.productoId, index);
+                    // Stock real disponible para esta fila
+                    const stockDisponibleParaEsteItem = (prod?.stockActual || 0) - stockConsumidoPrevio;
 
-                        {/* Selector Unidad */}
-                        <div className="sm:col-span-4">
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
-                            Presentación
-                          </label>
-                          <div className="relative">
-                            <select
-                              value={item.unidadId}
-                              onChange={(e) => handleUpdateItem(index, 'unidadId', e.target.value)}
-                              className="w-full p-3 pl-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
-                            >
-                              {unidadesMedida.map((u) => (
-                                <option key={u.id} value={u.id}>
-                                  {u.nombre}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                              <ChevronRight size={16} className="rotate-90" />
-                            </div>
-                          </div>
-                        </div>
+                    const totalSolicitado = item.cantidad * (unidad?.factor || 1);
+                    const isInsufficient = totalSolicitado > stockDisponibleParaEsteItem;
 
-                        {/* Input Cantidad */}
-                        <div className="sm:col-span-2">
-                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 text-center">
-                            Cant.
-                          </label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.cantidad}
-                            onChange={(e) =>
-                              handleUpdateItem(index, 'cantidad', Number(e.target.value))
-                            }
-                            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white font-black text-center focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Botón Eliminar */}
-                      <button
-                        onClick={() => handleRemoveItem(index)}
-                        className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors shrink-0"
+                    return (
+                      <div
+                        key={index}
+                        className={`p-4 rounded-2xl border transition-all flex flex-col md:flex-row gap-4 items-start md:items-center group animate-in slide-in-from-bottom-4 duration-300 fill-mode-backwards
+                          ${isInsufficient
+                            ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800 shadow-md'
+                            : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md'
+                          }`}
+                        style={{ animationDelay: `${index * 50}ms` }}
                       >
-                        <X size={20} />
-                      </button>
-                    </div>
-                  ))}
+                        {/* Icono Producto */}
+                        <div className={`hidden md:flex p-4 rounded-xl shrink-0 ${isInsufficient ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-orange-50 dark:bg-orange-900/20 text-orange-500'}`}>
+                          {isInsufficient ? <AlertTriangle size={24} /> : <Egg size={24} />}
+                        </div>
+
+                        <div className="flex-1 w-full">
+                          <div className="grid grid-cols-12 gap-4">
+                            {/* Selector Producto */}
+                            <div className="col-span-12 md:col-span-6">
+                              <div className="flex justify-between items-center mb-1.5 gap-2">
+                                <div className="flex items-center gap-2">
+                                  <div className={`md:hidden p-1.5 rounded-lg ${isInsufficient ? 'bg-red-100 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
+                                    {isInsufficient ? <AlertTriangle size={14} /> : <Egg size={14} />}
+                                  </div>
+                                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                    Producto
+                                  </label>
+                                </div>
+                                {prod && (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${isInsufficient ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
+                                    Stock: {Math.floor(stockDisponibleParaEsteItem / 30)} maples
+                                  </span>
+                                )}
+                              </div>
+                              <div className="relative">
+                                <select
+                                  value={item.productoId}
+                                  onChange={(e) =>
+                                    handleUpdateItem(index, 'productoId', Number(e.target.value))
+                                  }
+                                  className="w-full p-3 pl-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+                                >
+                                  {productosBase.map((p) => {
+                                    // Calcular stock restante de este producto considerando lo usado en filas anteriores
+                                    const used = getUsedStockUntilIndex(items, p.id, index);
+                                    const remaining = Math.max(0, p.stockActual - used);
+                                    return (
+                                      <option key={p.id} value={p.id}>
+                                        {p.nombre} (Stock: {Math.floor(remaining / 30)} maples)
+                                      </option>
+                                    );
+                                  })}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                  <ChevronRight size={16} className="rotate-90" />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Selector Unidad */}
+                            <div className="col-span-7 md:col-span-4">
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 pl-1">
+                                Presentación
+                              </label>
+                              <div className="relative">
+                                <select
+                                  value={item.unidadId}
+                                  onChange={(e) => handleUpdateItem(index, 'unidadId', e.target.value)}
+                                  className="w-full p-3 pl-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+                                >
+                                  {unidadesMedida.map((u) => (
+                                    <option key={u.id} value={u.id}>
+                                      {u.nombre}
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                  <ChevronRight size={16} className="rotate-90" />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Input Cantidad */}
+                            <div className="col-span-5 md:col-span-2">
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 text-center">
+                                Cant.
+                              </label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.cantidad}
+                                onChange={(e) =>
+                                  handleUpdateItem(index, 'cantidad', Number(e.target.value))
+                                }
+                                className={`w-full p-3 rounded-xl border font-black text-center focus:ring-2 outline-none transition-all
+                                  ${isInsufficient
+                                    ? 'border-red-300 bg-red-50 text-red-600 focus:ring-red-500'
+                                    : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-blue-500'
+                                  }`}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Info Insuficiente */}
+                          {isInsufficient && (
+                            <div className="mt-2 text-red-500 text-xs font-bold flex items-center justify-end gap-1 px-1">
+                              <span>Excede stock disponible ({Math.floor(stockDisponibleParaEsteItem / 30)} maples)</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Botón Eliminar */}
+                        <button
+                          onClick={() => handleRemoveItem(index)}
+                          className="absolute top-2 right-2 md:static p-2 md:p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors shrink-0"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
