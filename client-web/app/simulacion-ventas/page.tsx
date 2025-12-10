@@ -18,6 +18,8 @@ import {
 import Link from 'next/link';
 import api from '@/lib/axios';
 import Modal from '@/components/Modal';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // Interfaces
 interface Vehiculo {
@@ -51,6 +53,8 @@ const UNIT_FACTORS: Record<UnitType, number> = {
 
 export default function SimulacionVentasPage() {
   // Data states
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -84,6 +88,11 @@ export default function SimulacionVentasPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
+
       try {
         const [vehiculosRes, clientesRes, productosRes] = await Promise.all([
           api.get('/vehiculos'),
@@ -109,7 +118,7 @@ export default function SimulacionVentasPage() {
     };
 
     fetchData();
-  }, []);
+  }, [isAuthenticated, router]);
 
   // Fetch stock when vehicle changes
   useEffect(() => {
@@ -262,7 +271,7 @@ export default function SimulacionVentasPage() {
 
       const payload = {
         clienteId: selectedCliente?.clienteId,
-        usuarioId: 3, // Hardcoded Admin (ID 3)
+        usuarioId: user?.UsuarioId,
         vehiculoId: Number(selectedVehiculo),
         metodoPago: Number(metodoPago),
         fecha: dateTime.toISOString(),
