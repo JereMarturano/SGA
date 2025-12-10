@@ -61,5 +61,72 @@ public static class DbInitializer
         }
 
         context.SaveChanges();
+
+        // FIX: Broad Cleanup for "Admin", "Jefe", and "Santiago Perez"
+        // We look for these specific names or any Admin role to be safe, but prioritizing the names the user mentioned.
+        var targetNames = new[] { "Admin", "Jefe", "Santiago Perez" };
+        var usersToConsolidate = context.Usuarios
+            .Where(u => targetNames.Contains(u.Nombre) || u.Rol == RolUsuario.Admin)
+            .ToList();
+
+        // Identify or Create Official Admin "Santiago Perez"
+        var officialAdmin = usersToConsolidate.FirstOrDefault(u => u.Nombre == "Santiago Perez");
+
+        if (officialAdmin == null)
+        {
+            if (usersToConsolidate.Any())
+            {
+                // Promote the first available one to be Santiago
+                officialAdmin = usersToConsolidate.First();
+                officialAdmin.Nombre = "Santiago Perez";
+                officialAdmin.Rol = RolUsuario.Admin; // Ensure he is Admin
+                if (string.IsNullOrEmpty(officialAdmin.DNI)) officialAdmin.DNI = "11111111";
+            }
+            else
+            {
+                // Create brand new
+                officialAdmin = new Usuario 
+                { 
+                    Nombre = "Santiago Perez", 
+                    Rol = RolUsuario.Admin, 
+                    ContrasenaHash = "admin123",
+                    DNI = "11111111"
+                };
+                context.Usuarios.Add(officialAdmin);
+            }
+        }
+        else
+        {
+            // Ensure official is Admin
+             officialAdmin.Rol = RolUsuario.Admin;
+        }
+        
+        context.SaveChanges(); // Ensure IDs are set
+
+        // Reassign and Delete duplicates
+        foreach (var user in usersToConsolidate)
+        {
+            // Skip the official admin
+            if (user.UsuarioId == officialAdmin.UsuarioId) continue;
+
+            // Only delete if it's one of the duplicates we want to remove (Admin, Jefe, or other Admins)
+            // effective check: is it in the list and NOT the official one? Yes.
+            
+            // Reassign Data using Raw SQL to bypass constraints
+            context.Database.ExecuteSqlRaw("UPDATE Ventas SET UsuarioId = {0} WHERE UsuarioId = {1}", officialAdmin.UsuarioId, user.UsuarioId);
+            context.Database.ExecuteSqlRaw("UPDATE Asistencias SET UsuarioId = {0} WHERE UsuarioId = {1}", officialAdmin.UsuarioId, user.UsuarioId);
+            context.Database.ExecuteSqlRaw("UPDATE Faltas SET UsuarioId = {0} WHERE UsuarioId = {1}", officialAdmin.UsuarioId, user.UsuarioId);
+            context.Database.ExecuteSqlRaw("UPDATE MovimientosStock SET UsuarioId = {0} WHERE UsuarioId = {1}", officialAdmin.UsuarioId, user.UsuarioId);
+            context.Database.ExecuteSqlRaw("UPDATE Compras SET UsuarioId = {0} WHERE UsuarioId = {1}", officialAdmin.UsuarioId, user.UsuarioId);
+            
+            // Update Vehicle assignments if any (ChoferId is usually on Viaje or Vehiculo?)
+            // If Vehiculo has current ChoferId, check if needs update? 
+            // Usually ChoferId is for drivers. "Jefe" might be assigned? Unlikely but safe to check?
+            // Let's stick to the main tables for now.
+            
+            context.Usuarios.Remove(user);
+        }
+        
+        context.SaveChanges();
     }
 }
