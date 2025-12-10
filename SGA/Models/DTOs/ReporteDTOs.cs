@@ -87,6 +87,13 @@ public class StockEnCalleDTO
     public bool EnRuta { get; set; }
     public decimal Kilometraje { get; set; }
     public List<StockVehiculoDetalleDTO> Stock { get; set; } = new();
+
+    // Nuevos campos
+    public string? ChoferNombre { get; set; }
+    public DateTime? UltimaVentaFecha { get; set; }
+    public decimal? UltimaVentaTotal { get; set; }
+    public string? UltimaVentaCliente { get; set; }
+    public List<VentaSimplificadaDTO> HistorialVentas { get; set; } = new();
 }
 
 public class StockVehiculoDetalleDTO

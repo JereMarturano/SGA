@@ -248,11 +248,27 @@ public class ReporteService : IReporteService
     public async Task<List<StockEnCalleDTO>> ObtenerStockEnCalleAsync()
     {
         var vehiculos = await _context.Vehiculos
-            .Include(v => v.ChoferAsignado) // Si queremos mostrar el chofer
+            .Include(v => v.ChoferAsignado) 
             .ToListAsync();
 
         var stockVehiculos = await _context.StockVehiculos
             .Include(s => s.Producto)
+            .ToListAsync();
+
+        // 1. Obtener viajes activos (EnCurso)
+        var viajesActivos = await _context.Viajes
+            .Include(v => v.Chofer)
+            .Where(v => v.Estado == EstadoViaje.EnCurso)
+            .ToListAsync();
+
+        var activeViajeIds = viajesActivos.Select(v => v.ViajeId).ToList();
+
+        // 2. Obtener ventas de esos viajes activos
+        var ventasViajes = await _context.Ventas
+            .Include(v => v.Cliente)
+            .Include(v => v.Detalles) // Para contar items
+            .Where(v => v.ViajeId.HasValue && activeViajeIds.Contains(v.ViajeId.Value) && v.Activa)
+            .OrderByDescending(v => v.Fecha)
             .ToListAsync();
 
         var resultado = new List<StockEnCalleDTO>();
@@ -268,14 +284,48 @@ public class ReporteService : IReporteService
                 })
                 .ToList();
 
-            resultado.Add(new StockEnCalleDTO
+            var dto = new StockEnCalleDTO
             {
                 VehiculoId = vehiculo.VehiculoId,
                 VehiculoNombre = $"{vehiculo.Marca} {vehiculo.Modelo} ({vehiculo.Patente})",
                 EnRuta = vehiculo.EnRuta,
                 Kilometraje = vehiculo.Kilometraje,
-                Stock = stockDelVehiculo
-            });
+                Stock = stockDelVehiculo,
+                ChoferNombre = vehiculo.ChoferAsignado?.Nombre // Default fallback
+            };
+
+            // Lógica para viaje activo
+            if (vehiculo.EnRuta)
+            {
+                var viaje = viajesActivos.FirstOrDefault(v => v.VehiculoId == vehiculo.VehiculoId);
+                if (viaje != null)
+                {
+                    dto.ChoferNombre = viaje.Chofer?.Nombre ?? dto.ChoferNombre ?? "Desconocido";
+
+                    var ventasTrip = ventasViajes.Where(v => v.ViajeId == viaje.ViajeId).ToList();
+
+                    var ultimaVenta = ventasTrip.FirstOrDefault(); // Ordenado por fecha desc en la query
+
+                    if (ultimaVenta != null)
+                    {
+                        dto.UltimaVentaFecha = ultimaVenta.Fecha;
+                        dto.UltimaVentaTotal = ultimaVenta.Total;
+                        dto.UltimaVentaCliente = ultimaVenta.Cliente?.NombreCompleto ?? "Cliente Eliminado";
+                    }
+
+                    dto.HistorialVentas = ventasTrip.Select(v => new VentaSimplificadaDTO
+                    {
+                        VentaId = v.VentaId,
+                        Fecha = v.Fecha,
+                        ClienteNombre = v.Cliente?.NombreCompleto ?? "Desconocido",
+                        Total = v.Total,
+                        MetodoPago = v.MetodoPago.ToString(),
+                        CantidadItems = v.Detalles.Count
+                    }).ToList();
+                }
+            }
+
+            resultado.Add(dto);
         }
 
         return resultado;

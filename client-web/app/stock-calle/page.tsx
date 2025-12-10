@@ -11,12 +11,26 @@ interface StockDetalle {
   cantidad: number;
 }
 
+interface VentaSimplificada {
+  ventaId: number;
+  fecha: string;
+  clienteNombre: string;
+  total: number;
+  metodoPago: string;
+  cantidadItems: number;
+}
+
 interface StockEnCalle {
   vehiculoId: number;
   vehiculoNombre: string;
   enRuta: boolean;
   kilometraje: number;
   stock: StockDetalle[];
+  choferNombre?: string;
+  ultimaVentaFecha?: string;
+  ultimaVentaTotal?: number;
+  ultimaVentaCliente?: string;
+  historialVentas?: VentaSimplificada[];
 }
 
 interface StockVehiculoItem {
@@ -34,6 +48,11 @@ interface CerrarRepartoModalProps {
   vehiculo: StockEnCalle;
   onClose: () => void;
   onSuccess: () => void;
+}
+
+interface HistorialVentasModalProps {
+  vehiculo: StockEnCalle;
+  onClose: () => void;
 }
 
 type UnitType = 'UNIDAD' | 'MAPLE' | 'CAJON';
@@ -54,6 +73,69 @@ interface ResumenCaja {
     cantidadVentas: number;
   }[];
 }
+
+const HistorialVentasModal = ({ vehiculo, onClose }: HistorialVentasModalProps) => {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl shadow-xl flex flex-col max-h-[80vh]">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+              Historial de Ventas (Viaje Actual)
+            </h2>
+            <p className="text-sm text-slate-500">{vehiculo.vehiculoNombre}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white"
+          >
+            <X size={24} />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-6">
+          {vehiculo.historialVentas && vehiculo.historialVentas.length > 0 ? (
+            <div className="space-y-4">
+              {vehiculo.historialVentas.map((venta) => (
+                <div
+                  key={venta.ventaId}
+                  className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 flex justify-between items-center"
+                >
+                  <div>
+                    <div className="font-bold text-slate-800 dark:text-white">
+                      {venta.clienteNombre}
+                    </div>
+                    <div className="text-xs text-slate-500 flex gap-2 mt-1">
+                      <span>{new Date(venta.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      <span>•</span>
+                      <span>{venta.metodoPago}</span>
+                      <span>•</span>
+                      <span>{venta.cantidadItems} items</span>
+                    </div>
+                  </div>
+                  <div className="font-bold text-green-600 dark:text-green-400 text-lg">
+                    ${venta.total.toLocaleString()}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-10 text-slate-500">
+              No hay ventas registradas en este recorrido aún.
+            </div>
+          )}
+        </div>
+        <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModalProps) => {
   const [kilometraje, setKilometraje] = useState<string>('');
@@ -340,13 +422,12 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
 
                   {efectivoRendido && (
                     <div
-                      className={`mt-3 p-3 rounded-lg flex justify-between items-center ${
-                        diferenciaCaja === 0
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                          : diferenciaCaja > 0
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                      }`}
+                      className={`mt-3 p-3 rounded-lg flex justify-between items-center ${diferenciaCaja === 0
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : diferenciaCaja > 0
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                        }`}
                     >
                       <span className="font-medium">Diferencia:</span>
                       <span className="font-bold text-lg">
@@ -401,6 +482,7 @@ export default function StockCallePage() {
   const [data, setData] = useState<StockEnCalle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVehiculo, setSelectedVehiculo] = useState<StockEnCalle | null>(null);
+  const [historialVehiculo, setHistorialVehiculo] = useState<StockEnCalle | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -454,19 +536,43 @@ export default function StockCallePage() {
                 className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="font-bold text-lg text-slate-800 dark:text-white">
-                    {vehiculo.vehiculoNombre}
-                  </h3>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-lg text-slate-800 dark:text-white">
+                      {vehiculo.vehiculoNombre}
+                    </h3>
+                    {vehiculo.choferNombre && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                        <span className="font-medium">Maneja:</span> {vehiculo.choferNombre}
+                      </p>
+                    )}
+                  </div>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      vehiculo.enRuta
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${vehiculo.enRuta
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+                      }`}
                   >
                     {vehiculo.enRuta ? 'En Ruta' : 'En Depósito'}
                   </span>
                 </div>
+
+                {/* Last Sale Teaser */}
+                {vehiculo.enRuta && vehiculo.ultimaVentaFecha && (
+                  <div className="mb-4 p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg text-sm border border-slate-100 dark:border-slate-700">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-slate-500 dark:text-slate-400 text-xs uppercase font-bold">Última Venta</span>
+                      <span className="text-slate-400 dark:text-slate-500 text-xs">
+                        {new Date(vehiculo.ultimaVentaFecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="font-bold text-slate-800 dark:text-white truncate">
+                      {vehiculo.ultimaVentaCliente}
+                    </div>
+                    <div className="text-green-600 dark:text-green-400 font-bold">
+                      ${vehiculo.ultimaVentaTotal?.toLocaleString()}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex-1 space-y-3 mb-6">
                   {vehiculo.stock.length > 0 ? (
@@ -489,12 +595,20 @@ export default function StockCallePage() {
                 </div>
 
                 {vehiculo.enRuta && (
-                  <button
-                    onClick={() => setSelectedVehiculo(vehiculo)}
-                    className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
-                  >
-                    Cerrar Reparto
-                  </button>
+                  <div className="grid grid-cols-2 gap-3 mt-auto">
+                    <button
+                      onClick={() => setHistorialVehiculo(vehiculo)}
+                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Ver Historial
+                    </button>
+                    <button
+                      onClick={() => setSelectedVehiculo(vehiculo)}
+                      className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
+                    >
+                      Cerrar Reparto
+                    </button>
+                  </div>
                 )}
               </div>
             ))}
@@ -510,6 +624,13 @@ export default function StockCallePage() {
             setSelectedVehiculo(null);
             fetchData();
           }}
+        />
+      )}
+
+      {historialVehiculo && (
+        <HistorialVentasModal
+          vehiculo={historialVehiculo}
+          onClose={() => setHistorialVehiculo(null)}
         />
       )}
     </div>
