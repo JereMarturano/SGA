@@ -101,7 +101,7 @@ export default function Header() {
             >
               <div className="text-right">
                 <p className="text-sm font-bold text-slate-700 dark:text-white">{user?.Nombre || 'Usuario'}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{user?.Rol || 'Invitado'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{user?.Rol}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800">
                 {user?.Nombre ? user.Nombre[0].toUpperCase() : 'U'}

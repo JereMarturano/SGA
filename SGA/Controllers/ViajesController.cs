@@ -7,7 +7,7 @@ namespace SGA.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// [Authorize(Roles = "Admin,Encargado,Oficina")] // Descomentar cuando el frontend envíe token
+[Authorize]
 public class ViajesController : ControllerBase
 {
     private readonly IViajeService _viajeService;

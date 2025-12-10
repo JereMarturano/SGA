@@ -20,6 +20,7 @@ interface ViajeActivo {
 
 export default function Dashboard() {
   const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [activeTrip, setActiveTrip] = useState<ViajeActivo | null>(null);
   const [checkingTrip, setCheckingTrip] = useState(true);
   const [misVentas, setMisVentas] = useState<any[]>([]);
@@ -42,6 +43,11 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (authLoading) return;
+
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
     if (user?.Rol === 'Chofer') {
       // Check for active trip

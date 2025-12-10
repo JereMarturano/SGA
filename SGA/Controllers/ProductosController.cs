@@ -3,8 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace SGA.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class ProductosController : ControllerBase

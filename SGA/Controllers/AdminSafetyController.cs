@@ -6,7 +6,7 @@ namespace SGA.Controllers;
 
 [ApiController]
 [Route("api/admin/safety")]
-// [Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin")]
 public class AdminSafetyController : ControllerBase
 {
     private readonly IRestorationService _restorationService;

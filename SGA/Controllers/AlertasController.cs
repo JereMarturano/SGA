@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using SGA.Services;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace SGA.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class AlertasController : ControllerBase

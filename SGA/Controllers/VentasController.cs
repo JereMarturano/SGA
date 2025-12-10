@@ -3,8 +3,11 @@ using SGA.Models;
 using SGA.Models.DTOs;
 using SGA.Services;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace SGA.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class VentasController : ControllerBase

@@ -5,8 +5,11 @@ using SGA.Models.DTOs;
 using SGA.Services;
 using SGA.Helpers;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace SGA.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class EmpleadosController : ControllerBase

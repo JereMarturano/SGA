@@ -3,6 +3,8 @@ using SGA.Models;
 using SGA.Models.DTOs;
 using SGA.Services;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace SGA.Controllers;
 
 [ApiController]
@@ -27,6 +29,7 @@ public class AuthController : ControllerBase
         return Ok(new { token });
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] Usuario usuario)
     {
