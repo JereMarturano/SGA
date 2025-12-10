@@ -51,6 +51,14 @@ public class ViajesController : ControllerBase
         var viajes = await _viajeService.ObtenerViajesActivosAsync();
         return Ok(viajes);
     }
+
+    [HttpGet("activo-por-usuario/{id}")]
+    public async Task<IActionResult> GetViajeActivoPorUsuario(int id)
+    {
+        var viaje = await _viajeService.ObtenerViajeActivoPorUsuarioAsync(id);
+        if (viaje == null) return NotFound("No tienes viaje activo.");
+        return Ok(viaje);
+    }
 }
 
 public class IniciarViajeDto

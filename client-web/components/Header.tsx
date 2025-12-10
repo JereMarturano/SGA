@@ -36,13 +36,15 @@ export default function Header() {
     return pathname.startsWith(path);
   };
 
-  const navLinks = [
+  const allNavLinks = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Vehículos', href: '/vehiculos', icon: Truck },
-    { name: 'Empleados', href: '/empleados', icon: Users },
-    { name: 'Clientes', href: '/clientes', icon: User },
-    { name: 'Estadísticas', href: '/estadisticas', icon: PieChart },
+    { name: 'Vehículos', href: '/vehiculos', icon: Truck, roles: ['Admin', 'Oficina'] },
+    { name: 'Empleados', href: '/empleados', icon: Users, roles: ['Admin', 'Oficina'] },
+    { name: 'Clientes', href: '/clientes', icon: User, roles: ['Admin', 'Oficina'] },
+    { name: 'Estadísticas', href: '/estadisticas', icon: PieChart, roles: ['Admin', 'Oficina'] },
   ];
+
+  const navLinks = allNavLinks.filter(link => !link.roles || (user && link.roles.includes(user.Rol)));
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">

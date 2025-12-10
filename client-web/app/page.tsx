@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Truck, DollarSign, Package, Warehouse } from 'lucide-react';
+import { TrendingUp, Truck, DollarSign, Package, Warehouse, AlertCircle } from 'lucide-react';
 import KPICard from '@/components/KPICard';
 import SalesChart from '@/components/SalesChart';
 import Link from 'next/link';
@@ -9,8 +9,20 @@ import WeatherWidget from '@/components/WeatherWidget';
 import Header from '@/components/Header';
 import api from '@/lib/axios';
 import { VentaPorFecha } from '@/lib/api-reportes';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+
+interface ViajeActivo {
+  viajeId: number;
+  vehiculo: { patente: string; modelo: string };
+}
 
 export default function Dashboard() {
+  const { user, isLoading: authLoading } = useAuth();
+  const [activeTrip, setActiveTrip] = useState<ViajeActivo | null>(null);
+  const [checkingTrip, setCheckingTrip] = useState(true);
+
+  // Admin Stats
   const [stats, setStats] = useState({
     ventasDia: 0,
     margenNeto: 0,
@@ -26,6 +38,30 @@ export default function Dashboard() {
   const [alertas, setAlertas] = useState<any[]>([]);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (user?.Rol === 'Chofer') {
+      // Check for active trip
+      const checkTrip = async () => {
+        try {
+          const res = await api.get(`/viajes/activo-por-usuario/${user.UsuarioId}`);
+          setActiveTrip(res.data);
+        } catch (error) {
+          console.log("No active trip found or error", error);
+          setActiveTrip(null);
+        } finally {
+          setCheckingTrip(false);
+        }
+      };
+      checkTrip();
+    } else {
+      // Load Admin Dashboard
+      setCheckingTrip(false);
+      fetchAdminStats();
+    }
+  }, [user, authLoading]);
+
+  const fetchAdminStats = async () => {
     const fetchStats = async () => {
       try {
         const today = new Date();
@@ -67,8 +103,6 @@ export default function Dashboard() {
         if (financieroSemana.ventasPorFecha) {
           setChartData(financieroSemana.ventasPorFecha);
         } else if (financieroSemana.tendenciaVentas) {
-          // Fallback if needed, but SalesChart needs VentaPorFecha structure
-          // Assuming tendenciaVentas matches VentaPorFecha structure if it exists
           setChartData(financieroSemana.tendenciaVentas);
         }
       } catch (error) {
@@ -87,7 +121,74 @@ export default function Dashboard() {
 
     fetchStats();
     fetchAlertas();
-  }, []);
+  };
+
+  if (authLoading || checkingTrip) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-500">Cargando...</div>;
+  }
+
+  // --- CHOFER VIEW ---
+  if (user?.Rol === 'Chofer') {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 md:p-10 shadow-xl border border-slate-100 dark:border-slate-700">
+            <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Hola {user.Nombre}</h2>
+            <p className="text-slate-500 dark:text-slate-400">Panel de Chofer</p>
+          </div>
+
+          {!activeTrip ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700">
+              <div className="bg-orange-100 dark:bg-orange-900/20 p-6 rounded-full mb-6">
+                <AlertCircle size={64} className="text-orange-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">No tenés viaje asignado</h2>
+              <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
+                Esperá a que un administrador te autorice una salida para poder empezar a vender.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-2xl border border-blue-100 dark:border-blue-800 flex items-center gap-4">
+                <Truck size={32} className="text-blue-600 dark:text-blue-400" />
+                <div>
+                  <h3 className="font-bold text-blue-900 dark:text-blue-100 text-lg">Viaje Activo</h3>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    Vehículo: {activeTrip.vehiculo?.modelo} ({activeTrip.vehiculo?.patente})
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Link
+                  href="/simulacion-ventas"
+                  className="group bg-blue-600 hover:bg-blue-700 text-white p-8 rounded-3xl font-bold transition-all shadow-lg shadow-blue-500/30 hover:scale-[1.02] flex flex-col items-center justify-center gap-4 text-center"
+                >
+                  <div className="bg-white/20 p-4 rounded-2xl group-hover:rotate-12 transition-transform">
+                    <DollarSign size={48} />
+                  </div>
+                  <span className="text-2xl">Nueva Venta</span>
+                </Link>
+
+                <Link
+                  href={`/stock-vehiculo/${activeTrip.vehiculo?.patente}`}
+                  className="group bg-slate-800 hover:bg-slate-900 text-white p-8 rounded-3xl font-bold transition-all shadow-lg hover:scale-[1.02] flex flex-col items-center justify-center gap-4 text-center"
+                >
+                  <div className="bg-white/20 p-4 rounded-2xl group-hover:rotate-12 transition-transform">
+                    <Package size={48} />
+                  </div>
+                  <span className="text-2xl">Stock en Vehículo</span>
+                </Link>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  // --- ADMIN / OFFICE VIEW (Original Dashboard code below) ---
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
