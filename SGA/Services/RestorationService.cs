@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
+using SGA.Models.Enums;
 
 namespace SGA.Services;
 
@@ -33,7 +34,7 @@ public class RestorationService : IRestorationService
 
         // 2. Cerrar Viajes forzosamente
         var viajes = await _context.Viajes
-            .Where(v => v.ChoferId == usuarioId && v.FechaSalida >= fechaInicio && v.Estado == Models.Enums.EstadoViaje.EnCurso)
+            .Where(v => v.ChoferId == usuarioId && v.FechaSalida >= fechaInicio && v.Estado == EstadoViaje.EnCurso)
             .ToListAsync();
 
         foreach (var viaje in viajes)

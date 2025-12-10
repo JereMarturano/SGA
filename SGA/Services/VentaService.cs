@@ -154,7 +154,6 @@ public class VentaService : IVentaService
                 var nombreCliente = cliente?.NombreCompleto ?? "Cliente Desconocido";
                 var listaProductos = string.Join(", ", detallesTexto);
 
-                // "Juan pablo vendio tantos maples/caja/unidades a cliente tanto, por el valor de tanto"
                 var mensajeNotificacion = $"{nombreUsuario} vendió {listaProductos} a {nombreCliente}, por el valor de ${venta.Total}";
 
                 await _notificacionService.CrearNotificacionAsync(
@@ -274,7 +273,7 @@ public class VentaService : IVentaService
                 var movimiento = new MovimientoStock
                 {
                     Fecha = TimeHelper.Now,
-                    TipoMovimiento = TipoMovimientoStock.DevolucionCliente, // Or Ajuste
+                    TipoMovimiento = TipoMovimientoStock.DevolucionCliente,
                     VehiculoId = venta.VehiculoId,
                     ProductoId = detalle.ProductoId,
                     Cantidad = detalle.Cantidad, // Entrada
