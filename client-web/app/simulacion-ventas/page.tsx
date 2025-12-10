@@ -18,6 +18,8 @@ import {
 import Link from 'next/link';
 import api from '@/lib/axios';
 import Modal from '@/components/Modal';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 // Interfaces
 interface Vehiculo {
@@ -51,6 +53,8 @@ const UNIT_FACTORS: Record<UnitType, number> = {
 
 export default function SimulacionVentasPage() {
   // Data states
+  const { user, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -60,6 +64,7 @@ export default function SimulacionVentasPage() {
   const [fecha, setFecha] = useState<string>(new Date().toISOString().split('T')[0]);
   const [hora, setHora] = useState<string>('12:00');
   const [selectedVehiculo, setSelectedVehiculo] = useState<number | ''>('');
+  const [isChoferTrip, setIsChoferTrip] = useState(false);
 
   // Client Selection State
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
@@ -84,12 +89,29 @@ export default function SimulacionVentasPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!isAuthenticated) {
+        router.push('/login');
+        return;
+      }
+
       try {
         const [vehiculosRes, clientesRes, productosRes] = await Promise.all([
           api.get('/vehiculos'),
           api.get('/clientes'),
           api.get('/productos'),
         ]);
+
+        if (user?.Rol === 'Chofer') {
+          try {
+            const tripRes = await api.get(`/viajes/activo-por-usuario/${user.UsuarioId}`);
+            if (tripRes.data && tripRes.data.vehiculoId) {
+              setSelectedVehiculo(tripRes.data.vehiculoId);
+              setIsChoferTrip(true);
+            }
+          } catch (err) {
+            console.log("No active trip for chofer", err);
+          }
+        }
 
         setVehiculos(vehiculosRes.data);
         setClientes(
@@ -109,7 +131,8 @@ export default function SimulacionVentasPage() {
     };
 
     fetchData();
-  }, []);
+    fetchData();
+  }, [isAuthenticated, router, user, user?.Rol]);
 
   // Fetch stock when vehicle changes
   useEffect(() => {
@@ -262,7 +285,7 @@ export default function SimulacionVentasPage() {
 
       const payload = {
         clienteId: selectedCliente?.clienteId,
-        usuarioId: 3, // Hardcoded Admin (ID 3)
+        usuarioId: user?.UsuarioId,
         vehiculoId: Number(selectedVehiculo),
         metodoPago: Number(metodoPago),
         fecha: dateTime.toISOString(),
@@ -369,7 +392,8 @@ export default function SimulacionVentasPage() {
                   <select
                     value={selectedVehiculo}
                     onChange={(e) => setSelectedVehiculo(Number(e.target.value))}
-                    className="w-full pl-10 p-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none font-medium"
+                    disabled={isChoferTrip}
+                    className={`w-full pl-10 p-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none font-medium ${isChoferTrip ? 'opacity-70 bg-slate-100 cursor-not-allowed' : ''}`}
                     required
                   >
                     <option value="">Seleccionar Vehículo</option>

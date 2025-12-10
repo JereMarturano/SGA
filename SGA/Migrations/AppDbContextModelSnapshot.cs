@@ -520,6 +520,11 @@ namespace SGA.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DNI")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -541,6 +546,9 @@ namespace SGA.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.HasKey("UsuarioId");
+
+                    b.HasIndex("DNI")
+                        .IsUnique();
 
                     b.ToTable("Usuarios");
                 });
@@ -623,6 +631,9 @@ namespace SGA.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VentaId"));
 
+                    b.Property<bool>("Activa")
+                        .HasColumnType("bit");
+
                     b.Property<int>("ClienteId")
                         .HasColumnType("int");
 
@@ -650,6 +661,9 @@ namespace SGA.Migrations
                     b.Property<int>("VehiculoId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ViajeId")
+                        .HasColumnType("int");
+
                     b.HasKey("VentaId");
 
                     b.HasIndex("ClienteId");
@@ -658,7 +672,44 @@ namespace SGA.Migrations
 
                     b.HasIndex("VehiculoId");
 
+                    b.HasIndex("ViajeId");
+
                     b.ToTable("Ventas");
+                });
+
+            modelBuilder.Entity("SGA.Models.Viaje", b =>
+                {
+                    b.Property<int>("ViajeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ViajeId"));
+
+                    b.Property<int>("ChoferId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("FechaRegreso")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaSalida")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("VehiculoId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ViajeId");
+
+                    b.HasIndex("ChoferId");
+
+                    b.HasIndex("VehiculoId");
+
+                    b.ToTable("Viajes");
                 });
 
             modelBuilder.Entity("SGA.Models.Asistencia", b =>
@@ -855,9 +906,34 @@ namespace SGA.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SGA.Models.Viaje", "Viaje")
+                        .WithMany()
+                        .HasForeignKey("ViajeId");
+
                     b.Navigation("Cliente");
 
                     b.Navigation("Usuario");
+
+                    b.Navigation("Vehiculo");
+
+                    b.Navigation("Viaje");
+                });
+
+            modelBuilder.Entity("SGA.Models.Viaje", b =>
+                {
+                    b.HasOne("SGA.Models.Usuario", "Chofer")
+                        .WithMany()
+                        .HasForeignKey("ChoferId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SGA.Models.Vehiculo", "Vehiculo")
+                        .WithMany()
+                        .HasForeignKey("VehiculoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Chofer");
 
                     b.Navigation("Vehiculo");
                 });

@@ -12,6 +12,7 @@ import {
   LogOut,
   Settings,
   ChevronDown,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,24 +21,30 @@ import OperationalAlerts from './OperationalAlerts';
 import { ThemeToggle } from './ThemeToggle';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  if (pathname === '/login') return null;
 
   const isActive = (path: string) => {
     if (path === '/' && pathname !== '/') return false;
     return pathname.startsWith(path);
   };
 
-  const navLinks = [
+  const allNavLinks = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Vehículos', href: '/vehiculos', icon: Truck },
-    { name: 'Empleados', href: '/empleados', icon: Users },
-    { name: 'Clientes', href: '/clientes', icon: User },
-    { name: 'Estadísticas', href: '/estadisticas', icon: PieChart },
+    { name: 'Vehículos', href: '/vehiculos', icon: Truck, roles: ['Admin', 'Oficina'] },
+    { name: 'Empleados', href: '/empleados', icon: Users, roles: ['Admin', 'Oficina'] },
+    { name: 'Clientes', href: '/clientes', icon: User, roles: ['Admin', 'Oficina'] },
+    { name: 'Estadísticas', href: '/estadisticas', icon: PieChart, roles: ['Admin', 'Oficina'] },
   ];
+
+  const navLinks = allNavLinks.filter(link => !link.roles || (user && link.roles.includes(user.Rol)));
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 shadow-sm">
@@ -66,11 +73,10 @@ export default function Header() {
                   key={link.href}
                   href={link.href}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2
-                                ${
-                                  active
-                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
-                                }`}
+                                ${active
+                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                      : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`}
                 >
                   <link.icon size={18} />
                   {link.name}
@@ -81,8 +87,12 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-4 sm:gap-6">
-          <OperationalAlerts />
-          <NotificationBell />
+          {user?.Rol !== 'Chofer' && (
+            <>
+              <OperationalAlerts />
+              <NotificationBell />
+            </>
+          )}
 
           <div className="relative hidden sm:block">
             <button
@@ -90,11 +100,11 @@ export default function Header() {
               className="flex items-center gap-3 pl-6 border-l border-slate-200 dark:border-slate-700 focus:outline-none"
             >
               <div className="text-right">
-                <p className="text-sm font-bold text-slate-700 dark:text-white">Santiago</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Administrador</p>
+                <p className="text-sm font-bold text-slate-700 dark:text-white">{user?.Nombre || 'Usuario'}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{user?.Rol}</p>
               </div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-500 flex items-center justify-center text-white font-bold shadow-md ring-2 ring-white dark:ring-slate-800">
-                S
+                {user?.Nombre ? user.Nombre[0].toUpperCase() : 'U'}
               </div>
               <ChevronDown
                 size={16}
@@ -113,7 +123,7 @@ export default function Header() {
                   <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
                     <p className="text-sm font-medium text-slate-900 dark:text-white">Mi Cuenta</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      admin@avicolasangabriel.com
+                      Usuario ID: {user?.UsuarioId}
                     </p>
                   </div>
 
@@ -122,6 +132,19 @@ export default function Header() {
                       <span className="font-medium">Tema</span>
                       <ThemeToggle />
                     </div>
+
+                    {/* Admin Links */}
+                    {user?.Rol === 'Admin' && (
+                      <Link
+                        href="/admin/restauracion"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <AlertCircle size={16} />
+                        <span>Restauración</span>
+                      </Link>
+                    )}
+
 
                     <Link
                       href="/configuracion"
@@ -134,7 +157,10 @@ export default function Header() {
 
                     <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
 
-                    <button className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
+                    <button
+                      onClick={logout}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
                       <LogOut size={16} />
                       <span>Cerrar Sesión</span>
                     </button>
@@ -172,11 +198,10 @@ export default function Header() {
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`px-4 py-3 rounded-xl text-base font-medium transition-colors flex items-center gap-3
-                                ${
-                                  active
-                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                                    : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
-                                }`}
+                                ${active
+                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                        : 'text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
+                      }`}
                   >
                     <link.icon size={20} />
                     {link.name}

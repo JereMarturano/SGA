@@ -27,6 +27,10 @@ public class Venta
     [ForeignKey("VehiculoId")]
     public Vehiculo? Vehiculo { get; set; }
 
+    public int? ViajeId { get; set; } // Viaje en el que se realizó la venta
+    [ForeignKey("ViajeId")]
+    public Viaje? Viaje { get; set; }
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal Total { get; set; }
 
@@ -39,6 +43,8 @@ public class Venta
     public decimal DescuentoMonto { get; set; }
 
     public DateTime? FechaVencimientoPago { get; set; }
+
+    public bool Activa { get; set; } = true;
 
     // Lista de items vendidos
     public List<DetalleVenta> Detalles { get; set; } = new();

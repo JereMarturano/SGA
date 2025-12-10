@@ -11,11 +11,13 @@ public class VentaService : IVentaService
 {
     private readonly AppDbContext _context;
     private readonly INotificacionService _notificacionService;
+    private readonly IViajeService _viajeService;
 
-    public VentaService(AppDbContext context, INotificacionService notificacionService)
+    public VentaService(AppDbContext context, INotificacionService notificacionService, IViajeService viajeService)
     {
         _context = context;
         _notificacionService = notificacionService;
+        _viajeService = viajeService;
     }
 
     public async Task<Venta> RegistrarVentaAsync(RegistrarVentaRequest request)
@@ -23,16 +25,55 @@ public class VentaService : IVentaService
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 1. Crear la Venta
+            // 1. Validaciones Previas
+            var usuario = await _context.Usuarios.FindAsync(request.UsuarioId);
+            if (usuario == null) throw new KeyNotFoundException("Usuario no encontrado.");
+
+            if (usuario.Rol == RolUsuario.Chofer)
+            {
+                var viajeActivo = await _viajeService.ObtenerViajeActivoPorUsuarioAsync(request.UsuarioId);
+                // Debe tener viaje activo Y coincidir con vehículo
+                if (viajeActivo == null)
+                    throw new InvalidOperationException("No tienes un viaje activo autorizado. Solicita autorización al administrador.");
+                
+                if (viajeActivo != null)
+                {
+                    if (viajeActivo.VehiculoId != request.VehiculoId)
+                        throw new InvalidOperationException($"Tu viaje activo es con el vehículo patente {viajeActivo.Vehiculo?.Patente} ({viajeActivo.VehiculoId}), no con el vehículo {request.VehiculoId}.");
+                }
+            }
+            
+            // Re-fetch active trip to ensure we have it even if not Chofer (though ideally handled above)
+            // Or rely on logic: if Chofer, we have viajeActivo.
+            // If Admin, maybe no ViajeId? Or should we try to find one?
+            // Let's rely on finding one for the vehicle/user if possible, or just user.
+            // For robustness, let's fetch it again if null (e.g. Admin selling on behalf?) - For now focus on Chofer flow.
+            
+            int? viajeId = null;
+            if (usuario.Rol == RolUsuario.Chofer)
+            {
+                 var viajeActivo = await _viajeService.ObtenerViajeActivoPorUsuarioAsync(request.UsuarioId);
+                 viajeId = viajeActivo?.ViajeId;
+            }
+            else
+            {
+                 // Try to find active trip for this vehicle
+                 var viajeActivoVehiculo = await _viajeService.ObtenerViajeActivoPorVehiculoAsync(request.VehiculoId);
+                 viajeId = viajeActivoVehiculo?.ViajeId;
+            }
+
+            // 2. Crear la Venta
             var venta = new Venta
             {
                 Fecha = request.Fecha ?? TimeHelper.Now,
                 ClienteId = request.ClienteId,
                 UsuarioId = request.UsuarioId,
                 VehiculoId = request.VehiculoId,
+                ViajeId = viajeId, // <-- NEW: Link to Trip
                 MetodoPago = request.MetodoPago,
                 DescuentoPorcentaje = request.DescuentoPorcentaje,
                 FechaVencimientoPago = request.FechaVencimientoPago,
+                Activa = true,
                 Total = 0 // Se calcula abajo
             };
 
@@ -129,14 +170,14 @@ public class VentaService : IVentaService
                 );
 
                 // Obtener Nombres para el mensaje detallado
-                var usuario = await _context.Usuarios.FindAsync(request.UsuarioId);
+                // Obtener Nombres para el mensaje detallado
+                // var usuario already exists from line 29
                 var cliente = await _context.Clientes.FindAsync(request.ClienteId);
 
                 var nombreUsuario = usuario?.Nombre ?? "Usuario Desconocido";
                 var nombreCliente = cliente?.NombreCompleto ?? "Cliente Desconocido";
                 var listaProductos = string.Join(", ", detallesTexto);
 
-                // "Juan pablo vendio tantos maples/caja/unidades a cliente tanto, por el valor de tanto"
                 var mensajeNotificacion = $"{nombreUsuario} vendió {listaProductos} a {nombreCliente}, por el valor de ${venta.Total}";
 
                 await _notificacionService.CrearNotificacionAsync(
@@ -173,16 +214,37 @@ public class VentaService : IVentaService
             .FirstOrDefaultAsync(v => v.VentaId == id);
     }
 
-    public async Task<List<Venta>> ObtenerVentasPorVehiculoYFechaAsync(int vehiculoId, DateTime fecha)
+    public async Task<List<Venta>> ObtenerVentasPorVehiculoYFechaAsync(int vehiculoId, DateTime fecha, bool exacto = false)
     {
-        // Filtramos por día completo
-        var fechaInicio = fecha.Date;
-        var fechaFin = fechaInicio.AddDays(1);
+        IQueryable<Venta> query = _context.Ventas
+            .Include(v => v.Cliente)
+            .Include(v => v.Detalles);
 
+        if (exacto)
+        {
+            // Filtrar desde la fecha/hora exacta en adelante (usado para viajes)
+            query = query.Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fecha);
+        }
+        else
+        {
+            // Filtrramos por día completo (comportamiento legacy)
+            var fechaInicio = fecha.Date;
+            var fechaFin = fechaInicio.AddDays(1);
+            query = query.Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fechaInicio && v.Fecha < fechaFin);
+        }
+
+        return await query
+            .OrderByDescending(v => v.Fecha)
+            .ToListAsync();
+    }
+    
+    // NEW METHOD
+    public async Task<List<Venta>> ObtenerVentasPorViajeAsync(int viajeId)
+    {
         return await _context.Ventas
             .Include(v => v.Cliente)
             .Include(v => v.Detalles)
-            .Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fechaInicio && v.Fecha < fechaFin)
+            .Where(v => v.ViajeId == viajeId)
             .OrderByDescending(v => v.Fecha)
             .ToListAsync();
     }
@@ -191,6 +253,7 @@ public class VentaService : IVentaService
     {
         return await _context.Ventas
             .Where(v => v.ClienteId == clienteId)
+            .Include(v => v.Cliente) // Include Cliente
             .Include(v => v.Usuario)
             .Include(v => v.Detalles)
                 .ThenInclude(d => d.Producto)
@@ -202,6 +265,7 @@ public class VentaService : IVentaService
                 Total = v.Total,
                 MetodoPago = v.MetodoPago.ToString(),
                 Vendedor = v.Usuario != null ? v.Usuario.Nombre : "Desconocido",
+                Cliente = v.Cliente != null ? v.Cliente.NombreCompleto : "Desconocido",
                 Productos = v.Detalles.Select(d => new DetalleVentaHistorialDTO
                 {
                     Producto = d.Producto != null ? d.Producto.Nombre : "Desconocido",
@@ -211,5 +275,114 @@ public class VentaService : IVentaService
                 }).ToList()
             })
             .ToListAsync();
+    }
+
+    public async Task<List<HistorialVentaDTO>> ObtenerVentasPorUsuarioAsync(int usuarioId, int? mes = null, int? anio = null)
+    {
+        var query = _context.Ventas
+            .Where(v => v.UsuarioId == usuarioId);
+
+        if (mes.HasValue && anio.HasValue)
+        {
+            var fechaInicio = new DateTime(anio.Value, mes.Value, 1);
+            var fechaFin = fechaInicio.AddMonths(1);
+            query = query.Where(v => v.Fecha >= fechaInicio && v.Fecha < fechaFin);
+        }
+
+        return await query
+            .Include(v => v.Usuario)
+            .Include(v => v.Cliente)
+            .Include(v => v.Detalles)
+                .ThenInclude(d => d.Producto)
+            .OrderByDescending(v => v.Fecha)
+            .Select(v => new HistorialVentaDTO
+            {
+                VentaId = v.VentaId,
+                Fecha = v.Fecha.ToString("yyyy-MM-dd HH:mm"),
+                Total = v.Total,
+                MetodoPago = v.MetodoPago.ToString(),
+                Vendedor = v.Usuario != null ? v.Usuario.Nombre : "Desconocido",
+                Cliente = v.Cliente != null ? v.Cliente.NombreCompleto : "Mostrador",
+                Productos = v.Detalles.Select(d => new DetalleVentaHistorialDTO
+                {
+                    Producto = d.Producto != null ? d.Producto.Nombre : "Desconocido",
+                    Cantidad = d.Cantidad,
+                    PrecioUnitario = d.PrecioUnitario,
+                    Subtotal = d.Subtotal
+                }).ToList()
+            })
+            .ToListAsync();
+    }
+
+    public async Task CancelarVentaAsync(int ventaId, string motivo)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var venta = await _context.Ventas
+                .Include(v => v.Detalles)
+                .Include(v => v.Cliente)
+                .FirstOrDefaultAsync(v => v.VentaId == ventaId);
+
+            if (venta == null) throw new KeyNotFoundException("Venta no encontrada");
+            if (!venta.Activa) throw new InvalidOperationException("La venta ya está anulada.");
+
+            // 1. Marcar como inactiva
+            venta.Activa = false;
+
+            // 2. Revertir Cliente
+            if (venta.Cliente != null)
+            {
+                venta.Cliente.VentasTotales -= venta.Total;
+                
+                if (venta.MetodoPago == MetodoPago.CuentaCorriente)
+                {
+                    venta.Cliente.Deuda -= venta.Total;
+                }
+            }
+
+            // 3. Revertir Stock
+            foreach (var detalle in venta.Detalles)
+            {
+                var stockVehiculo = await _context.StockVehiculos
+                    .FirstOrDefaultAsync(s => s.VehiculoId == venta.VehiculoId && s.ProductoId == detalle.ProductoId);
+                
+                if (stockVehiculo != null)
+                {
+                    stockVehiculo.Cantidad += detalle.Cantidad; // Devolver stock
+                    stockVehiculo.UltimaActualizacion = TimeHelper.Now;
+                }
+
+                // Registrar Movimiento de Ajuste
+                var movimiento = new MovimientoStock
+                {
+                    Fecha = TimeHelper.Now,
+                    TipoMovimiento = TipoMovimientoStock.DevolucionCliente,
+                    VehiculoId = venta.VehiculoId,
+                    ProductoId = detalle.ProductoId,
+                    Cantidad = detalle.Cantidad, // Entrada
+                    UsuarioId = venta.UsuarioId,
+                    Observaciones = $"Anulación Venta #{venta.VentaId}: {motivo}"
+                };
+                _context.MovimientosStock.Add(movimiento);
+            }
+
+            // Registrar Acción de Auditoría
+            await _notificacionService.RegistrarAccionAsync(
+                "Anular Venta", 
+                "Venta", 
+                venta.VentaId.ToString(), 
+                venta.UsuarioId, 
+                $"Venta anulada. Motivo: {motivo}"
+            );
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 }

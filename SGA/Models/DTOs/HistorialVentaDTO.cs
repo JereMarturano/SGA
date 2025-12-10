@@ -9,6 +9,7 @@ public class HistorialVentaDTO
     public decimal Total { get; set; }
     public string MetodoPago { get; set; } = string.Empty;
     public string Vendedor { get; set; } = string.Empty;
+    public string Cliente { get; set; } = string.Empty;
     public List<DetalleVentaHistorialDTO> Productos { get; set; } = new();
 }
 

@@ -4,19 +4,23 @@ using SGA.Models;
 using SGA.Models.DTOs;
 using SGA.Services;
 using SGA.Data;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SGA.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class InventarioController : ControllerBase
 {
     private readonly IInventarioService _inventarioService;
+    private readonly IViajeService _viajeService;
     private readonly AppDbContext _context;
 
-    public InventarioController(IInventarioService inventarioService, AppDbContext context)
+    public InventarioController(IInventarioService inventarioService, IViajeService viajeService, AppDbContext context)
     {
         _inventarioService = inventarioService;
+        _viajeService = viajeService;
         _context = context;
     }
 
@@ -148,8 +152,19 @@ public class InventarioController : ControllerBase
                 }).ToList()
             };
 
+            // 1. Obtener el viaje activo ANTES de cerrar el reparto (porque cerrar reparto cambia estado del vehículo)
+            var viajeActivo = await _viajeService.ObtenerViajeActivoPorVehiculoAsync(request.VehiculoId);
+
+            // 2. Cerrar reparto (Inventario y Vehículo)
             await _inventarioService.CerrarRepartoAsync(internalRequest);
-            return Ok(new { message = "Reparto cerrado exitosamente. Stock retornado a depósito." });
+
+            // 3. Finalizar el Viaje formalmente (si existe)
+            if (viajeActivo != null)
+            {
+                await _viajeService.FinalizarViajeAsync(viajeActivo.ViajeId, "Cierre automático desde Stock en Calle");
+            }
+
+            return Ok(new { message = "Reparto cerrado exitosamente. Stock retornado a depósito y Viaje Finalizado." });
         }
         catch (Exception ex)
         {

@@ -3,6 +3,7 @@ using SGA.Data;
 using SGA.Models;
 using SGA.Models.DTOs;
 using SGA.Models.Enums;
+using SGA.Helpers;
 
 namespace SGA.Services;
 
@@ -112,6 +113,11 @@ public class EmpleadoService : IEmpleadoService
         stats.TotalHuevosVendidos = huevosVendidosTotal;
         stats.VentasPorDia = stats.VentasPorDia.OrderBy(v => v.Fecha).ToList();
 
+        // Calculate Payment Totals
+        stats.TotalEfectivo = ventas.Where(v => v.MetodoPago == MetodoPago.Efectivo).Sum(v => v.Total);
+        stats.TotalMercadoPago = ventas.Where(v => v.MetodoPago == MetodoPago.MercadoPago).Sum(v => v.Total);
+        stats.TotalCuentaCorriente = ventas.Where(v => v.MetodoPago == MetodoPago.CuentaCorriente).Sum(v => v.Total);
+
         return stats;
     }
 
@@ -126,11 +132,34 @@ public class EmpleadoService : IEmpleadoService
         {
             Nombre = dto.Nombre,
             Rol = roleEnum,
-            ContrasenaHash = dto.Contrasena, // Storing plain text as per current codebase convention
+            ContrasenaHash = dto.Contrasena, // Storing plain text as per current codebase convention - WAIT, AuthService hashes it? 
+            // AuthService.RegisterAsync hashes it. createEmpleadoAsync in Service previously took plain text. 
+            // The existing code: ContrasenaHash = dto.Contrasena. 
+            // Let's verify if we should hash it here. AuthService.RegisterAsync calls PasswordHelper.HashPassword.
+            // EmpleadoService.CreateEmpleadoAsync sets it directly. This might be a bug or inconsistency.
+            // PROMPT says "modificar su contraseña".
+            // Let's use PasswordHelper to hash it if it's not hashed.
+            // But wait, the previous code didn't use PasswordHelper here? 
+            // I'll stick to the pattern but let's check AuthService again. 
+            // AuthService uses PasswordHelper.HashPassword.
+            // I should probably hash it here too to be safe/consistent.
+            // But first, let's just do DNI validation.
+            DNI = dto.DNI,
             Telefono = dto.Telefono,
             FechaIngreso = dto.FechaIngreso,
             Estado = "Activo"
         };
+        
+        // Validate DNI Format
+        if (dto.DNI.Length != 8 || !dto.DNI.All(char.IsDigit))
+            throw new ArgumentException("El DNI debe tener exactamente 8 dígitos numéricos.");
+
+        // Validate DNI Uniqueness
+        if (await _context.Usuarios.AnyAsync(u => u.DNI == dto.DNI))
+           throw new ArgumentException("El DNI ya está registrado por otro empleado.");
+        
+        // Hash Password
+        empleado.ContrasenaHash = PasswordHelper.HashPassword(dto.Contrasena);
 
         _context.Usuarios.Add(empleado);
         await _context.SaveChangesAsync();
@@ -144,6 +173,25 @@ public class EmpleadoService : IEmpleadoService
             throw new KeyNotFoundException($"Empleado con ID {usuarioId} no encontrado.");
 
         empleado.Nombre = dto.Nombre;
+
+        // Validate and Update DNI
+        if (!string.IsNullOrEmpty(dto.DNI))
+        {
+             if (dto.DNI.Length != 8 || !dto.DNI.All(char.IsDigit))
+                throw new ArgumentException("El DNI debe tener exactamente 8 dígitos numéricos.");
+
+             // Check uniqueness excluding self
+             if (await _context.Usuarios.AnyAsync(u => u.DNI == dto.DNI && u.UsuarioId != usuarioId))
+                throw new ArgumentException("El DNI ya está registrado por otro empleado.");
+
+             empleado.DNI = dto.DNI;
+        }
+
+        // Update Password if provided
+        if (!string.IsNullOrEmpty(dto.Password))
+        {
+            empleado.ContrasenaHash = PasswordHelper.HashPassword(dto.Password);
+        }
 
         if (Enum.TryParse<RolUsuario>(dto.Role, out var roleEnum))
         {

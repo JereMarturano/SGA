@@ -25,6 +25,10 @@ public class EmpleadoEstadisticasDto
     public int CantidadVentas { get; set; } // Transacciones
     public decimal TotalHuevosVendidos { get; set; } // Unidades (o maples/cajones según unidad)
     public List<VentaPorDiaDto> VentasPorDia { get; set; } = new();
+    
+    public decimal TotalEfectivo { get; set; }
+    public decimal TotalMercadoPago { get; set; }
+    public decimal TotalCuentaCorriente { get; set; }
 }
 
 public class VentaPorDiaDto

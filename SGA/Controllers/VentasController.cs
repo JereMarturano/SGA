@@ -3,8 +3,11 @@ using SGA.Models;
 using SGA.Models.DTOs;
 using SGA.Services;
 
+using Microsoft.AspNetCore.Authorization;
+
 namespace SGA.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class VentasController : ControllerBase
@@ -52,10 +55,34 @@ public class VentasController : ControllerBase
     }
 
     [HttpGet("vehiculo/{vehiculoId}")]
-    public async Task<ActionResult<List<Venta>>> ObtenerPorVehiculo(int vehiculoId, [FromQuery] DateTime? fecha)
+    public async Task<ActionResult<List<Venta>>> ObtenerPorVehiculo(int vehiculoId, [FromQuery] DateTime? fecha, [FromQuery] bool exacto = false)
     {
         var fechaConsulta = fecha ?? DateTime.UtcNow;
-        var ventas = await _ventaService.ObtenerVentasPorVehiculoYFechaAsync(vehiculoId, fechaConsulta);
+        Console.WriteLine($"[DEBUG] ObtenerPorVehiculo: ID={vehiculoId}, FechaInput={fecha}, Exacto={exacto}");
+        Console.WriteLine($"[DEBUG] FechaConsulta (Server): {fechaConsulta} Kind={fechaConsulta.Kind}");
+
+        var ventas = await _ventaService.ObtenerVentasPorVehiculoYFechaAsync(vehiculoId, fechaConsulta, exacto);
+        
+        Console.WriteLine($"[DEBUG] Ventas encontradas: {ventas.Count}");
+        if(ventas.Count > 0)
+        {
+             Console.WriteLine($"[DEBUG] Primera venta fecha: {ventas[0].Fecha} Kind={ventas[0].Fecha.Kind}");
+        }
+
+        return Ok(ventas);
+    }
+
+    [HttpGet("viaje/{viajeId}")]
+    public async Task<ActionResult<List<Venta>>> ObtenerPorViaje(int viajeId)
+    {
+        var ventas = await _ventaService.ObtenerVentasPorViajeAsync(viajeId);
+        return Ok(ventas);
+    }
+
+    [HttpGet("usuario/{usuarioId}")]
+    public async Task<ActionResult<List<HistorialVentaDTO>>> ObtenerPorUsuario(int usuarioId, [FromQuery] int? mes, [FromQuery] int? anio)
+    {
+        var ventas = await _ventaService.ObtenerVentasPorUsuarioAsync(usuarioId, mes, anio);
         return Ok(ventas);
     }
 }

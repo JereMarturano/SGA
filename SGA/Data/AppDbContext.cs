@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<Falta> Faltas { get; set; }
     public DbSet<Asistencia> Asistencias { get; set; }
     public DbSet<Pago> Pagos { get; set; }
+    public DbSet<Viaje> Viajes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,6 +39,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<Vehiculo>()
             .HasIndex(v => v.Patente)
+            .IsUnique();
+
+        modelBuilder.Entity<Usuario>()
+            .HasIndex(u => u.DNI)
             .IsUnique();
             
         // Additional configuration if needed

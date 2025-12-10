@@ -14,21 +14,16 @@ interface Employee {
   absences: number;
   status: 'Activo' | 'Vacaciones' | 'Inactivo';
   phone: string;
+  dni: string;
+  totalEfectivo: number;
+  totalMercadoPago: number;
+  totalCuentaCorriente: number;
 }
 
 import api from '@/lib/axios';
 import { useEffect } from 'react';
 
-interface Employee {
-  id: number;
-  name: string;
-  role: string;
-  startDate: string;
-  monthlySales: number;
-  absences: number;
-  status: 'Activo' | 'Vacaciones' | 'Inactivo';
-  phone: string;
-}
+
 
 export default function EmpleadosPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -36,6 +31,12 @@ export default function EmpleadosPage() {
   const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // History Modal State
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [salesHistory, setSalesHistory] = useState<any[]>([]);
+  const [selectedEmployeeName, setSelectedEmployeeName] = useState('');
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const fetchEmployees = async () => {
     try {
@@ -56,6 +57,10 @@ export default function EmpleadosPage() {
         absences: u.faltasDelMes || 0,
         status: u.estado || 'Activo',
         phone: u.telefono || 'N/A',
+        dni: u.dni || '',
+        totalEfectivo: u.totalEfectivo || 0,
+        totalMercadoPago: u.totalMercadoPago || 0,
+        totalCuentaCorriente: u.totalCuentaCorriente || 0,
       }));
       setEmployees(data);
     } catch (error) {
@@ -93,8 +98,15 @@ export default function EmpleadosPage() {
 
     if (!currentEmployee) {
       // Create logic
+      const dni = formData.get('dni') as string;
+      if (dni.length !== 8) {
+        alert('El DNI debe tener 8 dígitos.');
+        return;
+      }
+
       const createData = {
         nombre: formData.get('name'),
+        dni: dni,
         role: formData.get('role'),
         telefono: formData.get('phone'),
         fechaIngreso: formData.get('startDate'),
@@ -106,28 +118,39 @@ export default function EmpleadosPage() {
         await api.post('/empleados', createData);
         handleCloseModal();
         fetchEmployees();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error creating employee:', error);
-        alert('Error al crear empleado.');
+        alert('Error al crear empleado: ' + (error.response?.data?.message || error.message));
       }
     } else {
       // Update logic
-      const updateData = {
+      const dni = formData.get('dni') as string;
+      if (dni && dni.length !== 8) {
+        alert('El DNI debe tener 8 dígitos.');
+        return;
+      }
+
+      const updateData: any = {
         nombre: formData.get('name'),
         role: formData.get('role'),
         telefono: formData.get('phone'),
         fechaIngreso: formData.get('startDate'), // "YYYY-MM-DD"
         estado: formData.get('status'),
-        // metrics ignored for update
+        dni: dni,
       };
+
+      const password = formData.get('password') as string;
+      if (password && password.trim() !== '') {
+        updateData.password = password;
+      }
 
       try {
         await api.put(`/empleados/${currentEmployee.id}`, updateData);
         handleCloseModal();
         fetchEmployees();
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error updating employee:', error);
-        alert('Error al actualizar empleado.');
+        alert('Error al actualizar empleado: ' + (error.response?.data?.message || error.message));
       }
     }
   };
@@ -144,6 +167,27 @@ export default function EmpleadosPage() {
     } catch (error) {
       console.error('Error deleting employee:', error);
       alert('Error al eliminar empleado. Asegúrate de que no sea el administrador.');
+    }
+  };
+
+  const handleShowHistory = async (employee: Employee) => {
+    try {
+      setSelectedEmployeeName(employee.name);
+      setHistoryModalOpen(true);
+      setSalesHistory([]);
+      setLoadingHistory(true);
+
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+
+      const res = await api.get(`/ventas/usuario/${employee.id}?mes=${month}&anio=${year}`);
+      setSalesHistory(res.data);
+    } catch (error) {
+      console.error("Error fetching history", error);
+      alert("Error al cargar el historial");
+    } finally {
+      setLoadingHistory(false);
     }
   };
 
@@ -203,24 +247,26 @@ export default function EmpleadosPage() {
                 </div>
                 <span
                   className={`px-2 py-1 rounded-lg text-xs font-bold
-                  ${
-                    employee.status === 'Activo'
+                  ${employee.status === 'Activo'
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                       : employee.status === 'Vacaciones'
                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                  }`}
+                    }`}
                 >
                   {employee.status}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center">
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-center gap-1">
+                <div
+                  onClick={() => handleShowHistory(employee)}
+                  className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl text-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group/stats"
+                >
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-center gap-1 group-hover/stats:text-blue-500 transition-colors">
                     <DollarSign size={12} /> Ventas (Mes)
                   </p>
-                  <p className="font-bold text-slate-800 dark:text-white text-lg">
+                  <p className="font-bold text-slate-800 dark:text-white text-lg group-hover/stats:text-blue-600 transition-colors">
                     {employee.monthlySales.toLocaleString()}
                   </p>
                 </div>
@@ -233,6 +279,9 @@ export default function EmpleadosPage() {
                   </p>
                 </div>
               </div>
+
+
+
 
               <div className="space-y-3 mb-6">
                 <div className="flex justify-between items-center text-sm">
@@ -249,6 +298,10 @@ export default function EmpleadosPage() {
                   <span className="text-slate-600 dark:text-slate-300">Teléfono</span>
                   <span className="text-slate-800 dark:text-slate-200">{employee.phone}</span>
                 </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-600 dark:text-slate-300">DNI</span>
+                  <span className="text-slate-800 dark:text-slate-200">{employee.dni}</span>
+                </div>
               </div>
 
               <button
@@ -261,7 +314,7 @@ export default function EmpleadosPage() {
             </div>
           ))}
         </div>
-      </main>
+      </main >
 
       <Modal
         isOpen={isModalOpen}
@@ -311,21 +364,32 @@ export default function EmpleadosPage() {
                 className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               />
             </div>
-          </div>
-
-          {!currentEmployee && (
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Contraseña
+                DNI
               </label>
               <input
-                type="password"
-                name="password"
+                name="dni"
+                defaultValue={currentEmployee?.dni}
                 required
+                maxLength={8}
                 className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               />
             </div>
-          )}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {currentEmployee ? 'Nueva Contraseña (Opcional)' : 'Contraseña'}
+            </label>
+            <input
+              type="password"
+              name="password"
+              placeholder={currentEmployee ? 'Dejar en blanco para mantener' : ''}
+              required={!currentEmployee}
+              className="w-full p-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -361,7 +425,7 @@ export default function EmpleadosPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Ventas (Huevos/Mes)
+                  Ventas ($ Mes)
                 </label>
                 <input
                   type="number"
@@ -435,6 +499,60 @@ export default function EmpleadosPage() {
           </div>
         </form>
       </Modal>
-    </div>
+      <Modal
+        isOpen={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        title={`Historial de Ventas - ${selectedEmployeeName}`}
+      >
+        <div className="max-h-[60vh] overflow-y-auto space-y-3 custom-scrollbar pr-2">
+          {loadingHistory ? (
+            <p className="text-center text-slate-500 py-10">Cargando...</p>
+          ) : salesHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 opacity-60">
+              <DollarSign size={48} className="text-slate-300 mb-2" />
+              <p className="text-center text-slate-500">No hay ventas registradas este mes.</p>
+            </div>
+          ) : (
+            salesHistory.map((venta) => (
+              <div key={venta.ventaId} className="bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="font-bold text-slate-800 dark:text-white text-sm">{venta.cliente}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                      <Clock size={10} /> {venta.fecha}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-black text-green-600 dark:text-green-400">${venta.total.toLocaleString()}</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 shadow-sm">
+                      {venta.metodoPago}
+                    </span>
+                  </div>
+                </div>
+                <div className="pl-3 border-l-2 border-slate-200 dark:border-slate-600 space-y-1">
+                  {venta.productos.map((p: any, idx: number) => (
+                    <div key={idx} className="flex justify-between text-xs">
+                      <span className="text-slate-600 dark:text-slate-300">
+                        <span className="font-bold">{p.cantidad}</span> x {p.producto}
+                      </span>
+                      <span className="text-slate-500 dark:text-slate-400">${p.subtotal.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-700 text-right">
+          <button
+            onClick={() => setHistoryModalOpen(false)}
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-sm transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </Modal>
+
+    </div >
   );
 }
