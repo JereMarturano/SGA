@@ -36,8 +36,30 @@ public class VentaService : IVentaService
                 if (viajeActivo == null)
                     throw new InvalidOperationException("No tienes un viaje activo autorizado. Solicita autorización al administrador.");
                 
-                if (viajeActivo.VehiculoId != request.VehiculoId)
-                    throw new InvalidOperationException($"Tu viaje activo es con el vehículo patente {viajeActivo.Vehiculo?.Patente} ({viajeActivo.VehiculoId}), no con el vehículo {request.VehiculoId}.");
+                if (viajeActivo != null)
+                {
+                    if (viajeActivo.VehiculoId != request.VehiculoId)
+                        throw new InvalidOperationException($"Tu viaje activo es con el vehículo patente {viajeActivo.Vehiculo?.Patente} ({viajeActivo.VehiculoId}), no con el vehículo {request.VehiculoId}.");
+                }
+            }
+            
+            // Re-fetch active trip to ensure we have it even if not Chofer (though ideally handled above)
+            // Or rely on logic: if Chofer, we have viajeActivo.
+            // If Admin, maybe no ViajeId? Or should we try to find one?
+            // Let's rely on finding one for the vehicle/user if possible, or just user.
+            // For robustness, let's fetch it again if null (e.g. Admin selling on behalf?) - For now focus on Chofer flow.
+            
+            int? viajeId = null;
+            if (usuario.Rol == RolUsuario.Chofer)
+            {
+                 var viajeActivo = await _viajeService.ObtenerViajeActivoPorUsuarioAsync(request.UsuarioId);
+                 viajeId = viajeActivo?.ViajeId;
+            }
+            else
+            {
+                 // Try to find active trip for this vehicle
+                 var viajeActivoVehiculo = await _viajeService.ObtenerViajeActivoPorVehiculoAsync(request.VehiculoId);
+                 viajeId = viajeActivoVehiculo?.ViajeId;
             }
 
             // 2. Crear la Venta
@@ -47,6 +69,7 @@ public class VentaService : IVentaService
                 ClienteId = request.ClienteId,
                 UsuarioId = request.UsuarioId,
                 VehiculoId = request.VehiculoId,
+                ViajeId = viajeId, // <-- NEW: Link to Trip
                 MetodoPago = request.MetodoPago,
                 DescuentoPorcentaje = request.DescuentoPorcentaje,
                 FechaVencimientoPago = request.FechaVencimientoPago,
@@ -191,16 +214,37 @@ public class VentaService : IVentaService
             .FirstOrDefaultAsync(v => v.VentaId == id);
     }
 
-    public async Task<List<Venta>> ObtenerVentasPorVehiculoYFechaAsync(int vehiculoId, DateTime fecha)
+    public async Task<List<Venta>> ObtenerVentasPorVehiculoYFechaAsync(int vehiculoId, DateTime fecha, bool exacto = false)
     {
-        // Filtramos por día completo
-        var fechaInicio = fecha.Date;
-        var fechaFin = fechaInicio.AddDays(1);
+        IQueryable<Venta> query = _context.Ventas
+            .Include(v => v.Cliente)
+            .Include(v => v.Detalles);
 
+        if (exacto)
+        {
+            // Filtrar desde la fecha/hora exacta en adelante (usado para viajes)
+            query = query.Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fecha);
+        }
+        else
+        {
+            // Filtrramos por día completo (comportamiento legacy)
+            var fechaInicio = fecha.Date;
+            var fechaFin = fechaInicio.AddDays(1);
+            query = query.Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fechaInicio && v.Fecha < fechaFin);
+        }
+
+        return await query
+            .OrderByDescending(v => v.Fecha)
+            .ToListAsync();
+    }
+    
+    // NEW METHOD
+    public async Task<List<Venta>> ObtenerVentasPorViajeAsync(int viajeId)
+    {
         return await _context.Ventas
             .Include(v => v.Cliente)
             .Include(v => v.Detalles)
-            .Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fechaInicio && v.Fecha < fechaFin)
+            .Where(v => v.ViajeId == viajeId)
             .OrderByDescending(v => v.Fecha)
             .ToListAsync();
     }

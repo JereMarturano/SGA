@@ -16,6 +16,7 @@ interface ViajeActivo {
   viajeId: number;
   vehiculoId: number;
   vehiculo: { patente: string; modelo: string };
+  fechaSalida: string;
 }
 
 export default function Dashboard() {
@@ -64,16 +65,19 @@ export default function Dashboard() {
           const res = await api.get(`/viajes/activo-por-usuario/${user.UsuarioId}`);
           setActiveTrip(res.data);
 
+          // Fetch recent sales for this vehicle (starting from trip start time)
+          // If active trip exists, we filter by exact trip start time
           if (res.data?.vehiculoId) {
-            // Fetch recent sales for this vehicle (today)
-            const today = new Date().toISOString().split('T')[0];
-            const ventasRes = await api.get(`/ventas/vehiculo/${res.data.vehiculoId}?fecha=${today}`);
-            setMisVentas(ventasRes.data);
-            const total = ventasRes.data.reduce((acc: number, v: any) => acc + v.total, 0);
+            // NEW: Fetch by ViajeId for accurate Cash Control
+            const ventasRes = await api.get(`/ventas/viaje/${res.data.viajeId}`);
+            const ventasFiltradas = ventasRes.data;
+
+            setMisVentas(ventasFiltradas);
+            const total = ventasFiltradas.reduce((acc: number, v: any) => acc + v.total, 0);
             setVentasTotalHoy(total);
 
             // Calculate Cash Control
-            const control = ventasRes.data.reduce((acc: any, v: any) => {
+            const control = ventasFiltradas.reduce((acc: any, v: any) => {
               if (v.metodoPago === 0 || v.metodoPago === 'Efectivo') acc.efectivo += v.total;
               else if (v.metodoPago === 1 || v.metodoPago === 'MercadoPago') acc.mp += v.total;
               else if (v.metodoPago === 2 || v.metodoPago === 'CuentaCorriente') acc.ctaCte += v.total;

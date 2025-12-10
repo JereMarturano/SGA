@@ -10,10 +10,12 @@ namespace SGA.Services;
 public class InventarioService : IInventarioService
 {
     private readonly AppDbContext _context;
+    private readonly IViajeService _viajeService;
 
-    public InventarioService(AppDbContext context)
+    public InventarioService(AppDbContext context, IViajeService viajeService)
     {
         _context = context;
+        _viajeService = viajeService;
     }
 
     public async Task CargarVehiculoAsync(int vehiculoId, List<(int ProductoId, decimal Cantidad)> items, int usuarioId, int? choferId = null)
@@ -403,19 +405,34 @@ public class InventarioService : IInventarioService
     }
     public async Task<ResumenCajaDTO> ObtenerResumenCajaAsync(int vehiculoId)
     {
-        // 1. Encontrar la última carga inicial (Inicio de Sesión de Ruta)
-        var ultimaCarga = await _context.MovimientosStock
-            .Where(m => m.VehiculoId == vehiculoId && m.TipoMovimiento == TipoMovimientoStock.CargaInicial)
-            .OrderByDescending(m => m.Fecha)
-            .FirstOrDefaultAsync();
+        // 1. Obtener Viaje Activo
+        var viajeActivo = await _viajeService.ObtenerViajeActivoPorVehiculoAsync(vehiculoId);
+        
+        List<Venta> ventas;
 
-        // Si no hay carga, asumimos inicio del día (fallback)
-        var fechaInicio = ultimaCarga?.Fecha ?? TimeHelper.Now.Date;
+        if (viajeActivo != null)
+        {
+             // Si hay viaje activo, usamos el ViajeId para precisión absoluta
+             ventas = await _context.Ventas
+                .Where(v => v.ViajeId == viajeActivo.ViajeId)
+                .ToListAsync();
+        }
+        else
+        {
+            // FALLBACK LEGACY: Si no hay viaje activo (raro si están cerrando reparto, pero posible en testing)
+            // Mantenemos la lógica de "Última Carga" o "Inicio del Día"
+            
+            var ultimaCarga = await _context.MovimientosStock
+                .Where(m => m.VehiculoId == vehiculoId && m.TipoMovimiento == TipoMovimientoStock.CargaInicial)
+                .OrderByDescending(m => m.Fecha)
+                .FirstOrDefaultAsync();
 
-        // 2. Obtener todas las ventas desde esa fecha para este vehículo
-        var ventas = await _context.Ventas
-            .Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fechaInicio)
-            .ToListAsync();
+            var fechaInicio = ultimaCarga?.Fecha ?? TimeHelper.Now.Date;
+
+            ventas = await _context.Ventas
+                .Where(v => v.VehiculoId == vehiculoId && v.Fecha >= fechaInicio)
+                .ToListAsync();
+        }
 
         // 3. Calcular totales
         var resumen = new ResumenCajaDTO
