@@ -44,9 +44,39 @@ public static class DbInitializer
             var vehiculos = new Vehiculo[]
             {
                 new Vehiculo { Patente = "AA123BB", Marca = "Peugeot", Modelo = "Boxer", CapacidadCarga = 1500, ConsumoPromedioLts100Km = 12, EnRuta = false },
-                new Vehiculo { Patente = "CC456DD", Marca = "Fiat", Modelo = "Fiorino", CapacidadCarga = 650, ConsumoPromedioLts100Km = 9, EnRuta = false }
+                new Vehiculo { Patente = "CC456DD", Marca = "Fiat", Modelo = "Fiorino", CapacidadCarga = 650, ConsumoPromedioLts100Km = 9, EnRuta = false },
+                new Vehiculo { Patente = "GRANJA", Marca = "SGA", Modelo = "Punto de Venta", CapacidadCarga = 999999, ConsumoPromedioLts100Km = 0, EnRuta = false } // Default to false so we can Start Trip manually
             };
             context.Vehiculos.AddRange(vehiculos);
+        }
+        else
+        {
+            // Ensure Granja exists even if seeding happened before
+             var granja = context.Vehiculos.FirstOrDefault(v => v.Patente == "GRANJA");
+             if (granja == null)
+             {
+                context.Vehiculos.Add(new Vehiculo 
+                { 
+                    Patente = "GRANJA", 
+                    Marca = "SGA", 
+                    Modelo = "Punto de Venta", 
+                    CapacidadCarga = 999999, 
+                    ConsumoPromedioLts100Km = 0, 
+                    EnRuta = false 
+                });
+                context.SaveChanges();
+             }
+             else
+             {
+                 // Fix: If Granja is marked EnRuta but has no active trip, reset it.
+                 // This handles the previous bad seed.
+                 var activeTrip = context.Viajes.Any(v => v.VehiculoId == granja.VehiculoId && v.Estado == EstadoViaje.EnCurso);
+                 if (granja.EnRuta && !activeTrip)
+                 {
+                     granja.EnRuta = false;
+                     context.SaveChanges();
+                 }
+             }
         }
 
         // Seed Usuarios if missing

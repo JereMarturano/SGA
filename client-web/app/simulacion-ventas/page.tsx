@@ -61,8 +61,7 @@ export default function SimulacionVentasPage() {
   const [loadingData, setLoadingData] = useState(true);
 
   // Form states
-  const [fecha, setFecha] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [hora, setHora] = useState<string>('12:00');
+  // Fecha and Hora removed for automatic setting
   const [selectedVehiculo, setSelectedVehiculo] = useState<number | ''>('');
   const [isChoferTrip, setIsChoferTrip] = useState(false);
 
@@ -248,6 +247,22 @@ export default function SimulacionVentasPage() {
       return;
     }
 
+    if (metodoPago === 3 && fechaVencimiento) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const due = new Date(fechaVencimiento);
+      // Fix timezone issue when comparing dates represented as strings
+      // We can just compare the string 'YYYY-MM-DD' if we want strictly >
+      // But safer:
+      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      if (dueDay <= currentDay) {
+        setMessage({ type: 'error', text: 'La fecha de pago debe ser mayor a la fecha actual.' });
+        return;
+      }
+    }
+
     if (!validatePrice()) {
       console.log('Validation failed: Price validation');
       setMessage({
@@ -280,7 +295,8 @@ export default function SimulacionVentasPage() {
     setShowConfirmModal(false);
 
     try {
-      const dateTime = new Date(`${fecha}T${hora}:00`);
+      // Logic for explicit date removed, backend handles it.
+      // const dateTime = new Date(`${fecha}T${hora}:00`);
       const { totalUnits, unitPrice } = calculateTotals();
 
       const payload = {
@@ -288,7 +304,7 @@ export default function SimulacionVentasPage() {
         usuarioId: user?.UsuarioId,
         vehiculoId: Number(selectedVehiculo),
         metodoPago: Number(metodoPago),
-        fecha: dateTime.toISOString(),
+        fecha: new Date().toISOString(), // Ignored by backend but sent for DTO validity
         fechaVencimientoPago: metodoPago === 3 ? new Date(fechaVencimiento).toISOString() : null,
         items: [
           {
@@ -350,36 +366,7 @@ export default function SimulacionVentasPage() {
 
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-8">
           <form onSubmit={handlePreSubmit} className="space-y-8">
-            {/* Fecha y Hora */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-                  Fecha
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-3.5 text-slate-400" size={20} />
-                  <input
-                    type="date"
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                    className="w-full pl-10 p-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none font-medium"
-                    required
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
-                  Hora
-                </label>
-                <input
-                  type="time"
-                  value={hora}
-                  onChange={(e) => setHora(e.target.value)}
-                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none font-medium"
-                  required
-                />
-              </div>
-            </div>
+            {/* Fecha y Hora removidos - Se usan automáticos */}
 
             {/* Vehículo y Cliente */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -397,11 +384,13 @@ export default function SimulacionVentasPage() {
                     required
                   >
                     <option value="">Seleccionar Vehículo</option>
-                    {vehiculos.map((v) => (
-                      <option key={v.vehiculoId} value={v.vehiculoId}>
-                        {v.marca} {v.modelo} ({v.patente})
-                      </option>
-                    ))}
+                    {vehiculos
+                      .filter((v) => !isChoferTrip || v.vehiculoId === selectedVehiculo)
+                      .map((v) => (
+                        <option key={v.vehiculoId} value={v.vehiculoId}>
+                          {v.marca} {v.modelo} ({v.patente})
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>

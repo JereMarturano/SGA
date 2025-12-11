@@ -109,12 +109,14 @@ export default function CargaCamionetaPage() {
           api.get('/inventario/usuarios'),
         ]);
 
-        const vehiculosMapped = vRes.data.map((v: Vehiculo) => ({
-          id: v.vehiculoId,
-          nombre: `${v.marca} ${v.modelo}`,
-          patente: v.patente,
-          enRuta: v.enRuta,
-        }));
+        const vehiculosMapped = vRes.data
+          .filter((v: Vehiculo) => v.patente !== 'GRANJA') // Exclude Granja from "Load" list
+          .map((v: Vehiculo) => ({
+            id: v.vehiculoId,
+            nombre: `${v.marca} ${v.modelo}`,
+            patente: v.patente,
+            enRuta: v.enRuta,
+          }));
 
         const productosMapped = pRes.data.map((p: Producto) => ({
           id: p.productoId,

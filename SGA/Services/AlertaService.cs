@@ -21,29 +21,14 @@ public class AlertaService : IAlertaService
         var alertas = new List<AlertaDTO>();
         int idCounter = 1;
 
-        // 1. Obtener Notificaciones de Ventas Recientes (últimas 24h o ultimas 10)
-        var notificaciones = await _context.Notificaciones
-            .Where(n => n.Tipo == "Venta" && n.FechaCreacion >= TimeHelper.Now.AddDays(-1))
-            .OrderByDescending(n => n.FechaCreacion)
-            .Take(10)
-            .ToListAsync();
-
-
-        foreach (var notif in notificaciones)
-        {
-            alertas.Add(new AlertaDTO
-            {
-                Id = idCounter++,
-                Titulo = "Nueva Venta",
-                Mensaje = notif.Mensaje,
-                Tipo = "Info",
-                Fecha = notif.FechaCreacion,
-                Icono = "DollarSign"
-            });
-        }
+        // 1. Obtener lista de alertas ignoradas (Claves Únicas)
+        // Optimizacion: podriamos filtrar por usuario si tuvieramos contexto, pero asumimos global por ahora o todo ignorado
+        var ignoradas = await _context.AlertasIgnoradas
+                                      .Select(a => a.ClaveUnica)
+                                      .ToListAsync();
+        var ignoradasSet = new HashSet<string>(ignoradas);
 
         // 2. Generar Warnings de Stock Bajo (Agregado por Vehículo)
-        // Buscamos vehículos EN RUTA con stock total menor a 15 maples
         var stocksEnRuta = await _context.StockVehiculos
             .Include(s => s.Vehiculo)
             .Include(s => s.Producto)
@@ -64,15 +49,19 @@ public class AlertaService : IAlertaService
         {
             if (item.Vehiculo != null)
             {
+                string clave = $"stock_{item.Vehiculo.VehiculoId}";
+                if (ignoradasSet.Contains(clave)) continue;
+
                 alertas.Add(new AlertaDTO
                 {
                     Id = idCounter++,
                     Titulo = "Stock Crítico Global",
                     Mensaje = $"El vehículo {item.Vehiculo.Marca} {item.Vehiculo.Modelo} (Patente {item.Vehiculo.Patente}) tiene solo {item.TotalMaples:N0} maples en total (Mínimo Global: 15).",
                     Tipo = "Warning",
-                    Fecha = TimeHelper.Now, // Tiempo real
+                    Fecha = TimeHelper.Now, 
                     Icono = "Package",
-                    Url = "/inventario"
+                    Url = $"/stock-vehiculo/{item.Vehiculo.VehiculoId}",
+                    ClaveUnica = clave
                 });
             }
         }
@@ -84,6 +73,9 @@ public class AlertaService : IAlertaService
 
         foreach (var cliente in clientesDeudores)
         {
+            string clave = $"deuda_{cliente.ClienteId}";
+            if (ignoradasSet.Contains(clave)) continue;
+
             alertas.Add(new AlertaDTO
             {
                 Id = idCounter++,
@@ -92,7 +84,8 @@ public class AlertaService : IAlertaService
                 Tipo = "Warning",
                 Fecha = TimeHelper.Now,
                 Icono = "AlertCircle",
-                Url = $"/clientes/{cliente.ClienteId}"
+                Url = $"/clientes/{cliente.ClienteId}",
+                ClaveUnica = clave
             });
         }
 
@@ -104,6 +97,9 @@ public class AlertaService : IAlertaService
 
         foreach (var cliente in clientesInactivos)
         {
+            string clave = $"inactivo_{cliente.ClienteId}";
+            if (ignoradasSet.Contains(clave)) continue;
+
             alertas.Add(new AlertaDTO
             {
                 Id = idCounter++,
@@ -112,10 +108,28 @@ public class AlertaService : IAlertaService
                 Tipo = "Info",
                 Fecha = TimeHelper.Now,
                 Icono = "UserX",
-                Url = $"/clientes/{cliente.ClienteId}"
+                Url = $"/clientes/{cliente.ClienteId}",
+                ClaveUnica = clave
             });
         }
 
         return alertas.OrderByDescending(a => a.Fecha).ToList();
+    }
+
+    public async Task MarcarComoLeidaAsync(string claveUnica)
+    {
+        if (string.IsNullOrWhiteSpace(claveUnica)) return;
+
+        // Verificar si ya existe para evitar duplicados
+        bool existe = await _context.AlertasIgnoradas.AnyAsync(a => a.ClaveUnica == claveUnica);
+        if (!existe)
+        {
+            _context.AlertasIgnoradas.Add(new AlertaIgnorada
+            {
+                ClaveUnica = claveUnica,
+                FechaIgnorada = TimeHelper.Now
+            });
+            await _context.SaveChangesAsync();
+        }
     }
 }

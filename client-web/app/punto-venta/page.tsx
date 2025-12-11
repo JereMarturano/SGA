@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   ShoppingCart,
   User,
@@ -11,24 +11,32 @@ import {
   Plus,
   Truck,
   Wallet,
+  AlertCircle,
+  AlertTriangle,
+  Calendar,
+  Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
 import NotificationBell from '@/components/NotificationBell';
 import api from '@/lib/axios';
+import { useAuth } from '@/context/AuthContext';
 
 // Interfaces
 interface Cliente {
   clienteId: number;
-  nombre: string;
+  nombreCompleto: string;
   direccion: string;
+  listaPreciosId?: number;
 }
 
 interface Producto {
   productoId: number;
   nombre: string;
-  precio: number;
-  stockActual: number;
+  precioBase: number;
+  stockActual: number; // Global Stock
+  costoUltimaCompra: number; // For Granja pricing
   esHuevo: boolean;
+  unidadesPorBulto: number;
 }
 
 interface Vehiculo {
@@ -38,14 +46,16 @@ interface Vehiculo {
   modelo: string;
 }
 
-// Mock data (fallback)
-const productosMock = [
-  { productoId: 1, nombre: 'Huevo Grande Blanco', precio: 4500, stockActual: 100, esHuevo: true },
-  { productoId: 2, nombre: 'Huevo Mediano Color', precio: 4200, stockActual: 100, esHuevo: true },
-  { productoId: 3, nombre: 'Huevo Jumbo', precio: 5000, stockActual: 100, esHuevo: true },
-];
+type UnitType = 'UNIDAD' | 'MAPLE' | 'CAJON';
+
+const UNIT_FACTORS: Record<UnitType, number> = {
+  UNIDAD: 1,
+  MAPLE: 30,
+  CAJON: 360,
+};
 
 export default function PuntoVentaPage() {
+  const { user } = useAuth();
   const [step, setStep] = useState(1); // 1: Datos, 2: Productos, 3: Confirmación
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -54,16 +64,45 @@ export default function PuntoVentaPage() {
 
   const [selectedCliente, setSelectedCliente] = useState<number | null>(null);
   const [selectedVehiculo, setSelectedVehiculo] = useState<number | ''>('');
-  const [cart, setCart] = useState<{ productoId: number; cantidad: number; precio: number }[]>([]);
+
+  // Stock Management
+  const [vehicleStock, setVehicleStock] = useState<Map<number, number>>(new Map());
+  const [loadingStock, setLoadingStock] = useState(false);
+
+  // Cart
+  interface CartItem {
+    productoId: number;
+    nombre: string;
+    cantidad: number; // In selected Unit
+    unitType: UnitType;
+    factor: number;
+    precioUnitario: number; // Price per Unit (calculated)
+    precioTotal: number;
+    esHuevo: boolean;
+  }
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  // Selection State for Product Modal/Panel
   const [searchTerm, setSearchTerm] = useState('');
+  const [addingProduct, setAddingProduct] = useState<Producto | null>(null);
+  const [addQuantity, setAddQuantity] = useState<number>(1);
+  const [addUnit, setAddUnit] = useState<UnitType>('MAPLE');
+  const [addPrice, setAddPrice] = useState<string>(''); // Total price for the batch or price per unit type? Let's use Price per Unit Type displayed
+
   const [metodoPago, setMetodoPago] = useState<number>(0); // 0: Efectivo
+  const [fechaVencimiento, setFechaVencimiento] = useState<string>('');
   const [descuentoPorcentaje, setDescuentoPorcentaje] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
+
+  const getSelectedVehiculoObj = useMemo(() => {
+    return vehiculos.find(v => v.vehiculoId === selectedVehiculo);
+  }, [selectedVehiculo, vehiculos]);
+
+  const isGranja = getSelectedVehiculoObj?.patente === 'GRANJA';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Try fetching from API
         const [clientesRes, productosRes, vehiculosRes] = await Promise.all([
           api.get('/clientes'),
           api.get('/productos'),
@@ -71,51 +110,160 @@ export default function PuntoVentaPage() {
         ]);
 
         setClientes(clientesRes.data);
-        setProductos(productosRes.data);
+        const productsMapped = productosRes.data.map((p: any) => ({
+          productoId: p.productoId,
+          nombre: p.nombre,
+          precioBase: p.precio || 0, // Assuming 'precio' from API is now 'precioBase'
+          stockActual: p.stockActual,
+          costoUltimaCompra: p.costoUltimaCompra || 0,
+          esHuevo: p.esHuevo,
+          unidadesPorBulto: p.unidadesPorBulto || 1,
+        }));
+        setProductos(productsMapped);
         setVehiculos(vehiculosRes.data);
 
-        // Set default vehicle if exists
         if (vehiculosRes.data.length > 0) {
           setSelectedVehiculo(vehiculosRes.data[0].vehiculoId);
         }
 
         setLoadingData(false);
       } catch (error) {
-        console.error('Error fetching data, using mocks/empty', error);
-        // Fallback or error handling
+        console.error('Error fetching data', error);
         setLoadingData(false);
       }
     };
     fetchData();
   }, []);
 
-  const addToCart = (producto: Producto) => {
-    const existing = cart.find((i) => i.productoId === producto.productoId);
-    if (existing) {
-      setCart(
-        cart.map((i) =>
-          i.productoId === producto.productoId ? { ...i, cantidad: i.cantidad + 1 } : i
-        )
-      );
+  // Fetch stock when vehicle changes
+  useEffect(() => {
+    if (!selectedVehiculo) {
+      setVehicleStock(new Map());
+      return;
+    }
+
+    const fetchStock = async () => {
+      setLoadingStock(true);
+      try {
+        const res = await api.get(`/inventario/stock-vehiculo/${selectedVehiculo}`);
+        const stockMap = new Map<number, number>();
+        res.data.forEach((item: any) => {
+          if (item.cantidad > 0) {
+            stockMap.set(item.productoId, item.cantidad);
+          }
+        });
+        setVehicleStock(stockMap);
+      } catch (error) {
+        console.error('Error fetching vehicle stock:', error);
+      } finally {
+        setLoadingStock(false);
+      }
+    };
+
+    fetchStock();
+  }, [selectedVehiculo]);
+
+  // When selecting a product to add
+  const openAddProduct = (prod: Producto) => {
+    setAddingProduct(prod);
+    setAddQuantity(1);
+
+    const initialUnit = prod.esHuevo ? 'MAPLE' : 'UNIDAD';
+    setAddUnit(initialUnit);
+
+    const factor = UNIT_FACTORS[initialUnit];
+
+    if (isGranja) {
+      // Cost + 10%
+      const costPlus10 = (prod.costoUltimaCompra * 1.10) * factor;
+      setAddPrice(Math.round(costPlus10).toFixed(2));
     } else {
-      setCart([...cart, { productoId: producto.productoId, cantidad: 1, precio: producto.precio }]); // Assuming price comes from product or logic
-      // Note: In real world, price might depend on client list price. For now using base price.
+      setAddPrice((prod.precioBase * factor).toFixed(2));
     }
   };
 
-  const removeFromCart = (id: number) => {
-    setCart(cart.filter((i) => i.productoId !== id));
+  // Update suggested price when Unit changes
+  useEffect(() => {
+    if (addingProduct) {
+      const factor = UNIT_FACTORS[addUnit];
+      if (isGranja) {
+        const costPlus10 = (addingProduct.costoUltimaCompra * 1.10) * factor;
+        setAddPrice(Math.round(costPlus10).toFixed(2));
+      } else {
+        setAddPrice((addingProduct.precioBase * factor).toFixed(2));
+      }
+    }
+  }, [addUnit, addingProduct, isGranja]);
+
+  const confirmAddFilter = () => {
+    if (!addingProduct) return;
+
+    const qty = addQuantity; // addQuantity is now a number
+    const price = parseFloat(addPrice);
+    if (isNaN(qty) || qty <= 0 || isNaN(price) || price < 0) {
+      alert("Valores inválidos");
+      return;
+    }
+
+    const factor = UNIT_FACTORS[addUnit];
+    const totalUnits = qty * factor;
+
+    // Validate Stock
+    const currentStock = isGranja ? addingProduct.stockActual : (vehicleStock.get(addingProduct.productoId) || 0);
+
+    // Check if we already have this product in cart to subtract available stock
+    const inCart = cart.filter(i => i.productoId === addingProduct.productoId)
+      .reduce((acc, i) => acc + (i.cantidad * i.factor), 0);
+
+    if (totalUnits + inCart > currentStock) {
+      alert(`Stock insuficiente. Disponible: ${currentStock - inCart} unidades.`);
+      return;
+    }
+
+    // Unit Price (Price per ONE egg/unit)
+    const unitPrice = price / factor; // The entered price is "Per Unit selected" (e.g., Price per MAPLE)?
+    // NO, usually "Precio" field in sales is "Precio Unitario" or "Total"?
+    // In Simulacion: "Precio ({unitType})" -> entered by user.
+    // Then calculateTotals: totalAmount = qty * price.
+    // So 'price' is indeed Price Per Selected Unit Type.
+
+    const newItem: CartItem = {
+      productoId: addingProduct.productoId,
+      nombre: addingProduct.nombre,
+      cantidad: qty,
+      unitType: addUnit,
+      factor: factor,
+      precioUnitario: unitPrice, // internally stored as per-single-unit for consistency? Or just keep total.
+      precioTotal: qty * price,
+      esHuevo: addingProduct.esHuevo
+    };
+
+    setCart([...cart, newItem]);
+    setAddingProduct(null);
   };
 
-  const subtotal = cart.reduce((acc, item) => acc + item.cantidad * item.precio, 0);
+  const removeFromCart = (index: number) => {
+    const newCart = [...cart];
+    newCart.splice(index, 1);
+    setCart(newCart);
+  };
+
+  const subtotal = cart.reduce((acc, item) => acc + item.precioTotal, 0);
   const descuentoMonto = subtotal * (descuentoPorcentaje / 100);
   const total = subtotal - descuentoMonto;
 
   const filteredClientes = clientes.filter((c) =>
-    c.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+    (c.nombreCompleto || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredProductos = productos.filter((p) => p.esHuevo); // Only eggs as per requirement
+  const filteredProductos = productos.filter((p) => {
+    // If Granja, show global stock (anything > 0)
+    if (isGranja) return p.stockActual > 0;
+    // If regular vehicle, show local stock
+    return vehicleStock.has(p.productoId);
+  }).filter((p) =>
+    (p.nombre || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleConfirmVenta = async () => {
     if (!selectedCliente || !selectedVehiculo) {
@@ -123,20 +271,42 @@ export default function PuntoVentaPage() {
       return;
     }
 
+    if (metodoPago === 3) {
+      if (!fechaVencimiento) {
+        alert('Debe indicar una fecha de pago para Cuenta Corriente.');
+        return;
+      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const due = new Date(fechaVencimiento);
+      // Fix timezone / comparison
+      const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+      const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      if (dueDay <= currentDay) {
+        alert('La fecha de pago debe ser mayor a la fecha actual.');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
+      // Group items by product? Backend seems to handle individual items.
+      const itemsPayload = cart.map(item => ({
+        productoId: item.productoId,
+        cantidad: item.cantidad * item.factor, // Convert to units for backend
+        precioUnitario: item.precioUnitario // Price per unit
+      }));
+
       const payload = {
         clienteId: selectedCliente,
-        usuarioId: 1, // Hardcoded for now
+        usuarioId: user?.UsuarioId || 1,
         vehiculoId: Number(selectedVehiculo),
         metodoPago: metodoPago,
         fecha: new Date().toISOString(),
+        fechaVencimientoPago: metodoPago === 3 ? new Date(fechaVencimiento).toISOString() : null,
         descuentoPorcentaje: descuentoPorcentaje,
-        items: cart.map((item) => ({
-          productoId: item.productoId,
-          cantidad: item.cantidad,
-          precioUnitario: item.precio,
-        })),
+        items: itemsPayload,
       };
 
       await api.post('/ventas', payload);
@@ -161,7 +331,7 @@ export default function PuntoVentaPage() {
         <Link href="/" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
           <ArrowLeft size={24} className="text-gray-600 dark:text-gray-300" />
         </Link>
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Nueva Venta</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Nueva Venta (Admin)</h1>
         <div className="ml-auto flex items-center gap-4">
           <NotificationBell />
           <div className="bg-blue-50 dark:bg-blue-900/30 px-3 py-1 rounded-full">
@@ -176,10 +346,9 @@ export default function PuntoVentaPage() {
         {/* Paso 1: Selección de Cliente y Vehiculo */}
         {step === 1 && (
           <div className="space-y-4">
-            {/* Vehículo Selector */}
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Vehículo de venta
+                Vehículo (Origen del Stock)
               </label>
               <div className="relative">
                 <Truck className="absolute left-3 top-3 text-gray-400" size={20} />
@@ -209,7 +378,7 @@ export default function PuntoVentaPage() {
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
               {loadingData ? (
                 <p className="text-center p-4">Cargando...</p>
               ) : (
@@ -230,9 +399,9 @@ export default function PuntoVentaPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900 dark:text-white">
-                        {cliente.nombre}
+                        {cliente.nombreCompleto || 'Sin Nombre'}
                       </p>
-                      <p className="text-sm text-gray-500">{cliente.direccion}</p>
+                      <p className="text-sm text-gray-500">{cliente.direccion || 'Sin dirección'}</p>
                     </div>
                   </button>
                 ))
@@ -244,35 +413,131 @@ export default function PuntoVentaPage() {
         {/* Paso 2: Selección de Productos */}
         {step === 2 && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-3">
-              {filteredProductos.length === 0 && <p>No hay productos disponibles.</p>}
-              {filteredProductos.map((prod) => (
-                <div
-                  key={prod.productoId}
-                  className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">{prod.nombre}</p>
-                    <p className="text-blue-600 font-bold">${prod.precio}</p>
-                    <p className="text-xs text-gray-500">Stock: {prod.stockActual}</p>
+            {!addingProduct ? (
+              // List Products
+              <div className="grid grid-cols-1 gap-3 pb-24">
+                {loadingStock ? (
+                  <p className="text-center">Cargando Stock...</p>
+                ) : (
+                  filteredProductos.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                      <div className="bg-orange-100 dark:bg-orange-900/30 p-4 rounded-full text-orange-600 dark:text-orange-400 mb-4">
+                        <AlertCircle size={32} />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                        No hay stock en este vehículo
+                      </h3>
+                      <p className="text-gray-500 mb-6 max-w-xs mx-auto">
+                        Para realizar ventas, primero debes cargar mercadería en el vehículo (o en la Granja).
+                      </p>
+                      <Link
+                        href="/carga-camioneta"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/30 transition-all flex items-center gap-2"
+                      >
+                        <Truck size={20} />
+                        Ir a Cargar Stock
+                      </Link>
+                    </div>
+                  ) : (
+                    filteredProductos.map((prod) => (
+                      <div
+                        key={prod.productoId}
+                        className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between items-center"
+                      >
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">{prod.nombre}</p>
+                          <p className="text-xs text-gray-500">
+                            {isGranja ? (
+                              <>
+                                Global: {prod.stockActual} u.
+                                {prod.esHuevo && ` (~${Math.floor(prod.stockActual / 30)} maples)`}
+                              </>
+                            ) : (
+                              <>
+                                Disp: {vehicleStock.get(prod.productoId)} u.
+                                {prod.esHuevo && ` (~${Math.floor((vehicleStock.get(prod.productoId) || 0) / 30)} maples)`}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => openAddProduct(prod)}
+                          className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
+                        >
+                          <Plus size={20} />
+                        </button>
+                      </div>
+                    ))
+                  )
+                )}
+              </div>
+            ) : (
+              // Add Product Detail
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 space-y-4">
+                <h3 className="font-bold text-lg dark:text-white">{addingProduct.nombre}</h3>
+
+                {addingProduct.esHuevo ? (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Unidad de Medida</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['UNIDAD', 'MAPLE', 'CAJON'] as UnitType[]).map(u => (
+                        <button
+                          key={u}
+                          onClick={() => setAddUnit(u)}
+                          className={`p-2 rounded-lg text-sm font-bold border ${addUnit === u ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600'}`}
+                        >
+                          {u}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                ) : <p className="text-sm text-gray-500">Unidad: UNIDAD</p>}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Cantidad</label>
+                    <input
+                      type="number"
+                      value={addQuantity}
+                      onChange={(e) => setAddQuantity(Number(e.target.value))}
+                      className="w-full p-2 border rounded-lg dark:bg-gray-900 dark:border-gray-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Precio ({addUnit})</label>
+                    <input
+                      type="number"
+                      value={addPrice}
+                      onChange={(e) => setAddPrice(e.target.value)}
+                      className="w-full p-2 border rounded-lg dark:bg-gray-900 dark:border-gray-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
                   <button
-                    onClick={() => addToCart(prod)}
-                    className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 active:scale-95 transition-all"
+                    onClick={() => setAddingProduct(null)}
+                    className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 font-bold"
                   >
-                    <Plus size={20} />
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmAddFilter}
+                    className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/30"
+                  >
+                    Agregar
                   </button>
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
 
             {/* Resumen Carrito Flotante */}
-            {cart.length > 0 && (
-              <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 shadow-lg">
+            {cart.length > 0 && !addingProduct && (
+              <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 shadow-lg z-20">
                 <div className="max-w-lg mx-auto">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-gray-500">
-                      Total ({cart.reduce((a, b) => a + b.cantidad, 0)} items)
+                      Total ({cart.length} items)
                     </span>
                     <span className="text-2xl font-bold text-gray-900 dark:text-white">
                       ${subtotal.toLocaleString()}
@@ -298,19 +563,24 @@ export default function PuntoVentaPage() {
                 Resumen del Pedido
               </h3>
               <div className="space-y-3 mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
-                {cart.map((item) => {
-                  const prod = productos.find((p) => p.productoId === item.productoId);
-                  return (
-                    <div key={item.productoId} className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-300">
-                        {item.cantidad}x {prod?.nombre}
-                      </span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        ${(item.cantidad * item.precio).toLocaleString()}
-                      </span>
+                {cart.map((item, idx) => (
+                  <div key={idx} className="flex justify-between items-start text-sm">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-900 dark:text-white">{item.nombre}</p>
+                      <p className="text-gray-500 text-xs">
+                        {item.cantidad} {item.unitType} x ${((item.precioTotal / item.cantidad)).toLocaleString()}
+                      </p>
                     </div>
-                  );
-                })}
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        ${item.precioTotal.toLocaleString()}
+                      </span>
+                      <button onClick={() => removeFromCart(idx)} className="text-red-500">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Descuentos */}
@@ -323,11 +593,10 @@ export default function PuntoVentaPage() {
                     <button
                       key={disc}
                       onClick={() => setDescuentoPorcentaje(disc)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        descuentoPorcentaje === disc
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                      }`}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${descuentoPorcentaje === disc
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        }`}
                     >
                       {disc === 0 ? 'Sin desc.' : `${disc}%`}
                     </button>
@@ -380,6 +649,27 @@ export default function PuntoVentaPage() {
                   Cta. Corriente
                 </button>
               </div>
+
+              {metodoPago === 3 && (
+                <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    ¿Cuándo pagaría?
+                  </label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-3.5 text-gray-400" size={20} />
+                    <input
+                      type="date"
+                      value={fechaVencimiento}
+                      onChange={(e) => setFechaVencimiento(e.target.value)}
+                      className="w-full pl-10 p-3 rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <p className="text-xs text-orange-500 mt-2 flex items-center gap-1">
+                    <AlertTriangle size={12} />
+                    Si se pasa de esta fecha, el cliente pasará a estado MOROSO.
+                  </p>
+                </div>
+              )}
             </div>
 
             <button

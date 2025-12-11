@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, Package, DollarSign, AlertCircle, UserX, Info } from 'lucide-react';
+import { AlertTriangle, Package, DollarSign, AlertCircle, UserX, Info, Check, X } from 'lucide-react';
 import api from '@/lib/axios';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Alerta {
   id: number;
@@ -13,12 +13,14 @@ interface Alerta {
   fecha: string;
   icono: string;
   url?: string;
+  claveUnica?: string;
 }
 
 export default function OperationalAlerts() {
   const [alerts, setAlerts] = useState<Alerta[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const fetchAlerts = async () => {
     try {
@@ -34,6 +36,28 @@ export default function OperationalAlerts() {
     const interval = setInterval(fetchAlerts, 30000); // Poll every 30 seconds
     return () => clearInterval(interval);
   }, []);
+
+  const markAsRead = async (e: React.MouseEvent, alert: Alerta) => {
+    e.stopPropagation();
+    if (!alert.claveUnica) return;
+
+    // Optimistic update
+    setAlerts((prev) => prev.filter((a) => a.id !== alert.id));
+
+    try {
+      await api.post(`/alertas/marcar-leida?claveUnica=${alert.claveUnica}`);
+    } catch (error) {
+      console.error('Error marking as read:', error);
+      fetchAlerts(); // Revert on error
+    }
+  };
+
+  const handleAlertClick = (url?: string) => {
+    if (url) {
+      setIsOpen(false);
+      router.push(url);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -66,22 +90,11 @@ export default function OperationalAlerts() {
   const getBgColor = (tipo: string) => {
     switch (tipo) {
       case 'Warning':
-        return 'bg-amber-50 dark:bg-amber-900/20';
+        return 'bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30';
       case 'Critical':
-        return 'bg-red-50 dark:bg-red-900/20';
+        return 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30';
       default:
-        return 'bg-blue-50 dark:bg-blue-900/20';
-    }
-  };
-
-  const getBorderColor = (tipo: string) => {
-    switch (tipo) {
-      case 'Warning':
-        return 'border-amber-200 dark:border-amber-800';
-      case 'Critical':
-        return 'border-red-200 dark:border-red-800';
-      default:
-        return 'border-blue-200 dark:border-blue-800';
+        return 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30';
     }
   };
 
@@ -139,20 +152,30 @@ export default function OperationalAlerts() {
             ) : (
               <div className="divide-y divide-gray-100 dark:divide-gray-700">
                 {alerts.map((alert) => (
-                  <Link
-                    href={alert.url || '#'}
+                  <div
                     key={alert.id}
-                    onClick={() => setIsOpen(false)}
-                    className={`block p-4 hover:opacity-80 transition-opacity ${getBgColor(alert.tipo)}`}
+                    onClick={() => handleAlertClick(alert.url)}
+                    className={`block p-4 cursor-pointer transition-colors ${getBgColor(alert.tipo)}`}
                   >
                     <div className="flex gap-3">
                       <div className={`mt-1 ${getIconColor(alert.tipo)}`}>
                         {getIcon(alert.icono)}
                       </div>
                       <div className="flex-1">
-                        <h4 className={`text-sm font-semibold ${getIconColor(alert.tipo)}`}>
-                          {alert.titulo}
-                        </h4>
+                        <div className="flex justify-between items-start">
+                          <h4 className={`text-sm font-semibold ${getIconColor(alert.tipo)}`}>
+                            {alert.titulo}
+                          </h4>
+                          {alert.claveUnica && (
+                            <button
+                              onClick={(e) => markAsRead(e, alert)}
+                              className="p-1 hover:bg-black/10 rounded-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+                              title="Marcar como leída"
+                            >
+                              <Check size={14} />
+                            </button>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">
                           {alert.mensaje}
                         </p>
@@ -161,7 +184,7 @@ export default function OperationalAlerts() {
                         </p>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             )}

@@ -65,11 +65,11 @@ public class VentaService : IVentaService
             // 2. Crear la Venta
             var venta = new Venta
             {
-                Fecha = request.Fecha ?? TimeHelper.Now,
+                Fecha = TimeHelper.Now, // Force Server Time
                 ClienteId = request.ClienteId,
                 UsuarioId = request.UsuarioId,
                 VehiculoId = request.VehiculoId,
-                ViajeId = viajeId, // <-- NEW: Link to Trip
+                ViajeId = viajeId,
                 MetodoPago = request.MetodoPago,
                 DescuentoPorcentaje = request.DescuentoPorcentaje,
                 FechaVencimientoPago = request.FechaVencimientoPago,
@@ -77,59 +77,119 @@ public class VentaService : IVentaService
                 Total = 0 // Se calcula abajo
             };
 
+            // Validation for Cuenta Corriente Date
+            if (request.MetodoPago == MetodoPago.CuentaCorriente)
+            {
+                if (!request.FechaVencimientoPago.HasValue)
+                    throw new InvalidOperationException("Debe indicar una fecha de vencimiento para Cuenta Corriente.");
+                
+                if (request.FechaVencimientoPago.Value.Date <= TimeHelper.Now.Date)
+                     throw new InvalidOperationException("La fecha de vencimiento debe ser posterior a la fecha actual.");
+            }
+
             _context.Ventas.Add(venta);
             await _context.SaveChangesAsync(); // Para obtener el ID
+
+            // NEW: Fetch Vehicle to check for "GRANJA" special handling
+            var vehiculo = await _context.Vehiculos.FindAsync(request.VehiculoId);
+            bool esGranja = vehiculo != null && vehiculo.Patente.ToUpper() == "GRANJA";
 
             decimal totalVenta = 0;
             var detallesTexto = new List<string>();
 
             foreach (var item in request.Items)
             {
-                // 2. Validar Stock
-                var stockVehiculo = await _context.StockVehiculos
-                    .Include(s => s.Producto)
-                    .FirstOrDefaultAsync(s => s.VehiculoId == request.VehiculoId && s.ProductoId == item.ProductoId);
-
-                if (stockVehiculo == null || stockVehiculo.Cantidad < item.Cantidad)
+                if (esGranja)
                 {
-                    throw new InvalidOperationException($"Stock insuficiente para el producto ID {item.ProductoId} en el vehículo.");
+                    // --- GRANJA LOGIC (Global Stock) ---
+                    var producto = await _context.Productos.FindAsync(item.ProductoId);
+                    if (producto == null) throw new InvalidOperationException($"Producto ID {item.ProductoId} no encontrado.");
+
+                    if (producto.StockActual < item.Cantidad)
+                    {
+                        throw new InvalidOperationException($"Stock global insuficiente para {producto.Nombre}. Stock: {producto.StockActual}, Solicitado: {item.Cantidad}");
+                    }
+
+                    // Deduct Global Stock
+                    producto.StockActual -= item.Cantidad;
+                    
+                    // Add details for notification
+                    detallesTexto.Add($"{item.Cantidad} {producto.UnidadDeMedida} de {producto.Nombre}");
+
+                    // Create Detail
+                    var detalle = new DetalleVenta
+                    {
+                        VentaId = venta.VentaId,
+                        ProductoId = item.ProductoId,
+                        Cantidad = item.Cantidad,
+                        PrecioUnitario = item.PrecioUnitario,
+                        Subtotal = item.Cantidad * item.PrecioUnitario
+                    };
+                    _context.DetallesVenta.Add(detalle);
+                    totalVenta += detalle.Subtotal;
+
+                    // Audit Movement (Salida Global por Venta Granja)
+                    var movimiento = new MovimientoStock
+                    {
+                        Fecha = TimeHelper.Now,
+                        TipoMovimiento = TipoMovimientoStock.Venta,
+                        VehiculoId = request.VehiculoId, // Log against Granja Id
+                        ProductoId = item.ProductoId,
+                        Cantidad = -item.Cantidad,
+                        UsuarioId = request.UsuarioId,
+                        Observaciones = $"Venta Granja #{venta.VentaId}"
+                    };
+                    _context.MovimientosStock.Add(movimiento);
                 }
-
-                // Recolectar info para notificación
-                if (stockVehiculo.Producto != null)
+                else
                 {
-                    detallesTexto.Add($"{item.Cantidad} {stockVehiculo.Producto.UnidadDeMedida} de {stockVehiculo.Producto.Nombre}");
+                    // --- STANDARD VEHICLE LOGIC (Local Stock) ---
+                    // 2. Validar Stock
+                    var stockVehiculo = await _context.StockVehiculos
+                        .Include(s => s.Producto)
+                        .FirstOrDefaultAsync(s => s.VehiculoId == request.VehiculoId && s.ProductoId == item.ProductoId);
+
+                    if (stockVehiculo == null || stockVehiculo.Cantidad < item.Cantidad)
+                    {
+                        throw new InvalidOperationException($"Stock insuficiente para el producto ID {item.ProductoId} en el vehículo.");
+                    }
+
+                    // Recolectar info para notificación
+                    if (stockVehiculo.Producto != null)
+                    {
+                        detallesTexto.Add($"{item.Cantidad} {stockVehiculo.Producto.UnidadDeMedida} de {stockVehiculo.Producto.Nombre}");
+                    }
+
+                    // 3. Crear Detalle de Venta
+                    var detalle = new DetalleVenta
+                    {
+                        VentaId = venta.VentaId,
+                        ProductoId = item.ProductoId,
+                        Cantidad = item.Cantidad,
+                        PrecioUnitario = item.PrecioUnitario,
+                        Subtotal = item.Cantidad * item.PrecioUnitario
+                    };
+                    _context.DetallesVenta.Add(detalle);
+
+                    totalVenta += detalle.Subtotal;
+
+                    // 4. Descontar Stock
+                    stockVehiculo.Cantidad -= item.Cantidad;
+                    stockVehiculo.UltimaActualizacion = TimeHelper.Now;
+
+                    // 5. Registrar Movimiento de Stock (Auditoría)
+                    var movimiento = new MovimientoStock
+                    {
+                        Fecha = TimeHelper.Now,
+                        TipoMovimiento = TipoMovimientoStock.Venta,
+                        VehiculoId = request.VehiculoId,
+                        ProductoId = item.ProductoId,
+                        Cantidad = -item.Cantidad, // Salida
+                        UsuarioId = request.UsuarioId,
+                        Observaciones = $"Venta #{venta.VentaId}"
+                    };
+                    _context.MovimientosStock.Add(movimiento);
                 }
-
-                // 3. Crear Detalle de Venta
-                var detalle = new DetalleVenta
-                {
-                    VentaId = venta.VentaId,
-                    ProductoId = item.ProductoId,
-                    Cantidad = item.Cantidad,
-                    PrecioUnitario = item.PrecioUnitario,
-                    Subtotal = item.Cantidad * item.PrecioUnitario
-                };
-                _context.DetallesVenta.Add(detalle);
-
-                totalVenta += detalle.Subtotal;
-
-                // 4. Descontar Stock
-                stockVehiculo.Cantidad -= item.Cantidad;
-                stockVehiculo.UltimaActualizacion = TimeHelper.Now;
-
-                // 5. Registrar Movimiento de Stock (Auditoría)
-                var movimiento = new MovimientoStock
-                {
-                    Fecha = TimeHelper.Now,
-                    TipoMovimiento = TipoMovimientoStock.Venta,
-                    VehiculoId = request.VehiculoId,
-                    ProductoId = item.ProductoId,
-                    Cantidad = -item.Cantidad, // Salida
-                    UsuarioId = request.UsuarioId,
-                    Observaciones = $"Venta #{venta.VentaId}"
-                };
-                _context.MovimientosStock.Add(movimiento);
             }
 
             // Calcular descuentos

@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<Cliente> Clientes { get; set; }
+    public DbSet<AlertaIgnorada> AlertasIgnoradas { get; set; }
     public DbSet<Producto> Productos { get; set; }
     public DbSet<Vehiculo> Vehiculos { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }

@@ -246,7 +246,7 @@ export default function Dashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Link
                   href="/simulacion-ventas"
-                  className="group bg-blue-600 hover:bg-blue-700 text-white p-8 rounded-3xl font-bold transition-all shadow-lg shadow-blue-500/30 hover:scale-[1.02] flex flex-col items-center justify-center gap-4 text-center"
+                  className="group bg-blue-600 hover:bg-blue-700 text-white p-8 rounded-3xl font-bold transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-1 flex flex-col items-center justify-center gap-4 text-center"
                 >
                   <div className="bg-white/20 p-4 rounded-2xl group-hover:rotate-12 transition-transform">
                     <DollarSign size={48} />
@@ -348,16 +348,6 @@ export default function Dashboard() {
                   <DollarSign size={20} />
                 </div>
                 Nueva Venta
-              </Link>
-
-              <Link
-                href="/simulacion-ventas"
-                className="group bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-purple-500/30 hover:shadow-purple-500/40 hover:-translate-y-1 flex items-center gap-3"
-              >
-                <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-12 transition-transform">
-                  <Package size={20} />
-                </div>
-                Simulación Ventas
               </Link>
 
               <Link

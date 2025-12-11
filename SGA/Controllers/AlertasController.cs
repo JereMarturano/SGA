@@ -31,4 +31,18 @@ public class AlertasController : ControllerBase
         }
     }
 
+    [HttpPost("marcar-leida")]
+    public async Task<IActionResult> MarcarComoLeida([FromQuery] string claveUnica)
+    {
+        try
+        {
+            await _alertaService.MarcarComoLeidaAsync(claveUnica);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno: {ex.Message}");
+        }
+    }
+
 }

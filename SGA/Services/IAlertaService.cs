@@ -5,6 +5,7 @@ namespace SGA.Services;
 public interface IAlertaService
 {
     Task<List<AlertaDTO>> ObtenerAlertasOperativasAsync();
+    Task MarcarComoLeidaAsync(string claveUnica);
 }
 
 public class AlertaDTO
@@ -16,5 +17,6 @@ public class AlertaDTO
     public DateTime Fecha { get; set; }
     public string Icono { get; set; } = "Info"; // "Package", "Truck", "DollarSign", etc.
     public string? Url { get; set; }
+    public string? ClaveUnica { get; set; }
 
 }
