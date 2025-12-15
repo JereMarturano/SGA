@@ -15,6 +15,7 @@ import {
   Wallet,
   Package,
   Activity,
+  PackageX,
 } from 'lucide-react';
 import { fetchReporteFinanciero, ReporteFinanciero, VentaPorMetodoPago } from '@/lib/api-reportes';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
@@ -135,6 +136,21 @@ export default function EstadisticasPage() {
                   </h3>
                   <span className="flex items-center text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">
                     <ArrowUpRight size={16} />
+                  </span>
+                </div>
+              </div>
+
+              {/* 1.5. Pérdida por Mermas */}
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">
+                  Pérdida por Mermas
+                </p>
+                <div className="flex items-end justify-between">
+                  <h3 className="text-2xl lg:text-3xl font-black text-red-600 dark:text-red-400">
+                    $ {(reporte.totalPerdidaMermas || 0).toLocaleString('es-AR')}
+                  </h3>
+                  <span className="flex items-center text-red-500 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
+                    <PackageX size={16} />
                   </span>
                 </div>
               </div>

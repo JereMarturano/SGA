@@ -99,6 +99,26 @@ public class InventarioController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin,Encargado,Recolector")]
+    [HttpPost("registrar-merma-general")]
+    public async Task<IActionResult> RegistrarMermaGeneral([FromBody] MermaGeneralRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        try
+        {
+            await _inventarioService.RegistrarMermaGeneralAsync(request.ProductoId, request.Cantidad, request.EsMaple, request.UsuarioId, request.Motivo);
+            return Ok(new { message = "Merma general registrada exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al registrar la merma general.", error = ex.Message });
+        }
+    }
+
     [HttpPost("compra")]
     public async Task<IActionResult> RegistrarCompra([FromBody] CompraRequest request)
     {

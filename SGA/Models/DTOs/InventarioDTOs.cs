@@ -51,3 +51,12 @@ public class StockRetornoItem
     public int ProductoId { get; set; }
     public decimal CantidadFisica { get; set; }
 }
+
+public class MermaGeneralRequest
+{
+    public int ProductoId { get; set; }
+    public decimal Cantidad { get; set; }
+    public bool EsMaple { get; set; }
+    public int UsuarioId { get; set; }
+    public string Motivo { get; set; } = string.Empty;
+}

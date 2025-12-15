@@ -59,6 +59,14 @@ public class ReporteService : IReporteService
             .SelectMany(v => v.Detalles)
             .Sum(d => d.Cantidad * (d.Producto?.CostoUltimaCompra ?? 0));
 
+        // 3.3 Calcular Pérdida por Mermas (General y de Vehículos)
+        var mermas = await _context.MovimientosStock
+             .Include(m => m.Producto)
+             .Where(m => m.TipoMovimiento == TipoMovimientoStock.Merma && m.Fecha >= inicio && m.Fecha <= fin)
+             .ToListAsync();
+
+        var totalPerdidaMermas = mermas.Sum(m => Math.Abs(m.Cantidad) * (m.Producto?.CostoUltimaCompra ?? 0));
+
         var totalVentas = ventas.Sum(v => v.Total);
         var totalGastos = gastos.Sum(g => g.Monto);
 
@@ -70,8 +78,9 @@ public class ReporteService : IReporteService
             TotalCostoMercaderia = totalCostoMercaderia,
             TotalCompras = totalCompras,
             TotalGastos = totalGastos,
+            TotalPerdidaMermas = totalPerdidaMermas,
             CantidadVentas = ventas.Count,
-            GananciaNeta = totalVentas - totalCostoMercaderia - totalGastos
+            GananciaNeta = totalVentas - totalCostoMercaderia - totalGastos - totalPerdidaMermas
         };
 
         // Cálculos derivados

@@ -5,6 +5,7 @@ export interface ReporteFinanciero {
   totalCostoMercaderia: number;
   totalGastos: number;
   gananciaNeta: number;
+  totalPerdidaMermas: number;
   margenGananciaPorcentaje: number;
   ventasPorMetodoPago: VentaPorMetodoPago[];
   ventasPorProducto: VentaPorProducto[];
