@@ -90,7 +90,7 @@ public class InventarioController : ControllerBase
 
         try
         {
-            await _inventarioService.RegistrarMermaAsync(request.VehiculoId, request.ProductoId, request.Cantidad, request.UsuarioId, request.Motivo);
+            await _inventarioService.RegistrarMermaAsync(request.VehiculoId, request.ProductoId, request.Cantidad, request.EsMaple, request.UsuarioId, request.Motivo);
             return Ok(new { message = "Merma registrada exitosamente." });
         }
         catch (Exception ex)

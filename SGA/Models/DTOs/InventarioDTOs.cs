@@ -19,6 +19,7 @@ public class MermaRequest
     public int VehiculoId { get; set; }
     public int ProductoId { get; set; }
     public decimal Cantidad { get; set; }
+    public bool EsMaple { get; set; }
     public int UsuarioId { get; set; }
     public string Motivo { get; set; } = string.Empty;
 }

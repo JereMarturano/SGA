@@ -364,11 +364,28 @@ public class InventarioService : IInventarioService
             .ToListAsync();
     }
 
-    public async Task RegistrarMermaAsync(int vehiculoId, int productoId, decimal cantidad, int usuarioId, string motivo)
+    public async Task RegistrarMermaAsync(int vehiculoId, int productoId, decimal cantidad, bool esMaple, int usuarioId, string motivo)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
+            var producto = await _context.Productos.FindAsync(productoId);
+            if (producto == null) throw new Exception($"Producto {productoId} no encontrado");
+
+            // Calcular cantidad total
+            decimal cantidadTotal = cantidad;
+            if (esMaple)
+            {
+                if (producto.EsHuevo)
+                {
+                    cantidadTotal = cantidad * 30; // 30 unidades por maple (Estandard huevos)
+                }
+                else
+                {
+                    cantidadTotal = cantidad * producto.UnidadesPorBulto;
+                }
+            }
+
             // 1. Registrar Movimiento (Negativo porque es pérdida)
             var movimiento = new MovimientoStock
             {
@@ -376,9 +393,11 @@ public class InventarioService : IInventarioService
                 TipoMovimiento = TipoMovimientoStock.Merma,
                 VehiculoId = vehiculoId,
                 ProductoId = productoId,
-                Cantidad = -cantidad, // Resta del stock
+                Cantidad = -cantidadTotal, // Resta del stock
                 UsuarioId = usuarioId,
-                Observaciones = motivo
+                Observaciones = esMaple 
+                    ? $"{motivo} (Reg: {cantidad} maples)" 
+                    : $"{motivo} (Reg: {cantidad} uds)"
             };
             _context.MovimientosStock.Add(movimiento);
 
@@ -388,12 +407,11 @@ public class InventarioService : IInventarioService
 
             if (stockVehiculo != null)
             {
-                stockVehiculo.Cantidad -= cantidad;
+                stockVehiculo.Cantidad -= cantidadTotal;
                 stockVehiculo.UltimaActualizacion = TimeHelper.Now;
             }
-            // Si no hay stock, técnicamente no podrías tener merma, pero permitimos que quede en negativo o lanzamos error según regla de negocio.
-            // Por ahora permitimos que baje (podría indicar error de conteo previo).
-
+            // Permitimos stock negativo si hubo error de conteo, o podriamos validar.
+            
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
         }

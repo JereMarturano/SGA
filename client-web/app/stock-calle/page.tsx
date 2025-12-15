@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
-import { Truck, ArrowLeft, CheckCircle, X } from 'lucide-react';
+import { Truck, ArrowLeft, CheckCircle, X, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/axios';
 
@@ -53,6 +53,12 @@ interface CerrarRepartoModalProps {
 interface HistorialVentasModalProps {
   vehiculo: StockEnCalle;
   onClose: () => void;
+}
+
+interface MermaVehiculoModalProps {
+  vehiculo: StockEnCalle;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
 type UnitType = 'UNIDAD' | 'MAPLE' | 'CAJON';
@@ -132,6 +138,154 @@ const HistorialVentasModal = ({ vehiculo, onClose }: HistorialVentasModalProps) 
             Cerrar
           </button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+const MermaVehiculoModal = ({ vehiculo, onClose, onSuccess }: MermaVehiculoModalProps) => {
+  const [selectedProductId, setSelectedProductId] = useState<number | ''>('');
+  const [cantidad, setCantidad] = useState('');
+  const [esMaple, setEsMaple] = useState(false);
+  const [motivo, setMotivo] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [stockItems, setStockItems] = useState<{ id: number; nombre: string }[]>([]);
+
+  useEffect(() => {
+    // Fetch detailed product list for this vehicle to get IDs
+    api.get<StockVehiculoItem[]>(`/inventario/stock-vehiculo/${vehiculo.vehiculoId}`)
+      .then(res => {
+        setStockItems(res.data.map(i => ({ id: i.productoId, nombre: i.producto.nombre })));
+      })
+      .catch(console.error);
+  }, [vehiculo.vehiculoId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedProductId || !cantidad || !motivo) {
+      setError('Todos los campos son obligatorios');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      const storedUser = localStorage.getItem('user');
+      const userId = storedUser ? JSON.parse(storedUser).UsuarioId : 1;
+
+      await api.post('/inventario/registrar-merma', {
+        vehiculoId: vehiculo.vehiculoId,
+        productoId: Number(selectedProductId),
+        cantidad: Number(cantidad),
+        esMaple: esMaple,
+        usuarioId: userId,
+        motivo: motivo
+      });
+
+      onSuccess();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.message || 'Error al registrar la merma');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Registrar Merma</h3>
+            <p className="text-sm text-slate-500">{vehiculo.vehiculoNombre}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg flex items-center gap-2">
+              <AlertTriangle size={16} />
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Resultado (Producto)</label>
+            <select
+              value={selectedProductId}
+              onChange={(e) => setSelectedProductId(Number(e.target.value))}
+              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white"
+              required
+            >
+              <option value="">Seleccionar Producto...</option>
+              {stockItems.map(p => (
+                <option key={p.id} value={p.id}>{p.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cantidad</label>
+              <input
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white"
+                placeholder="Ej: 5"
+                required
+              />
+            </div>
+            <div className="flex items-end pb-2">
+              <label className="flex items-center gap-2 cursor-pointer text-slate-700 dark:text-slate-300 select-none">
+                <input
+                  type="checkbox"
+                  checked={esMaple}
+                  onChange={(e) => setEsMaple(e.target.checked)}
+                  className="w-5 h-5 text-red-600 rounded focus:ring-red-500"
+                />
+                <span className="font-medium">Es Maple?</span>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Motivo</label>
+            <input
+              type="text"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all dark:text-white"
+              placeholder="Ej: Rotura en viaje..."
+              required
+            />
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3">
+            <button
+              type="button"
+              onChange={onClose}
+              onClick={onClose}
+              className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors font-medium"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-lg shadow-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loading ? 'Registrando...' : 'Confirmar'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -483,6 +637,7 @@ export default function StockCallePage() {
   const [loading, setLoading] = useState(true);
   const [selectedVehiculo, setSelectedVehiculo] = useState<StockEnCalle | null>(null);
   const [historialVehiculo, setHistorialVehiculo] = useState<StockEnCalle | null>(null);
+  const [mermaVehiculo, setMermaVehiculo] = useState<StockEnCalle | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -598,15 +753,22 @@ export default function StockCallePage() {
                   <div className="grid grid-cols-2 gap-3 mt-auto">
                     <button
                       onClick={() => setHistorialVehiculo(vehiculo)}
-                      className="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition-colors text-sm font-medium"
+                      className="col-span-1 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition-colors text-sm font-medium"
                     >
-                      Ver Historial
+                      Historial
                     </button>
                     <button
                       onClick={() => setSelectedVehiculo(vehiculo)}
-                      className="w-full py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
+                      className="col-span-1 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors text-sm font-medium"
                     >
-                      Cerrar Reparto
+                      Cerrar
+                    </button>
+                    <button
+                      onClick={() => setMermaVehiculo(vehiculo)}
+                      className="col-span-2 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 rounded-lg transition-colors text-sm font-bold flex items-center justify-center gap-2"
+                    >
+                      <AlertTriangle size={16} />
+                      Registrar Merma
                     </button>
                   </div>
                 )}
@@ -631,6 +793,17 @@ export default function StockCallePage() {
         <HistorialVentasModal
           vehiculo={historialVehiculo}
           onClose={() => setHistorialVehiculo(null)}
+        />
+      )}
+
+      {mermaVehiculo && (
+        <MermaVehiculoModal
+          vehiculo={mermaVehiculo}
+          onClose={() => setMermaVehiculo(null)}
+          onSuccess={() => {
+            setMermaVehiculo(null);
+            fetchData();
+          }}
         />
       )}
     </div>
