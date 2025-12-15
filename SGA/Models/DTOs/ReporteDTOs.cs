@@ -13,6 +13,7 @@ public class ReporteFinancieroDTO
     public decimal TotalCompras { get; set; } // Compras de inventario (Cash Flow)
     public decimal TotalGastos { get; set; }
     public decimal GananciaNeta { get; set; } // Ventas - Gastos
+    public decimal TotalPerdidaMermas { get; set; } // Pérdida por mermas/roturas
     public decimal MargenGananciaPorcentaje { get; set; }
 
     // Desgloses
