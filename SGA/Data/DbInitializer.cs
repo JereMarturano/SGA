@@ -2,6 +2,7 @@ using SGA.Models;
 using SGA.Models.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using SGA.Helpers;
 
 namespace SGA.Data;
 
@@ -84,13 +85,12 @@ public static class DbInitializer
         {
             var usuarios = new Usuario[]
             {
-                new Usuario { Nombre = "Admin", Rol = RolUsuario.Admin, ContrasenaHash = "admin123" },
-                new Usuario { Nombre = "Chofer 1", Rol = RolUsuario.Chofer, ContrasenaHash = "chofer1" }
+                new Usuario { Nombre = "Admin", Rol = RolUsuario.Admin, ContrasenaHash = PasswordHelper.HashPassword("admin123"), DNI = "99999999" },
+                new Usuario { Nombre = "Chofer 1", Rol = RolUsuario.Chofer, ContrasenaHash = PasswordHelper.HashPassword("chofer1"), DNI = "88888888" }
             };
             context.Usuarios.AddRange(usuarios);
+            context.SaveChanges();
         }
-
-        context.SaveChanges();
 
         // FIX: Broad Cleanup for "Admin", "Jefe", and "Santiago Perez"
         // We look for these specific names or any Admin role to be safe, but prioritizing the names the user mentioned.
@@ -110,7 +110,7 @@ public static class DbInitializer
                 officialAdmin = usersToConsolidate.First();
                 officialAdmin.Nombre = "Santiago Perez";
                 officialAdmin.Rol = RolUsuario.Admin; // Ensure he is Admin
-                if (string.IsNullOrEmpty(officialAdmin.DNI)) officialAdmin.DNI = "11111111";
+                officialAdmin.DNI = "11111111"; // Force DNI
             }
             else
             {
@@ -119,7 +119,7 @@ public static class DbInitializer
                 { 
                     Nombre = "Santiago Perez", 
                     Rol = RolUsuario.Admin, 
-                    ContrasenaHash = "admin123",
+                    ContrasenaHash = PasswordHelper.HashPassword("admin123"),
                     DNI = "11111111"
                 };
                 context.Usuarios.Add(officialAdmin);
@@ -127,8 +127,10 @@ public static class DbInitializer
         }
         else
         {
-            // Ensure official is Admin
+            // Ensure official is Admin and has correct password
              officialAdmin.Rol = RolUsuario.Admin;
+             officialAdmin.ContrasenaHash = PasswordHelper.HashPassword("admin123");
+             officialAdmin.DNI = "11111111"; // Force DNI
         }
         
         context.SaveChanges(); // Ensure IDs are set
