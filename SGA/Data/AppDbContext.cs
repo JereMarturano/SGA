@@ -28,6 +28,14 @@ public class AppDbContext : DbContext
     public DbSet<Pago> Pagos { get; set; }
     public DbSet<Viaje> Viajes { get; set; }
 
+    // Stock General entities
+    public DbSet<Ubicacion> Ubicaciones { get; set; }
+    public DbSet<LoteAve> LotesAves { get; set; }
+    public DbSet<EventoMortalidad> EventosMortalidad { get; set; }
+    public DbSet<ItemInventario> ItemsInventario { get; set; }
+    public DbSet<Silo> Silos { get; set; }
+    public DbSet<ContenidoSilo> ContenidosSilos { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
