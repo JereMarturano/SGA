@@ -31,7 +31,12 @@ builder.Services.AddScoped<IEmpleadoService, EmpleadoService>();
 builder.Services.AddScoped<IVehiculoService, VehiculoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
+builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IRestorationService, RestorationService>();
+
+builder.Services.AddScoped<IGalponService, GalponService>();
+builder.Services.AddScoped<ISiloService, SiloService>();
+builder.Services.AddScoped<IFabricaService, FabricaService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

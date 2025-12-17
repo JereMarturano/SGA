@@ -8,5 +8,7 @@ public enum TipoMovimientoStock
     DevolucionCliente, // Cliente devuelve producto
     DescargaFinal,     // Lo que sobra al final del día (si se baja)
     Merma,             // Roturas o pérdidas
-    AjusteInventario   // Correcciones manuales
+    AjusteInventario,   // Correcciones manuales
+    Ingreso,           // Ingreso General (Deposito)
+    Egreso             // Egreso General (Deposito)
 }

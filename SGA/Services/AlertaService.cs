@@ -113,7 +113,36 @@ public class AlertaService : IAlertaService
             });
         }
 
+        // 5. Silos con Stock Bajo (< 500 kg)
+        var silosBajos = await _context.Silos
+            .Where(s => s.CantidadActualKg < 500 && s.Estado == "Activo")
+            .ToListAsync();
+
+        foreach (var silo in silosBajos)
+        {
+            string clave = $"silo_bajo_{silo.SiloId}";
+            if (ignoradasSet.Contains(clave)) continue;
+
+            alertas.Add(new AlertaDTO
+            {
+                Id = idCounter++,
+                Titulo = "Stock Crítico en Silo",
+                Mensaje = $"El {silo.Nombre} tiene solo {silo.CantidadActualKg:N2} Kg (Mínimo: 500 Kg).",
+                Tipo = "Warning",
+                Fecha = TimeHelper.Now,
+                Icono = "Database", // or similar
+                Url = "/stock-general/silos",
+                ClaveUnica = clave
+            });
+        }
+
         return alertas.OrderByDescending(a => a.Fecha).ToList();
+    }
+
+    private async Task VerificarStockSilos(List<AlertaDTO> alertas, HashSet<string> ignoradasSet, int idCounter)
+    {
+        // 5. Silos con Stock Bajo (< 500 kg)
+        // Note: Modified Method to be part of main flow or helper
     }
 
     public async Task MarcarComoLeidaAsync(string claveUnica)

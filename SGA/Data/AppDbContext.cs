@@ -27,6 +27,11 @@ public class AppDbContext : DbContext
     public DbSet<Asistencia> Asistencias { get; set; }
     public DbSet<Pago> Pagos { get; set; }
     public DbSet<Viaje> Viajes { get; set; }
+    public DbSet<Galpon> Galpones { get; set; }
+    public DbSet<EventoGalpon> EventosGalpon { get; set; }
+    public DbSet<Silo> Silos { get; set; }
+    public DbSet<Produccion> Producciones { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

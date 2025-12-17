@@ -79,6 +79,34 @@ public static class DbInitializer
              }
         }
 
+        // Seed Galpones
+        if (!context.Galpones.Any())
+        {
+            context.Galpones.AddRange(
+                new Galpon { Nombre = "Galpón 1", Tipo = "Produccion", CantidadAves = 5000, PrecioCompraAve = 1000, FechaAlta = DateTime.Now.AddMonths(-6) },
+                new Galpon { Nombre = "Galpón 2", Tipo = "Produccion", CantidadAves = 5000, PrecioCompraAve = 1200, FechaAlta = DateTime.Now.AddMonths(-3) },
+                new Galpon { Nombre = "Galpón 3", Tipo = "Produccion", CantidadAves = 0, PrecioCompraAve = 0, Estado = "Limpieza" },
+                new Galpon { Nombre = "Habitación Pollitos 1", Tipo = "Pollitos", CantidadAves = 2000, PrecioCompraAve = 500, FechaAlta = DateTime.Now }
+            );
+        }
+
+        // Seed Silos
+        if (!context.Silos.Any())
+        {
+            var maiz = context.Productos.FirstOrDefault(p => p.Nombre.Contains("Maiz"))?.ProductoId; // Might be null
+            // Assume we need to create products if not exist? Or linking to generic?
+            // Since "Productos" are saleable items, maybe Silo content is separate or mapped.
+            // Plan links Silo.ProductoId -> Producto.
+            // Let's create dummy "Insumo" products if logic requires strict FK.
+            
+            context.Silos.AddRange(
+                new Silo { Nombre = "Silo 1 (Maíz)", CapacidadKg = 10000, CantidadActualKg = 2500, PrecioPromedioCompra = 150 },
+                new Silo { Nombre = "Silo 2 (Balanceado)", CapacidadKg = 10000, CantidadActualKg = 5000, PrecioPromedioCompra = 200 },
+                new Silo { Nombre = "Silo 3 (Vacío)", CapacidadKg = 10000, CantidadActualKg = 0 }
+            );
+        }
+
+
         // Seed Usuarios if missing
         if (!context.Usuarios.Any())
         {

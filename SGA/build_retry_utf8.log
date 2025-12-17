@@ -1,0 +1,25 @@
+﻿  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos est├ín actualizados para la restauraci├│n.
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(35,25): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(43,44): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(142,24): warning CS1998: El m├®todo asincr├│nico carece de operadores "await" y se ejecutar├í de forma sincr├│nica. Puede usar el operador 'await' para esperar llamadas API que no sean de bloqueo o 'await Task.Run(...)' para hacer tareas enlazadas a la CPU en un subproceso en segundo plano. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\StockGeneralController.cs(265,13): error CS0019: El operador '==' no se puede aplicar a operandos del tipo 'TipoMovimientoStock' y 'string' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\StockGeneralController.cs(269,18): error CS0019: El operador '==' no se puede aplicar a operandos del tipo 'TipoMovimientoStock' y 'string' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\StockGeneralController.cs(269,59): error CS0019: El operador '==' no se puede aplicar a operandos del tipo 'TipoMovimientoStock' y 'string' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\VehiculoService.cs(135,32): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\ReporteService.cs(360,22): warning CS8601: Posible asignaci├│n de referencia nula. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+
+ERROR al compilar.
+
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(35,25): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(43,44): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\AlertaService.cs(142,24): warning CS1998: El m├®todo asincr├│nico carece de operadores "await" y se ejecutar├í de forma sincr├│nica. Puede usar el operador 'await' para esperar llamadas API que no sean de bloqueo o 'await Task.Run(...)' para hacer tareas enlazadas a la CPU en un subproceso en segundo plano. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\VehiculoService.cs(135,32): warning CS8602: Desreferencia de una referencia posiblemente NULL. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Services\ReporteService.cs(360,22): warning CS8601: Posible asignaci├│n de referencia nula. [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\StockGeneralController.cs(265,13): error CS0019: El operador '==' no se puede aplicar a operandos del tipo 'TipoMovimientoStock' y 'string' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\StockGeneralController.cs(269,18): error CS0019: El operador '==' no se puede aplicar a operandos del tipo 'TipoMovimientoStock' y 'string' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\StockGeneralController.cs(269,59): error CS0019: El operador '==' no se puede aplicar a operandos del tipo 'TipoMovimientoStock' y 'string' [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+    5 Advertencia(s)
+    3 Errores
+
+Tiempo transcurrido 00:00:01.58
