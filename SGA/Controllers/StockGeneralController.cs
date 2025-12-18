@@ -149,23 +149,20 @@ public class StockGeneralController : ControllerBase
         return Ok(new { message = "Carga registrada" });
     }
 
-    [HttpPost("silos/ajuste")] // Manual correction
+    [HttpPost("silos/ajuste")] // Manual correction/configuration
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> AjustarSilo([FromBody] AjusteSiloRequest request)
     {
-        // For simple adjustments, we might use UpdateAsync or a specific method.
-        // I'll stick to specific method if needed, or re-use Carga with price 0?
-        // Better: Update the Silo entity directly via Service.UpdateAsync?
-        // User request: "puede poner que hay de cada cosa...".
-        // Assuming direct update is fine.
         var silo = await _siloService.GetByIdAsync(request.SiloId);
         if (silo == null) return NotFound();
         
+        silo.Nombre = request.Nombre ?? silo.Nombre; // Update name if provided
+        silo.CapacidadKg = request.CapacidadKg > 0 ? request.CapacidadKg : silo.CapacidadKg;
         silo.CantidadActualKg = request.CantidadKg;
-        if (request.ProductoId.HasValue) silo.ProductoId = request.ProductoId;
+        silo.ProductoId = request.ProductoId; 
         
         await _siloService.UpdateAsync(request.SiloId, silo);
-        return Ok(new { message = "Silo ajustado" });
+        return Ok(new { message = "Silo actualizado correctamente" });
     }
 
     #endregion
@@ -317,6 +314,8 @@ public class CargaSiloRequest
 public class AjusteSiloRequest
 {
     public int SiloId { get; set; }
+    public string? Nombre { get; set; }
+    public decimal CapacidadKg { get; set; }
     public decimal CantidadKg { get; set; }
     public int? ProductoId { get; set; }
 }

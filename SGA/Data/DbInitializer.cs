@@ -35,8 +35,9 @@ public static class DbInitializer
                 new Producto { Nombre = "Huevo Blanco Jumbo", TipoProducto = TipoProducto.Huevo, StockActual = 500, StockMinimoAlerta = 50, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Jumbo, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30 },
                 new Producto { Nombre = "Huevo Color Grande", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Grande, Color = ColorHuevo.Color, UnidadesPorBulto = 30 },
                 new Producto { Nombre = "Huevo Color Mediano", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Mediano, Color = ColorHuevo.Color, UnidadesPorBulto = 30 },
-                // Add basic insumos for Silos if they don't exist
+                // Add basic insumos for Silos
                 new Producto { Nombre = "Maiz", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false },
+                new Producto { Nombre = "Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false },
                 new Producto { Nombre = "Alimento Balanceado", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false }
             };
             context.Productos.AddRange(productos);
@@ -44,10 +45,14 @@ public static class DbInitializer
         }
         else
         {
-             // Ensure Maiz and Balanceado exist for Silos
+             // Ensure Maiz, Soja and Balanceado exist for Silos
              if (!context.Productos.Any(p => p.Nombre == "Maiz"))
              {
                  context.Productos.Add(new Producto { Nombre = "Maiz", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false });
+             }
+             if (!context.Productos.Any(p => p.Nombre == "Soja"))
+             {
+                 context.Productos.Add(new Producto { Nombre = "Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false });
              }
              if (!context.Productos.Any(p => p.Nombre == "Alimento Balanceado"))
              {
@@ -63,13 +68,12 @@ public static class DbInitializer
             {
                 new Vehiculo { Patente = "AA123BB", Marca = "Peugeot", Modelo = "Boxer", CapacidadCarga = 1500, ConsumoPromedioLts100Km = 12, EnRuta = false },
                 new Vehiculo { Patente = "CC456DD", Marca = "Fiat", Modelo = "Fiorino", CapacidadCarga = 650, ConsumoPromedioLts100Km = 9, EnRuta = false },
-                new Vehiculo { Patente = "GRANJA", Marca = "SGA", Modelo = "Punto de Venta", CapacidadCarga = 999999, ConsumoPromedioLts100Km = 0, EnRuta = false } // Default to false so we can Start Trip manually
+                new Vehiculo { Patente = "GRANJA", Marca = "SGA", Modelo = "Punto de Venta", CapacidadCarga = 999999, ConsumoPromedioLts100Km = 0, EnRuta = false }
             };
             context.Vehiculos.AddRange(vehiculos);
         }
         else
         {
-            // Ensure Granja exists even if seeding happened before
              var granja = context.Vehiculos.FirstOrDefault(v => v.Patente == "GRANJA");
              if (granja == null)
              {
@@ -86,8 +90,6 @@ public static class DbInitializer
              }
              else
              {
-                 // Fix: If Granja is marked EnRuta but has no active trip, reset it.
-                 // This handles the previous bad seed.
                  var activeTrip = context.Viajes.Any(v => v.VehiculoId == granja.VehiculoId && v.Estado == EstadoViaje.EnCurso);
                  if (granja.EnRuta && !activeTrip)
                  {
@@ -118,12 +120,14 @@ public static class DbInitializer
         // Seed Silos (Robust Check)
         var maizId = context.Productos.FirstOrDefault(p => p.Nombre == "Maiz")?.ProductoId;
         var balanceadoId = context.Productos.FirstOrDefault(p => p.Nombre == "Alimento Balanceado")?.ProductoId;
+        var sojaId = context.Productos.FirstOrDefault(p => p.Nombre == "Soja")?.ProductoId;
 
-        var silos = new[]
+        var silos = new Silo[]
         {
-            new Silo { Nombre = "Silo 1 (Maíz)", CapacidadKg = 10000, CantidadActualKg = 2500, PrecioPromedioCompra = 150, ProductoId = maizId },
-            new Silo { Nombre = "Silo 2 (Balanceado)", CapacidadKg = 10000, CantidadActualKg = 5000, PrecioPromedioCompra = 200, ProductoId = balanceadoId },
-            new Silo { Nombre = "Silo 3 (Vacío)", CapacidadKg = 10000, CantidadActualKg = 0 }
+            new Silo { Nombre = "Silo 1", CapacidadKg = 10000, CantidadActualKg = 2500, PrecioPromedioCompra = 150, ProductoId = maizId },
+            new Silo { Nombre = "Silo 2", CapacidadKg = 10000, CantidadActualKg = 5000, PrecioPromedioCompra = 200, ProductoId = balanceadoId },
+            new Silo { Nombre = "Silo 3", CapacidadKg = 10000, CantidadActualKg = 0, ProductoId = sojaId },
+            new Silo { Nombre = "Carro (Silo Móvil)", CapacidadKg = 2000, CantidadActualKg = 500, PrecioPromedioCompra = 200, ProductoId = balanceadoId }
         };
 
         foreach (var s in silos)
@@ -134,7 +138,6 @@ public static class DbInitializer
             }
             else
             {
-                // Optionally update ProductoId if missing
                 var existingSilo = context.Silos.First(x => x.Nombre == s.Nombre);
                 if (existingSilo.ProductoId == null && s.ProductoId != null)
                 {
@@ -143,6 +146,8 @@ public static class DbInitializer
             }
         }
         context.SaveChanges();
+
+
 
 
         // Seed Usuarios if missing
