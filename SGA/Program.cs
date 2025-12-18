@@ -31,7 +31,6 @@ builder.Services.AddScoped<IEmpleadoService, EmpleadoService>();
 builder.Services.AddScoped<IVehiculoService, VehiculoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
-builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IRestorationService, RestorationService>();
 
 builder.Services.AddScoped<IGalponService, GalponService>();
@@ -88,20 +87,30 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Apply migrations at startup
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
+    using (var scope = app.Services.CreateScope())
     {
+        var services = scope.ServiceProvider;
         var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate();
-        DbInitializer.Initialize(context);
-    }
-    catch (Exception ex)
-    {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
+
+        try
+        {
+            context.Database.Migrate();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while migrating the database.");
+            // Continue to Initialize attempt
+        }
+
+        try
+        {
+            DbInitializer.Initialize(context);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while seeding the database.");
+        }
     }
-}
 
 app.Run();

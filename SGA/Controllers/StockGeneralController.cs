@@ -10,7 +10,7 @@ namespace SGA.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/stock-general")]
 public class StockGeneralController : ControllerBase
 {
     private readonly IGalponService _galponService;
@@ -207,19 +207,16 @@ public class StockGeneralController : ControllerBase
                 Fecha = DateTime.Now,
                 Total = request.PrecioTotal,
                 MetodoPago = Models.Enums.MetodoPago.Efectivo, // Default to Cash for Factory Sales? Or allow param.
-                UsuarioId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value ?? "1"), // Fallback to 1 if token issue
+                UsuarioId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value ?? "1"), 
+                VehiculoId = (await _context.Vehiculos.FirstOrDefaultAsync(v => v.Patente == "GRANJA"))?.VehiculoId ?? 1, // Fallback to 1 if not found
                 Detalles = new List<DetalleVenta>
                 {
                     new DetalleVenta
                     {
-                        // Needs a ProductId. We should get it from Silo.
-                        // For now we use a generic logic since we don't have Silo->ProductId in Request but in DB.
-                        // We will just put a description or 0 if ProductId is required.
-                        // Better: Get Silo to find ProductId.
-                        Cantidad = (int)request.CantidadKg, // DetalleVenta uses Int? If Decimal, need update. Model says DetalleVenta.Cantidad is int usually.
+                        Cantidad = request.CantidadKg, 
                         PrecioUnitario = request.PrecioTotal / request.CantidadKg,
                         Subtotal = request.PrecioTotal,
-                        ProductoId = 1 // Placeholder: 'Huevo Blanco Grande' or specific 'Maiz' product id.
+                        ProductoId = 1 
                                        // In future: Fetch Silo.ProductoId
                     }
                 }
@@ -277,6 +274,17 @@ public class StockGeneralController : ControllerBase
         _context.MovimientosStock.Add(movimiento);
         await _context.SaveChangesAsync();
         return Ok(producto);
+    }
+
+    [HttpPost("productos")]
+    [Authorize(Roles = "Admin,Encargado")]
+    public async Task<IActionResult> CreateProducto([FromBody] Producto producto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        _context.Productos.Add(producto);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetDeposito), new { id = producto.ProductoId }, producto);
     }
 
     #endregion

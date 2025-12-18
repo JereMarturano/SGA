@@ -49,6 +49,7 @@ interface ProductoUI {
   id: number;
   nombre: string;
   stockActual: number;
+  unidadDeMedida: string;
 }
 
 interface Usuario {
@@ -57,11 +58,30 @@ interface Usuario {
   apellido: string;
 }
 
+const getNormalizedFactor = (targetUnitId: string, productUnit: string) => {
+  const factors: Record<string, number> = {
+    'unidad': 1,
+    'maple': 30,
+    'cajon': 360,
+    'medio_cajon': 180,
+    'decima': 10,
+    'docena': 12
+  };
+
+  const target = targetUnitId.toLowerCase();
+  const base = productUnit.toLowerCase();
+
+  const tf = factors[target] || 1;
+  const bf = factors[base] || 1;
+
+  return tf / bf;
+};
+
 const unidadesMedida = [
-  { id: 'maple', nombre: 'Maple (30u)', factor: 30 },
-  { id: 'cajon', nombre: 'Cajón (12 maples)', factor: 360 },
-  { id: 'medio_cajon', nombre: 'Medio Cajón (6 maples)', factor: 180 },
-  { id: 'unidad', nombre: 'Unidad Suelta', factor: 1 },
+  { id: 'maple', nombre: 'Maple (30u)' },
+  { id: 'cajon', nombre: 'Cajón (12 maples)' },
+  { id: 'medio_cajon', nombre: 'Medio Cajón (6 maples)' },
+  { id: 'unidad', nombre: 'Unidad Suelta' },
 ];
 
 interface HistorialItem {
@@ -118,10 +138,11 @@ export default function CargaCamionetaPage() {
             enRuta: v.enRuta,
           }));
 
-        const productosMapped = pRes.data.map((p: Producto) => ({
+        const productosMapped = pRes.data.map((p: any) => ({
           id: p.productoId,
           nombre: p.nombre,
           stockActual: p.stockActual,
+          unidadDeMedida: p.unidadDeMedida,
         }));
 
         setVehiculos(vehiculosMapped);
@@ -180,8 +201,9 @@ export default function CargaCamionetaPage() {
         usuarioId: 1, // TODO: Obtener del contexto de autenticación
         choferId: selectedChofer,
         items: items.map((item) => {
-          const unidad = unidadesMedida.find((u) => u.id === item.unidadId);
-          const factor = unidad?.factor || 1;
+          const prod = productosBase.find(p => p.id === item.productoId);
+          const factor = getNormalizedFactor(item.unidadId, prod?.unidadDeMedida || 'Unidades');
+
           return {
             productoId: item.productoId,
             cantidad: item.cantidad * factor,
@@ -215,10 +237,11 @@ export default function CargaCamionetaPage() {
 
       // Recargar productos para actualizar stock
       const pRes = await api.get('/productos');
-      const productosMapped = pRes.data.map((p: Producto) => ({
+      const productosMapped = pRes.data.map((p: any) => ({
         id: p.productoId,
         nombre: p.nombre,
         stockActual: p.stockActual,
+        unidadDeMedida: p.unidadDeMedida,
       }));
       setProductosBase(productosMapped);
 
@@ -246,11 +269,13 @@ export default function CargaCamionetaPage() {
     return items.map((item) => {
       const prod = productosBase.find((p) => p.id === item.productoId);
       const unidad = unidadesMedida.find((u) => u.id === item.unidadId);
+      const factor = getNormalizedFactor(item.unidadId, prod?.unidadDeMedida || 'Unidades');
+
       return {
         producto: prod?.nombre,
         presentacion: unidad?.nombre,
         cantidad: item.cantidad,
-        totalHuevos: item.cantidad * (unidad?.factor || 1),
+        totalHuevos: item.cantidad * factor,
       };
     });
   };
@@ -263,8 +288,9 @@ export default function CargaCamionetaPage() {
       .slice(0, targetIndex)
       .filter(i => i.productoId === prodId)
       .reduce((acc, i) => {
-        const u = unidadesMedida.find(unit => unit.id === i.unidadId);
-        return acc + (i.cantidad * (u?.factor || 1));
+        const prod = productosBase.find(p => p.id === i.productoId);
+        const factor = getNormalizedFactor(i.unidadId, prod?.unidadDeMedida || 'Unidades');
+        return acc + (i.cantidad * factor);
       }, 0);
   };
 
@@ -277,8 +303,8 @@ export default function CargaCamionetaPage() {
     const stockConsumidoPrevio = getUsedStockUntilIndex(items, item.productoId, index);
     const stockDisponible = prod.stockActual - stockConsumidoPrevio;
 
-    const unidad = unidadesMedida.find(u => u.id === item.unidadId);
-    const factor = unidad?.factor || 1;
+    const factor = getNormalizedFactor(item.unidadId, prod.unidadDeMedida);
+
     const totalSolicitado = item.cantidad * factor;
 
     return totalSolicitado > stockDisponible;
@@ -631,7 +657,8 @@ export default function CargaCamionetaPage() {
                     // Stock real disponible para esta fila
                     const stockDisponibleParaEsteItem = (prod?.stockActual || 0) - stockConsumidoPrevio;
 
-                    const totalSolicitado = item.cantidad * (unidad?.factor || 1);
+                    const factor = getNormalizedFactor(item.unidadId, prod?.unidadDeMedida || 'Unidades');
+                    const totalSolicitado = item.cantidad * factor;
                     const isInsufficient = totalSolicitado > stockDisponibleParaEsteItem;
 
                     return (
@@ -664,7 +691,7 @@ export default function CargaCamionetaPage() {
                                 </div>
                                 {prod && (
                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${isInsufficient ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                    Stock: {Math.floor(stockDisponibleParaEsteItem / 30)} maples
+                                    Stock: {prod.unidadDeMedida.toLowerCase() === 'maple' ? stockDisponibleParaEsteItem.toLocaleString() : Math.floor(stockDisponibleParaEsteItem / 30).toLocaleString()} {prod.unidadDeMedida}
                                   </span>
                                 )}
                               </div>
@@ -682,7 +709,7 @@ export default function CargaCamionetaPage() {
                                     const remaining = Math.max(0, p.stockActual - used);
                                     return (
                                       <option key={p.id} value={p.id}>
-                                        {p.nombre} (Stock: {Math.floor(remaining / 30)} maples)
+                                        {p.nombre} (Stock: {p.unidadDeMedida.toLowerCase() === 'maple' ? remaining.toLocaleString() : Math.floor(remaining / 30).toLocaleString()} {p.unidadDeMedida})
                                       </option>
                                     );
                                   })}
@@ -737,10 +764,9 @@ export default function CargaCamionetaPage() {
                             </div>
                           </div>
 
-                          {/* Info Insuficiente */}
-                          {isInsufficient && (
+                          {isInsufficient && prod && (
                             <div className="mt-2 text-red-500 text-xs font-bold flex items-center justify-end gap-1 px-1">
-                              <span>Excede stock disponible ({Math.floor(stockDisponibleParaEsteItem / 30)} maples)</span>
+                              <span>Excede stock disponible ({prod.unidadDeMedida.toLowerCase() === 'maple' ? stockDisponibleParaEsteItem.toLocaleString() : Math.floor(stockDisponibleParaEsteItem / 30).toLocaleString()} {prod.unidadDeMedida})</span>
                             </div>
                           )}
                         </div>

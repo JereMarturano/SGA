@@ -37,6 +37,7 @@ interface Producto {
   costoUltimaCompra: number; // For Granja pricing
   esHuevo: boolean;
   unidadesPorBulto: number;
+  unidadDeMedida: string;
 }
 
 interface Vehiculo {
@@ -46,12 +47,21 @@ interface Vehiculo {
   modelo: string;
 }
 
-type UnitType = 'UNIDAD' | 'MAPLE' | 'CAJON';
+const UNIT_FACTORS_MAP: Record<string, number> = {
+  'unidad': 1,
+  'maple': 30,
+  'cajon': 360,
+  'docena': 12
+};
 
-const UNIT_FACTORS: Record<UnitType, number> = {
-  UNIDAD: 1,
-  MAPLE: 30,
-  CAJON: 360,
+const getNormalizedFactor = (targetUnit: string, productUnit: string) => {
+  const target = targetUnit.toLowerCase();
+  const base = productUnit.toLowerCase();
+
+  const tf = UNIT_FACTORS_MAP[target] || 1;
+  const bf = UNIT_FACTORS_MAP[base] || 1;
+
+  return tf / bf;
 };
 
 export default function PuntoVentaPage() {
@@ -74,7 +84,7 @@ export default function PuntoVentaPage() {
     productoId: number;
     nombre: string;
     cantidad: number; // In selected Unit
-    unitType: UnitType;
+    unitType: string;
     factor: number;
     precioUnitario: number; // Price per Unit (calculated)
     precioTotal: number;
@@ -86,7 +96,7 @@ export default function PuntoVentaPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [addingProduct, setAddingProduct] = useState<Producto | null>(null);
   const [addQuantity, setAddQuantity] = useState<number>(1);
-  const [addUnit, setAddUnit] = useState<UnitType>('MAPLE');
+  const [addUnit, setAddUnit] = useState<string>('MAPLE');
   const [addPrice, setAddPrice] = useState<string>(''); // Total price for the batch or price per unit type? Let's use Price per Unit Type displayed
 
   const [metodoPago, setMetodoPago] = useState<number>(0); // 0: Efectivo
@@ -118,6 +128,7 @@ export default function PuntoVentaPage() {
           costoUltimaCompra: p.costoUltimaCompra || 0,
           esHuevo: p.esHuevo,
           unidadesPorBulto: p.unidadesPorBulto || 1,
+          unidadDeMedida: p.unidadDeMedida,
         }));
         setProductos(productsMapped);
         setVehiculos(vehiculosRes.data);
@@ -168,10 +179,11 @@ export default function PuntoVentaPage() {
     setAddingProduct(prod);
     setAddQuantity(1);
 
+    const isMaple = prod.unidadDeMedida.toLowerCase() === 'maple';
     const initialUnit = prod.esHuevo ? 'MAPLE' : 'UNIDAD';
     setAddUnit(initialUnit);
 
-    const factor = UNIT_FACTORS[initialUnit];
+    const factor = getNormalizedFactor(initialUnit, prod.unidadDeMedida);
 
     if (isGranja) {
       // Cost + 10%
@@ -185,7 +197,8 @@ export default function PuntoVentaPage() {
   // Update suggested price when Unit changes
   useEffect(() => {
     if (addingProduct) {
-      const factor = UNIT_FACTORS[addUnit];
+      const factor = getNormalizedFactor(addUnit, addingProduct.unidadDeMedida);
+
       if (isGranja) {
         const costPlus10 = (addingProduct.costoUltimaCompra * 1.10) * factor;
         setAddPrice(Math.round(costPlus10).toFixed(2));
@@ -205,18 +218,23 @@ export default function PuntoVentaPage() {
       return;
     }
 
-    const factor = UNIT_FACTORS[addUnit];
-    const totalUnits = qty * factor;
+    const factor = getNormalizedFactor(addUnit, addingProduct.unidadDeMedida);
+    const totalUnitsNormalized = qty * factor;
 
     // Validate Stock
     const currentStock = isGranja ? addingProduct.stockActual : (vehicleStock.get(addingProduct.productoId) || 0);
 
     // Check if we already have this product in cart to subtract available stock
     const inCart = cart.filter(i => i.productoId === addingProduct.productoId)
-      .reduce((acc, i) => acc + (i.cantidad * i.factor), 0);
+      .reduce((acc, i) => {
+        let f = i.factor;
+        // In cart factor is already normalized relative to product base unit if we stored it correctly?
+        // Wait, CartItem factor might need to be store correctly.
+        return acc + (i.cantidad * f);
+      }, 0);
 
-    if (totalUnits + inCart > currentStock) {
-      alert(`Stock insuficiente. Disponible: ${currentStock - inCart} unidades.`);
+    if (totalUnitsNormalized + inCart > currentStock) {
+      alert(`Stock insuficiente. Disponible: ${(currentStock - inCart).toFixed(2)} ${addingProduct.unidadDeMedida}.`);
       return;
     }
 
@@ -292,11 +310,14 @@ export default function PuntoVentaPage() {
     setSubmitting(true);
     try {
       // Group items by product? Backend seems to handle individual items.
-      const itemsPayload = cart.map(item => ({
-        productoId: item.productoId,
-        cantidad: item.cantidad * item.factor, // Convert to units for backend
-        precioUnitario: item.precioUnitario // Price per unit
-      }));
+      const itemsPayload = cart.map(item => {
+        const factor = item.factor; // Factor from cart is already relative to product unit
+        return {
+          productoId: item.productoId,
+          cantidad: item.cantidad * factor,
+          precioUnitario: item.precioTotal / (item.cantidad * factor)
+        };
+      });
 
       const payload = {
         clienteId: selectedCliente,
@@ -449,13 +470,13 @@ export default function PuntoVentaPage() {
                           <p className="text-xs text-gray-500">
                             {isGranja ? (
                               <>
-                                Global: {prod.stockActual} u.
-                                {prod.esHuevo && ` (~${Math.floor(prod.stockActual / 30)} maples)`}
+                                Global: {prod.stockActual.toLocaleString()} {prod.unidadDeMedida}
+                                {prod.esHuevo && prod.unidadDeMedida.toLowerCase() !== 'maple' && ` (~${Math.floor(prod.stockActual / 30)} maples)`}
                               </>
                             ) : (
                               <>
-                                Disp: {vehicleStock.get(prod.productoId)} u.
-                                {prod.esHuevo && ` (~${Math.floor((vehicleStock.get(prod.productoId) || 0) / 30)} maples)`}
+                                Disp: {(vehicleStock.get(prod.productoId) || 0).toLocaleString()} {prod.unidadDeMedida}
+                                {prod.esHuevo && prod.unidadDeMedida.toLowerCase() !== 'maple' && ` (~${Math.floor((vehicleStock.get(prod.productoId) || 0) / 30)} maples)`}
                               </>
                             )}
                           </p>
@@ -480,7 +501,7 @@ export default function PuntoVentaPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Unidad de Medida</label>
                     <div className="grid grid-cols-3 gap-2">
-                      {(['UNIDAD', 'MAPLE', 'CAJON'] as UnitType[]).map(u => (
+                      {['UNIDAD', 'MAPLE', 'CAJON'].map(u => (
                         <button
                           key={u}
                           onClick={() => setAddUnit(u)}
