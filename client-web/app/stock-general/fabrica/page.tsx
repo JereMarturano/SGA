@@ -15,6 +15,7 @@ interface Silo {
 export default function FabricaPage() {
     const { user } = useAuth();
     const [silos, setSilos] = useState<Silo[]>([]);
+    const [history, setHistory] = useState<any[]>([]);
     const [mode, setMode] = useState<'Produccion' | 'Venta'>('Produccion');
 
     // Form State
@@ -32,8 +33,16 @@ export default function FabricaPage() {
         } catch (error) { console.error(error); }
     };
 
+    const fetchHistory = async () => {
+        try {
+            const res = await api.get('/stock-general/fabrica/historial');
+            setHistory(res.data);
+        } catch (error) { console.error(error); }
+    };
+
     useEffect(() => {
         fetchSilos();
+        fetchHistory();
     }, []);
 
     const handleAddIngredient = () => {
@@ -92,6 +101,7 @@ export default function FabricaPage() {
             setPrice('');
             setDestSilo('');
             fetchSilos(); // refresh stock
+            fetchHistory(); // refresh history
         } catch (error) {
             alert('Error al registrar operación');
         }
@@ -165,7 +175,7 @@ export default function FabricaPage() {
                                                     className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
                                                 >
                                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
                                                 </button>
                                             )}
@@ -177,7 +187,7 @@ export default function FabricaPage() {
                                         className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-2 hover:underline p-1"
                                     >
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                         </svg>
                                         Agregar Ingrediente
                                     </button>
@@ -266,7 +276,59 @@ export default function FabricaPage() {
                         </button>
                     </form>
                 </div>
+
+                <div className="mt-12 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Historial de Producción</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-gray-400 text-xs uppercase tracking-wider font-bold">
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Fecha</th>
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Ingredientes</th>
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Total Producción</th>
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Destino</th>
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {history.map((h, i) => (
+                                    <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                            {new Date(h.fecha).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                            <div className="flex flex-wrap gap-1">
+                                                {h.ingredientes?.map((ing: any, idx: number) => (
+                                                    <span key={idx} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
+                                                        {ing.silo?.nombre}: {ing.cantidadKg}kg
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">
+                                            {h.cantidadKg} Kg
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {h.siloDestino?.nombre || 'Consumo Inmediato'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {h.usuario?.nombre || 'Sistema'}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {history.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic">No hay registros de producción recientes</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </main>
         </div>
     );
 }
+

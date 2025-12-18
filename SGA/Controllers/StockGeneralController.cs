@@ -175,20 +175,19 @@ public class StockGeneralController : ControllerBase
     [HttpPost("fabrica/produccion")]
     public async Task<IActionResult> RegistrarProduccion([FromBody] Produccion produccion)
     {
-        // "solo puede vender desde la seccion Fabrica" -> This is production/sale.
-        // If it's a SALE (Venta), we might need Venta logic?
-        // Instructions: "desde ahi se produce y se vende ... precio y cantidad lo determina el jefe".
-        // If it's "Venta", we should record it as a Sale.
-        // Managing Stock: Fabrica -> Consume from Silo.
-        // If Selling: Use VentaService? but decrement Silo?
-        // I will implement a "VentaFabrica" method here.
-        
         try 
         {
             var created = await _fabricaService.RegistrarProduccionAsync(produccion);
             return Ok(created);
         } 
         catch (Exception ex) { return BadRequest(ex.Message); }
+    }
+
+    [HttpGet("fabrica/historial")]
+    public async Task<IActionResult> GetHistorialProduccion()
+    {
+        var historial = await _fabricaService.GetHistorialProduccionAsync();
+        return Ok(historial);
     }
 
     [HttpPost("fabrica/venta")]
