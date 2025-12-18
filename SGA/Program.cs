@@ -32,6 +32,7 @@ builder.Services.AddScoped<IVehiculoService, VehiculoService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IViajeService, ViajeService>();
 builder.Services.AddScoped<IRestorationService, RestorationService>();
+builder.Services.AddScoped<IStockGeneralService, StockGeneralService>();
 
 builder.Services.AddScoped<IGalponService, GalponService>();
 builder.Services.AddScoped<ISiloService, SiloService>();
