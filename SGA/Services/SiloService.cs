@@ -40,7 +40,7 @@ public class SiloService : ISiloService
         existing.Nombre = silo.Nombre;
         existing.CapacidadKg = silo.CapacidadKg;
         existing.ProductoId = silo.ProductoId;
-        // Don't update Cantidad/Precio here unless manual correction
+        existing.CantidadActualKg = silo.CantidadActualKg;
         
         await _context.SaveChangesAsync();
         return existing;
