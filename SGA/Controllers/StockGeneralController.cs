@@ -360,6 +360,20 @@ public class StockGeneralController : ControllerBase
         return Ok(producto);
     }
 
+    [HttpPut("productos/{id}/precio")]
+    [Authorize(Roles = "Admin,Encargado")]
+    public async Task<IActionResult> UpdateProductoPrecio(int id, [FromBody] UpdatePrecioRequest request)
+    {
+        var producto = await _context.Productos.FindAsync(id);
+        if (producto == null) return NotFound("Producto no encontrado");
+
+        if (producto.EsHuevo) return BadRequest("No se puede manipular el precio del huevo desde aquí");
+
+        producto.CostoUltimaCompra = request.Precio;
+        await _context.SaveChangesAsync();
+        return Ok(producto);
+    }
+
     [HttpPost("productos")]
     [Authorize(Roles = "Admin,Encargado")]
     public async Task<IActionResult> CreateProducto([FromBody] Producto producto)
@@ -420,4 +434,9 @@ public class TransferirPollitosRequest
     public int GalponOrigenId { get; set; }
     public int GalponDestinoId { get; set; }
     public int Cantidad { get; set; }
+}
+
+public class UpdatePrecioRequest
+{
+    public decimal Precio { get; set; }
 }

@@ -5,7 +5,7 @@ import Header from '@/components/Header';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
 import Modal from '@/components/Modal';
-import { Plus, Minus, ArrowRightLeft } from 'lucide-react';
+import { Plus, Minus, ArrowRightLeft, Edit } from 'lucide-react';
 
 interface Producto {
     productoId: number;
@@ -33,6 +33,10 @@ export default function DepositoPage() {
     // Display Units state
     const [viewUnits, setViewUnits] = useState<Record<number, 'Maple' | 'Cajon'>>({});
 
+    // Price Edit Modal
+    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+    const [priceAmount, setPriceAmount] = useState('');
+
     // New Product Modal
     const [isNewProdModalOpen, setIsNewProdModalOpen] = useState(false);
     const [newProd, setNewProd] = useState({
@@ -41,7 +45,8 @@ export default function DepositoPage() {
         unidadDeMedida: 'Unidades',
         stockMinimoAlerta: 0,
         unidadesPorBulto: 1,
-        esHuevo: false
+        esHuevo: false,
+        costoUltimaCompra: 0
     });
 
     const fetchProductos = async () => {
@@ -101,6 +106,19 @@ export default function DepositoPage() {
         }
     };
 
+    const submitPrecioUpdate = async () => {
+        if (!selectedProd || !priceAmount) return;
+        try {
+            await api.put(`/stock-general/productos/${selectedProd.productoId}/precio`, {
+                precio: parseFloat(priceAmount)
+            });
+            setIsPriceModalOpen(false);
+            fetchProductos();
+        } catch (error) {
+            alert('Error actualizando precio');
+        }
+    };
+
     const submitNewProduct = async () => {
         if (!newProd.nombre) return;
         try {
@@ -115,7 +133,8 @@ export default function DepositoPage() {
                 unidadDeMedida: 'Unidades',
                 stockMinimoAlerta: 0,
                 unidadesPorBulto: 1,
-                esHuevo: false
+                esHuevo: false,
+                costoUltimaCompra: 0
             });
             fetchProductos();
         } catch (error) {
@@ -189,8 +208,23 @@ export default function DepositoPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                            <span className="font-mono">${displayCost.toLocaleString()}</span>
-                                            <span className="text-[10px] ml-1 text-gray-400">/ {currentViewUnit}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-mono">${displayCost.toLocaleString()}</span>
+                                                <span className="text-[10px] text-gray-400">/ {currentViewUnit}</span>
+                                                {isAdmin && !p.esHuevo && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedProd(p);
+                                                            setPriceAmount(p.costoUltimaCompra.toString());
+                                                            setIsPriceModalOpen(true);
+                                                        }}
+                                                        className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 rounded transition-colors"
+                                                        title="Editar Precio"
+                                                    >
+                                                        <Edit size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                         {isAdmin && (
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -242,6 +276,25 @@ export default function DepositoPage() {
                     </div>
                 </Modal>
 
+                <Modal isOpen={isPriceModalOpen} onClose={() => setIsPriceModalOpen(false)} title={`Actualizar Precio - ${selectedProd?.nombre}`}>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Nuevo Precio (por {selectedProd?.unidadDeMedida})</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={priceAmount}
+                                    onChange={(e) => setPriceAmount(e.target.value)}
+                                    className="w-full p-2 pl-7 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
+                                />
+                            </div>
+                        </div>
+                        <button onClick={submitPrecioUpdate} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-500/20">Guardar Precio</button>
+                    </div>
+                </Modal>
+
                 {/* Modal Nuevo Producto */}
                 <Modal isOpen={isNewProdModalOpen} onClose={() => setIsNewProdModalOpen(false)} title="Crear Nuevo Producto">
                     <div className="space-y-4">
@@ -285,6 +338,17 @@ export default function DepositoPage() {
                                     value={newProd.stockMinimoAlerta}
                                     onChange={(e) => setNewProd({ ...newProd, stockMinimoAlerta: parseFloat(e.target.value) })}
                                     className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Costo (Opcional)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={newProd.costoUltimaCompra}
+                                    onChange={(e) => setNewProd({ ...newProd, costoUltimaCompra: parseFloat(e.target.value) })}
+                                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
+                                    placeholder="0.00"
                                 />
                             </div>
                             <div className="flex items-end">
