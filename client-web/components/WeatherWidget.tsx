@@ -9,7 +9,6 @@ import {
   CloudLightning,
   Droplets,
   Wind,
-  Car,
 } from 'lucide-react';
 
 export default function WeatherWidget() {
@@ -18,7 +17,6 @@ export default function WeatherWidget() {
   const [humidity, setHumidity] = useState<number | null>(null);
   const [windSpeed, setWindSpeed] = useState<number | null>(null);
   const [rainChance, setRainChance] = useState<number | null>(null);
-  const [traffic, setTraffic] = useState<string>('Calculando...');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,10 +41,6 @@ export default function WeatherWidget() {
         console.error('Error fetching weather', err);
         setLoading(false);
       });
-
-    // Mock Traffic Data
-    // Como no tenemos API Key de Google Maps/TomTom, dejamos "Fluido" por defecto para no dar datos falsos de congestión.
-    setTraffic('Fluido');
   }, []);
 
   const getWeatherIcon = (code: number) => {
@@ -58,11 +52,6 @@ export default function WeatherWidget() {
     return <Sun className="text-yellow-500" size={32} />;
   };
 
-  const getTrafficColor = (status: string) => {
-    if (status === 'Fluido') return 'text-green-500';
-    if (status === 'Moderado') return 'text-yellow-500';
-    return 'text-red-500';
-  };
 
   if (loading)
     return (
@@ -119,15 +108,6 @@ export default function WeatherWidget() {
           <p className="text-lg font-bold text-slate-700 dark:text-slate-200">
             {windSpeed} <span className="text-xs">km/h</span>
           </p>
-        </div>
-        <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-xl">
-          <div className="flex items-center gap-2 mb-1">
-            <Car size={14} className="text-orange-500" />
-            <p className="text-[10px] font-bold text-orange-600 dark:text-orange-400 uppercase">
-              Tráfico
-            </p>
-          </div>
-          <p className={`text-lg font-bold ${getTrafficColor(traffic)}`}>{traffic}</p>
         </div>
       </div>
     </div>
