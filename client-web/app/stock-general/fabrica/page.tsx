@@ -299,24 +299,34 @@ export default function FabricaPage() {
                                     <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                             {new Date(h.fecha).toLocaleDateString()}
+                                            <span className={`block text-[10px] font-bold uppercase tracking-wide mt-1 ${h.tipo === 'Venta' ? 'text-green-600' : 'text-blue-600'}`}>
+                                                {h.tipo}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
-                                            <div className="flex flex-wrap gap-1">
-                                                {h.ingredientes?.map((ing: any, idx: number) => (
-                                                    <span key={idx} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
-                                                        {ing.silo?.nombre}: {ing.cantidadKg}kg
+                                            {/* Logic to display detail or ingredients */}
+                                            {h.tipo === 'Produccion' ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {/* DTO returns 'Detalle' string for generic usage now, but we can verify if frontend needs parsing */}
+                                                    {/* The backend now sends a formatted string in 'detalle' property for both types */}
+                                                    <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
+                                                        {h.detalle}
                                                     </span>
-                                                ))}
-                                            </div>
+                                                </div>
+                                            ) : (
+                                                <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs font-bold">
+                                                    {h.detalle}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">
                                             {h.cantidadKg} Kg
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {h.siloDestino?.nombre || 'Consumo Inmediato'}
+                                            {h.destino}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                            {h.usuario?.nombre || 'Sistema'}
+                                            {h.usuario}
                                         </td>
                                     </tr>
                                 ))}

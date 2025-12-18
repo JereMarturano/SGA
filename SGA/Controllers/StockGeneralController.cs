@@ -204,8 +204,59 @@ public class StockGeneralController : ControllerBase
     [HttpGet("fabrica/historial")]
     public async Task<IActionResult> GetHistorialProduccion()
     {
-        var historial = await _fabricaService.GetHistorialProduccionAsync();
-        return Ok(historial);
+        // 1. Get Productions
+        var producciones = await _fabricaService.GetHistorialProduccionAsync();
+        
+        // 2. Get Factory Sales (Ventas where Vehiculo is "GRANJA" or specifically marked)
+        // Filter to ensure we only get sales that contain Insumos (Feed/Grains) and NOT purely eggs if possible.
+        // Or simply filter out lines that are eggs.
+        var ventasFabrica = await _context.Ventas
+            .Include(v => v.Detalles)
+                .ThenInclude(d => d.Producto)
+            .Include(v => v.Usuario)
+            .Include(v => v.Cliente)
+            .Include(v => v.Vehiculo)
+            .Where(v => v.Vehiculo.Patente == "GRANJA") 
+            .OrderByDescending(v => v.Fecha)
+            .Take(50) 
+            .ToListAsync();
+
+        // 3. Merge and Map to DTO
+        var historial = new List<HistorialFabricaDTO>();
+
+        foreach (var p in producciones)
+        {
+            historial.Add(new HistorialFabricaDTO
+            {
+                Fecha = p.Fecha,
+                Tipo = "Produccion",
+                CantidadKg = p.CantidadKg,
+                Destino = p.SiloDestino?.Nombre ?? "Consumo Inmediato/Otro",
+                Usuario = p.Usuario?.Nombre ?? "Sistema",
+                Detalle = string.Join(", ", p.Ingredientes.Select(i => $"{i.Silo?.Nombre ?? "?"}: {i.CantidadKg}kg"))
+            });
+        }
+
+        foreach (var v in ventasFabrica)
+        {
+            // Filter details: Only consider non-egg products (Insumos)
+            var insumoDetails = v.Detalles.Where(d => d.Producto.TipoProducto != TipoProducto.Huevo).ToList();
+
+            // If the sale has no insumos (e.g. it was purely eggs), skip it from Factory History
+            if (!insumoDetails.Any()) continue;
+
+            historial.Add(new HistorialFabricaDTO
+            {
+                Fecha = v.Fecha,
+                Tipo = "Venta",
+                CantidadKg = insumoDetails.Sum(d => d.Cantidad), // Only sum weight of insumos
+                Destino = v.Cliente?.NombreCompleto ?? "Cliente Final",
+                Usuario = v.Usuario?.Nombre ?? "Sistema",
+                Detalle = $"Venta ${(v.Total).ToString("N2")}"
+            });
+        }
+
+        return Ok(historial.OrderByDescending(h => h.Fecha));
     }
 
     [HttpPost("fabrica/venta")]
@@ -215,42 +266,58 @@ public class StockGeneralController : ControllerBase
         // 1. Update Silo Stock (Consume)
         await _siloService.RegistrarConsumoAsync(request.SiloId, request.CantidadKg);
 
-        // 2. Register Sale (Venta) if Client is provided
-        if (request.ClienteId.HasValue && request.PrecioTotal > 0)
+        // 2. Register Sale (Venta) ALWAYS
+        // Find fallback client if not provided
+        int clienteId = request.ClienteId ?? 0;
+        if (clienteId == 0)
         {
-            var venta = new Venta
+            var defaultClient = await _context.Clientes.FirstOrDefaultAsync(c => c.NombreCompleto == "Venta de Fábrica" || c.NombreCompleto == "Consumidor Final");
+            if (defaultClient == null)
             {
-                ClienteId = request.ClienteId.Value,
-                Fecha = DateTime.Now,
-                Total = request.PrecioTotal,
-                MetodoPago = Models.Enums.MetodoPago.Efectivo, // Default to Cash for Factory Sales? Or allow param.
-                UsuarioId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value ?? "1"), 
-                VehiculoId = (await _context.Vehiculos.FirstOrDefaultAsync(v => v.Patente == "GRANJA"))?.VehiculoId ?? 1, // Fallback to 1 if not found
-                Detalles = new List<DetalleVenta>
-                {
-                    new DetalleVenta
-                    {
-                        Cantidad = request.CantidadKg, 
-                        PrecioUnitario = request.PrecioTotal / request.CantidadKg,
-                        Subtotal = request.PrecioTotal,
-                        ProductoId = 1 
-                                       // In future: Fetch Silo.ProductoId
-                    }
-                }
-            };
-            
-            // To make this robust, we should fetch Silo and use its ProductId.
-            var silo = await _siloService.GetByIdAsync(request.SiloId);
-            if (silo?.ProductoId != null) 
-            {
-                venta.Detalles.First().ProductoId = silo.ProductoId.Value;
+                defaultClient = new Cliente { NombreCompleto = "Venta de Fábrica", Direccion = "Local", DNI = "00000000" };
+                _context.Clientes.Add(defaultClient);
+                await _context.SaveChangesAsync();
             }
-
-            _context.Ventas.Add(venta);
-            await _context.SaveChangesAsync();
+            clienteId = defaultClient.ClienteId;
         }
 
-        return Ok(new { message = "Venta de fábrica registrada. Stock descontado." });
+        var venta = new Venta
+        {
+            ClienteId = clienteId,
+            Fecha = DateTime.Now,
+            Total = request.PrecioTotal,
+            MetodoPago = Models.Enums.MetodoPago.Efectivo, // Default to Cash
+            UsuarioId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value ?? "1"), 
+            VehiculoId = (await _context.Vehiculos.FirstOrDefaultAsync(v => v.Patente == "GRANJA"))?.VehiculoId ?? 1,
+            Detalles = new List<DetalleVenta>()
+        };
+        
+        // To make this robust, we should fetch Silo and use its ProductId.
+        var silo = await _siloService.GetByIdAsync(request.SiloId);
+        int productoId = silo?.ProductoId ?? 1; // Fallback to 1 if missing
+
+        venta.Detalles.Add(new DetalleVenta
+        {
+            Cantidad = request.CantidadKg, 
+            PrecioUnitario = request.CantidadKg > 0 ? (request.PrecioTotal / request.CantidadKg) : 0,
+            Subtotal = request.PrecioTotal,
+            ProductoId = productoId 
+        });
+
+        _context.Ventas.Add(venta);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Venta de fábrica registrada. Stock descontado y venta guardada." });
+    }
+
+    public class HistorialFabricaDTO
+    {
+        public DateTime Fecha { get; set; }
+        public string Tipo { get; set; }
+        public decimal CantidadKg { get; set; }
+        public string Destino { get; set; }
+        public string Usuario { get; set; }
+        public string Detalle { get; set; }
     }
 
     #endregion
