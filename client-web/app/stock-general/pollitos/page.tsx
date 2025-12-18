@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/lib/axios';
-import { Egg, ArrowRight } from 'lucide-react';
+import { Egg, ArrowRight, Edit2 } from 'lucide-react';
 import Modal from '@/components/Modal';
 
 interface Galpon {
@@ -25,6 +25,11 @@ export default function PollitosPage() {
     const [selectedDest, setSelectedDest] = useState('');
     const [amount, setAmount] = useState('');
 
+    // Edit Modal State
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editName, setEditName] = useState('');
+    const [editQuantity, setEditQuantity] = useState('');
+
     const fetchGalpones = async () => {
         try {
             const res = await api.get('/stock-general/galpones');
@@ -42,6 +47,29 @@ export default function PollitosPage() {
         setSelectedDest('');
         setAmount('');
         setIsTransferOpen(true);
+    };
+
+    const openEdit = (galpon: Galpon) => {
+        setSelectedOrigin(galpon);
+        setEditName(galpon.nombre);
+        setEditQuantity(galpon.cantidadAves.toString());
+        setIsEditOpen(true);
+    };
+
+    const handleUpdate = async () => {
+        if (!selectedOrigin || !editName || editQuantity === '') return;
+        try {
+            await api.put(`/stock-general/galpones/${selectedOrigin.galponId}`, {
+                ...selectedOrigin,
+                nombre: editName,
+                cantidadAves: parseInt(editQuantity)
+            });
+            setIsEditOpen(false);
+            fetchGalpones();
+            alert('Actualizado correctamente');
+        } catch (error) {
+            alert('Error al actualizar');
+        }
     };
 
     const submitTransfer = async () => {
@@ -76,7 +104,17 @@ export default function PollitosPage() {
                         <div key={g.galponId} className="bg-white dark:bg-gray-800 rounded-xl shadow p-6 border border-pink-100 dark:border-pink-900">
                             <div className="flex justify-between items-start">
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">{g.nombre}</h3>
-                                <span className="bg-pink-100 text-pink-700 text-xs px-2 py-1 rounded-full">Crianza</span>
+                                <div className="flex gap-2">
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => openEdit(g)}
+                                            className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg transition-colors"
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                    )}
+                                    <span className="bg-pink-100 text-pink-700 text-xs px-2 py-1 rounded-full flex items-center">Crianza</span>
+                                </div>
                             </div>
 
                             <div className="mt-4 text-3xl font-bold text-pink-600">{g.cantidadAves.toLocaleString()} <span className="text-sm text-gray-500">pollitos</span></div>
@@ -111,6 +149,35 @@ export default function PollitosPage() {
                             <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600" />
                         </div>
                         <button onClick={submitTransfer} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">Confirmar Transferencia</button>
+                    </div>
+                </Modal>
+
+                <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} title="Editar Habitación">
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Nombre</label>
+                            <input
+                                type="text"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Cantidad de Pollitos</label>
+                            <input
+                                type="number"
+                                value={editQuantity}
+                                onChange={(e) => setEditQuantity(e.target.value)}
+                                className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
+                            />
+                        </div>
+                        <button
+                            onClick={handleUpdate}
+                            className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                            Guardar Cambios
+                        </button>
                     </div>
                 </Modal>
             </main>
