@@ -39,7 +39,6 @@ public class AppDbContext : DbContext
     public DbSet<LoteAve> LotesAves { get; set; }
     public DbSet<EventoMortalidad> EventosMortalidad { get; set; }
     public DbSet<ItemInventario> ItemsInventario { get; set; }
-    public DbSet<Silo> Silos { get; set; }
     public DbSet<ContenidoSilo> ContenidosSilos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

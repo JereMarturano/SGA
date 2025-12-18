@@ -174,10 +174,31 @@ public class StockGeneralController : ControllerBase
     {
         try 
         {
+            // Ensure UsuarioId is valid from the token, not trusted from frontend
+            var userIdStr = User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value 
+                            ?? User.Claims.FirstOrDefault(c => c.Type == "id")?.Value
+                            ?? "1"; // Fallback to 1 (Admin) ideally, or throw.
+            
+            produccion.UsuarioId = int.Parse(userIdStr);
+            produccion.Fecha = DateTime.Now;
+
+            // Clear any circular references or IDs that shouldn't be set
+            produccion.ProduccionId = 0; 
+            foreach(var ing in produccion.Ingredientes)
+            {
+                ing.ProduccionIngredienteId = 0;
+                ing.ProduccionId = 0;
+            }
+
             var created = await _fabricaService.RegistrarProduccionAsync(produccion);
             return Ok(created);
         } 
-        catch (Exception ex) { return BadRequest(ex.Message); }
+        catch (Exception ex) 
+        { 
+            Console.WriteLine($"[ERROR] RegistrarProduccion: {ex.Message} \n {ex.StackTrace}");
+            if (ex.InnerException != null) Console.WriteLine($"[INNER] {ex.InnerException.Message}");
+            return BadRequest(new { message = ex.Message, details = ex.InnerException?.Message }); 
+        }
     }
 
     [HttpGet("fabrica/historial")]

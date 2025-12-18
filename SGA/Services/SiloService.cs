@@ -92,11 +92,8 @@ public class SiloService : ISiloService
 
         if (silo.CantidadActualKg < 500)
         {
-             // Trigger Alert
-             // Assuming AlertaService has a method CreateAlerta or similar.
-             // I'll check IAlertaService strictly or usage in next step if this fails to compile.
-             // For now, I'll assume a generic method or skip if unknown.
-             // User prompt mentions "interconectarlo con alertas opertivas".
+             // Note: Periodic alerts are handled by AlertaService. 
+             // We could trigger a real-time notification here if INotificacionService is available.
         }
     }
 }

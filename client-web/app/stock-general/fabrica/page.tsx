@@ -102,8 +102,10 @@ export default function FabricaPage() {
             setDestSilo('');
             fetchSilos(); // refresh stock
             fetchHistory(); // refresh history
-        } catch (error) {
-            alert('Error al registrar operación');
+        } catch (error: any) {
+            console.error(error);
+            const msg = error.response?.data?.message || error.message || 'Error al registrar operación';
+            alert(`Error: ${msg}`);
         }
     };
 

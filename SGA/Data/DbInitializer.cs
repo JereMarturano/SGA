@@ -38,7 +38,8 @@ public static class DbInitializer
                 // Add basic insumos for Silos
                 new Producto { Nombre = "Maiz", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false },
                 new Producto { Nombre = "Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false },
-                new Producto { Nombre = "Alimento Balanceado", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false }
+                new Producto { Nombre = "Alimento Balanceado", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false },
+                new Producto { Nombre = "Retazo Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 100, UnidadDeMedida = "Kg", EsHuevo = false }
             };
             context.Productos.AddRange(productos);
             context.SaveChanges();
@@ -57,6 +58,10 @@ public static class DbInitializer
              if (!context.Productos.Any(p => p.Nombre == "Alimento Balanceado"))
              {
                  context.Productos.Add(new Producto { Nombre = "Alimento Balanceado", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false });
+             }
+             if (!context.Productos.Any(p => p.Nombre == "Retazo Soja"))
+             {
+                 context.Productos.Add(new Producto { Nombre = "Retazo Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 100, UnidadDeMedida = "Kg", EsHuevo = false });
              }
              context.SaveChanges();
         }
@@ -122,6 +127,9 @@ public static class DbInitializer
         var balanceadoId = context.Productos.FirstOrDefault(p => p.Nombre == "Alimento Balanceado")?.ProductoId;
         var sojaId = context.Productos.FirstOrDefault(p => p.Nombre == "Soja")?.ProductoId;
 
+        // Ensure "Retazo Soja" exists for selection, although not seeded into a specific silo initially
+        // (It is already seeded in the Productos section above)
+
         var silos = new Silo[]
         {
             new Silo { Nombre = "Silo 1", CapacidadKg = 10000, CantidadActualKg = 2500, PrecioPromedioCompra = 150, ProductoId = maizId },
@@ -130,19 +138,32 @@ public static class DbInitializer
             new Silo { Nombre = "Carro (Silo Móvil)", CapacidadKg = 2000, CantidadActualKg = 500, PrecioPromedioCompra = 200, ProductoId = balanceadoId }
         };
 
+        // 1. Remove silos that shouldn't exist
+        var validNames = silos.Select(s => s.Nombre).ToList();
+        var invalidSilos = context.Silos.Where(s => !validNames.Contains(s.Nombre)).ToList();
+        
+        if (invalidSilos.Any())
+        {
+            context.Silos.RemoveRange(invalidSilos);
+            context.SaveChanges(); // Commit deletion first
+        }
+
+        // 2. Add or Update valid silos
         foreach (var s in silos)
         {
-            if (!context.Silos.Any(x => x.Nombre == s.Nombre))
+            var existingSilo = context.Silos.FirstOrDefault(x => x.Nombre == s.Nombre);
+            if (existingSilo == null)
             {
                 context.Silos.Add(s);
             }
             else
             {
-                var existingSilo = context.Silos.First(x => x.Nombre == s.Nombre);
-                if (existingSilo.ProductoId == null && s.ProductoId != null)
-                {
-                    existingSilo.ProductoId = s.ProductoId;
-                }
+                 // Update properties if needed, e.g. ensure Type is correct or if it was reset
+                 // For now, we trust the existing valid silo's state, but we ensure Product is linked if missing matches
+                 if (existingSilo.ProductoId == null && s.ProductoId != null)
+                 {
+                     existingSilo.ProductoId = s.ProductoId;
+                 }
             }
         }
         context.SaveChanges();

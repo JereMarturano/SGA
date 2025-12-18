@@ -46,12 +46,16 @@ export default function GalponesPage() {
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [history, setHistory] = useState<EventoGalpon[]>([]);
 
+    const [error, setError] = useState('');
+
     const fetchGalpones = async () => {
         try {
+            setError('');
             const res = await api.get('/stock-general/galpones');
-            setGalpones(res.data); // Should return list
+            setGalpones(res.data);
         } catch (error) {
             console.error(error);
+            setError('No se pudo conectar con el servidor. Verifique que el backend esté corriendo en el puerto 5000.');
         } finally {
             setIsLoading(false);
         }
@@ -136,7 +140,14 @@ export default function GalponesPage() {
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Gestión de Galpones</h1>
 
                 {isLoading ? (
-                    <p>Cargando...</p>
+                    <div className="flex justify-center p-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                ) : error ? (
+                    <div className="p-6 bg-red-50 text-red-700 rounded-xl border border-red-200">
+                        <h3 className="font-bold mb-2">Error de Conexión</h3>
+                        <p>{error}</p>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {galpones.filter(g => g.tipo !== 'Pollitos').map((g) => ( // Filter out Pollitos if shown in separate view
@@ -238,7 +249,7 @@ export default function GalponesPage() {
                                             <td className="px-2 py-2">{new Date(h.fecha).toLocaleDateString()}</td>
                                             <td className="px-2 py-2">
                                                 <span className={`px-2 py-0.5 rounded-full text-xs ${h.tipoEvento === 'Muerte' ? 'bg-red-100 text-red-700' :
-                                                        h.tipoEvento === 'Ingreso' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                                                    h.tipoEvento === 'Ingreso' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
                                                     }`}>
                                                     {h.tipoEvento}
                                                 </span>

@@ -43,12 +43,16 @@ export default function SilosPage() {
         capacidadKg: ''
     });
 
+    const [error, setError] = useState('');
+
     const fetchSilos = async () => {
         try {
+            setError('');
             const res = await api.get('/stock-general/silos');
             setSilos(res.data);
         } catch (error) {
             console.error(error);
+            setError('Error cargando silos. Verifique conexión.');
         }
     };
 
@@ -138,6 +142,11 @@ export default function SilosPage() {
                 {isLoading ? (
                     <div className="flex justify-center p-12">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                ) : error ? (
+                    <div className="p-6 bg-red-50 text-red-700 rounded-xl border border-red-200">
+                        <h3 className="font-bold mb-2">Error</h3>
+                        <p>{error}</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

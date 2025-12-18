@@ -37,8 +37,8 @@ public class StockGeneralService : IStockGeneralService
         if (!await _context.Silos.AnyAsync())
         {
             _context.Silos.AddRange(
-                new Silo { Nombre = "Silo 1", CapacidadMaxima = 10000 },
-                new Silo { Nombre = "Silo 2", CapacidadMaxima = 10000 }
+                new Silo { Nombre = "Silo 1", CapacidadKg = 10000 },
+                new Silo { Nombre = "Silo 2", CapacidadKg = 10000 }
             );
         }
 
