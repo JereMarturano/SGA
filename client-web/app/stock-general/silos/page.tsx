@@ -1,197 +1,327 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Silo, ContenidoSilo } from '@/types/stock';
-import { getSilos, getSiloContents, updateSiloContent } from '@/lib/api-stock';
-import { Warehouse, Edit2, Plus, ArrowUp } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import Header from '@/components/Header';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/lib/axios';
+import { Database, TrendingUp, Settings, Edit2, Save, X } from 'lucide-react';
+import Modal from '@/components/Modal';
+
+interface Product {
+    productoId: number;
+    nombre: string;
+    tipoProducto: string;
+}
+
+interface Silo {
+    siloId: number;
+    nombre: string;
+    capacidadKg: number;
+    cantidadActualKg: number;
+    productoId?: number;
+    producto?: { nombre: string; };
+    precioPromedioCompra: number;
+}
 
 export default function SilosPage() {
-  const [silos, setSilos] = useState<Silo[]>([]);
-  const [contents, setContents] = useState<Record<number, ContenidoSilo[]>>({});
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [editingContent, setEditingContent] = useState<Partial<ContenidoSilo>>({});
+    const { user } = useAuth();
+    const [silos, setSilos] = useState<Silo[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedSilo, setSelectedSilo] = useState<Silo | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+    // Modal State - Carga
+    const [isCargaModalOpen, setIsCargaModalOpen] = useState(false);
+    const [quantity, setQuantity] = useState('');
+    const [price, setPrice] = useState('');
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const s = await getSilos();
-      setSilos(s);
+    // Modal State - Config
+    const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
+    const [configSilo, setConfigSilo] = useState({
+        nombre: '',
+        productoId: '',
+        capacidadKg: ''
+    });
 
-      const contentMap: Record<number, ContenidoSilo[]> = {};
-      for (const silo of s) {
-        contentMap[silo.id] = await getSiloContents(silo.id);
-      }
-      setContents(contentMap);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const fetchSilos = async () => {
+        try {
+            const res = await api.get('/stock-general/silos');
+            setSilos(res.data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
-  const handleUpdateContent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await updateSiloContent(editingContent);
-      setShowModal(false);
-      loadData();
-    } catch (error) {
-      alert('Error updating silo content: ' + error);
-    }
-  };
+    const fetchProducts = async () => {
+        try {
+            const res = await api.get('/stock-general/deposito');
+            // Filter only Insumos for Silos
+            setProducts(res.data.filter((p: Product) => p.tipoProducto === 'Insumo'));
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
-  const openUpdate = (siloId: number, content?: ContenidoSilo) => {
-    if (content) {
-      setEditingContent(content);
-    } else {
-      setEditingContent({
-        siloId,
-        nombreMaterial: '',
-        cantidad: 0,
-        unidadMedida: 'Kg',
-        costoPorUnidad: 0
-      });
-    }
-    setShowModal(true);
-  };
+    useEffect(() => {
+        const init = async () => {
+            setIsLoading(true);
+            await Promise.all([fetchSilos(), fetchProducts()]);
+            setIsLoading(false);
+        };
+        init();
+    }, []);
 
-  return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
-        <Warehouse className="text-blue-600" /> Gestión de Silos (Alimentación)
-      </h1>
+    const handleOpenCarga = (silo: Silo) => {
+        setSelectedSilo(silo);
+        setQuantity('');
+        setPrice('');
+        setIsCargaModalOpen(true);
+    };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {silos.map(silo => {
-          const siloContents = contents[silo.id] || [];
-          const totalWeight = siloContents.reduce((acc, curr) => acc + curr.cantidad, 0); // Assuming same units or normalized. Ideally should convert.
-          const fillPercentage = Math.min((totalWeight / silo.capacidadMaxima) * 100, 100);
+    const handleOpenConfig = (silo: Silo) => {
+        setSelectedSilo(silo);
+        setConfigSilo({
+            nombre: silo.nombre,
+            productoId: silo.productoId?.toString() || '',
+            capacidadKg: silo.capacidadKg.toString()
+        });
+        setIsConfigModalOpen(true);
+    };
 
-          return (
-            <div key={silo.id} className="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
-              <div className="bg-gray-100 p-4 border-b border-gray-200 flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800">{silo.nombre}</h2>
-                <span className="text-sm text-gray-500">Capacidad: {silo.capacidadMaxima} Kg</span>
-              </div>
+    const submitCarga = async () => {
+        if (!selectedSilo || !quantity || !price) return;
+        try {
+            await api.post('/stock-general/silos/carga', {
+                siloId: selectedSilo.siloId,
+                cantidadKg: parseFloat(quantity),
+                precioTotal: parseFloat(price)
+            });
+            setIsCargaModalOpen(false);
+            fetchSilos();
+        } catch (error) {
+            alert('Error en carga');
+        }
+    };
 
-              <div className="p-6">
-                {/* Visual Representation */}
-                <div className="mb-6 relative h-48 w-32 mx-auto bg-gray-200 rounded-lg border-2 border-gray-400 overflow-hidden">
-                  <div
-                    className="absolute bottom-0 w-full bg-yellow-400 transition-all duration-1000 ease-out"
-                    style={{ height: `${fillPercentage}%` }}
-                  >
-                     <div className="w-full h-full bg-yellow-500 opacity-50 absolute top-0 left-0" style={{ backgroundImage: 'linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent)', backgroundSize: '1rem 1rem' }}></div>
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700 bg-white bg-opacity-50 h-8 mt-20 rounded">
-                    {fillPercentage.toFixed(1)}% Lleno
-                  </div>
+    const submitConfig = async () => {
+        if (!selectedSilo) return;
+        try {
+            await api.post('/stock-general/silos/ajuste', {
+                siloId: selectedSilo.siloId,
+                nombre: configSilo.nombre,
+                capacidadKg: parseFloat(configSilo.capacidadKg),
+                cantidadKg: selectedSilo.cantidadActualKg,
+                productoId: configSilo.productoId ? parseInt(configSilo.productoId) : null
+            });
+
+            setIsConfigModalOpen(false);
+            fetchSilos();
+        } catch (error) {
+            alert('Error al configurar silo');
+        }
+    };
+
+    const getPercent = (current: number, capacity: number) => {
+        return Math.min(100, Math.max(0, (current / capacity) * 100));
+    };
+
+    const isAdmin = user?.Rol === 'Admin';
+
+    return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <Header />
+            <main className="max-w-7xl mx-auto px-4 py-8">
+                <div className="flex justify-between items-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard de Silos</h1>
                 </div>
 
-                {/* Contents List */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b pb-2">
-                    <h3 className="font-semibold text-gray-700">Contenido Actual</h3>
-                    <button
-                      onClick={() => openUpdate(silo.id)}
-                      className="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded hover:bg-blue-200 flex items-center gap-1"
-                    >
-                      <Plus size={14} /> Agregar Material
-                    </button>
-                  </div>
-
-                  {siloContents.length > 0 ? (
-                    <div className="space-y-3">
-                       {siloContents.map(c => (
-                         <div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-100">
-                           <div>
-                             <p className="font-bold text-gray-800">{c.nombreMaterial}</p>
-                             <p className="text-xs text-gray-500">Última act: {new Date(c.ultimaActualizacion).toLocaleDateString()}</p>
-                           </div>
-                           <div className="text-right">
-                             <p className="font-bold text-lg">{c.cantidad} {c.unidadMedida}</p>
-                             <p className="text-xs text-gray-500">${c.costoPorUnidad}/u</p>
-                           </div>
-                           <button
-                              onClick={() => openUpdate(silo.id, c)}
-                              className="ml-4 text-gray-400 hover:text-blue-600"
-                           >
-                             <Edit2 size={16} />
-                           </button>
-                         </div>
-                       ))}
+                {isLoading ? (
+                    <div className="flex justify-center p-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                     </div>
-                  ) : (
-                    <p className="text-center text-gray-500 py-4">Silo vacío.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {silos.map((s) => {
+                            const percent = getPercent(s.cantidadActualKg, s.capacidadKg);
+                            const isMobile = s.nombre.toLowerCase().includes('carro');
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">{editingContent.id ? 'Actualizar Material' : 'Agregar Material'}</h2>
-            <form onSubmit={handleUpdateContent}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Material</label>
-                <input
-                  type="text"
-                  className="w-full p-2 border rounded"
-                  value={editingContent.nombreMaterial || ''}
-                  onChange={e => setEditingContent({...editingContent, nombreMaterial: e.target.value})}
-                  required
-                  placeholder="Maiz, Soja, Nucleo..."
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                 <div>
-                    <label className="block text-sm font-medium mb-1">Cantidad</label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border rounded"
-                      value={editingContent.cantidad || 0}
-                      onChange={e => setEditingContent({...editingContent, cantidad: parseFloat(e.target.value)})}
-                      required
-                    />
-                 </div>
-                 <div>
-                    <label className="block text-sm font-medium mb-1">Unidad</label>
-                    <select
-                       className="w-full p-2 border rounded"
-                       value={editingContent.unidadMedida || 'Kg'}
-                       onChange={e => setEditingContent({...editingContent, unidadMedida: e.target.value})}
-                    >
-                      <option value="Kg">Kg</option>
-                      <option value="Ton">Ton</option>
-                    </select>
-                 </div>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Costo por Unidad ($)</label>
-                <input
-                  type="number"
-                  className="w-full p-2 border rounded"
-                  value={editingContent.costoPorUnidad || 0}
-                  onChange={e => setEditingContent({...editingContent, costoPorUnidad: parseFloat(e.target.value)})}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-gray-600">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">Guardar</button>
-              </div>
-            </form>
-          </div>
+                            return (
+                                <div key={s.siloId} className={`bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 flex flex-col relative overflow-hidden transition-all hover:shadow-2xl ${isMobile ? 'ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-gray-900' : ''}`}>
+                                    {isMobile && (
+                                        <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] px-3 py-1 font-bold uppercase tracking-wider rounded-bl-lg">
+                                            Móvil
+                                        </div>
+                                    )}
+
+                                    <div className="z-10">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <h3 className="text-lg font-bold text-gray-900 dark:text-white truncate">{s.nombre}</h3>
+                                                <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                                                    {s.producto?.nombre || 'Vacío'}
+                                                </span>
+                                            </div>
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => handleOpenConfig(s)}
+                                                    className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                                    title="Configurar Silo"
+                                                >
+                                                    <Settings size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-baseline gap-1 mb-2">
+                                            <span className="text-3xl font-extrabold text-gray-900 dark:text-white">{s.cantidadActualKg.toLocaleString()}</span>
+                                            <span className="text-xs text-gray-400 font-medium">/ {s.capacidadKg.toLocaleString()} Kg</span>
+                                        </div>
+
+                                        {/* Visual Tank representation */}
+                                        <div className="relative w-full h-24 bg-gray-100 dark:bg-gray-700 rounded-xl mb-4 overflow-hidden border border-gray-200 dark:border-gray-600">
+                                            <div
+                                                className={`absolute bottom-0 w-full transition-all duration-1000 ease-out opacity-80 ${percent < 15 ? 'bg-gradient-to-t from-red-600 to-red-400' :
+                                                    percent < 30 ? 'bg-gradient-to-t from-orange-500 to-orange-300' :
+                                                        'bg-gradient-to-t from-green-600 to-green-400'
+                                                    }`}
+                                                style={{ height: `${percent}%` }}
+                                            />
+                                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                                <span className={`text-sm font-bold ${percent > 50 ? 'text-white' : 'text-gray-500'}`}>
+                                                    {percent.toFixed(0)}%
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex justify-between text-[11px] text-gray-500 mb-6 font-medium">
+                                            <div className="flex items-center gap-1">
+                                                <TrendingUp size={12} />
+                                                <span>PPP: ${s.precioPromedioCompra.toFixed(2)}</span>
+                                            </div>
+                                            <span>Estado: Activo</span>
+                                        </div>
+
+                                        {isAdmin && (
+                                            <button
+                                                onClick={() => handleOpenCarga(s)}
+                                                className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-95 font-semibold text-sm"
+                                            >
+                                                <Database size={16} />
+                                                Registrar Carga
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+
+                {/* MODAL CARGA */}
+                <Modal isOpen={isCargaModalOpen} onClose={() => setIsCargaModalOpen(false)} title="Cargar Silo">
+                    <div className="space-y-4 p-2">
+                        <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl border border-blue-100 dark:border-blue-800 mb-4">
+                            <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                                Silo: <span className="font-bold">{selectedSilo?.nombre}</span>
+                            </p>
+                            <p className="text-xs text-blue-600 dark:text-blue-300">
+                                Contenido: {selectedSilo?.producto?.nombre || 'Ninguno'}
+                            </p>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Cantidad a Ingresar (Kg)</label>
+                            <input
+                                type="number"
+                                value={quantity}
+                                onChange={(e) => setQuantity(e.target.value)}
+                                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="0.00"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Costo Total de la Compra ($)</label>
+                            <input
+                                type="number"
+                                value={price}
+                                onChange={(e) => setPrice(e.target.value)}
+                                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-lg font-medium outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="0.00"
+                            />
+                            <p className="text-[10px] text-gray-400 mt-2 italic px-1">Este valor se utilizará para calcular el Precio Promedio Ponderado.</p>
+                        </div>
+                        <div className="pt-2">
+                            <button
+                                onClick={submitCarga}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95"
+                            >
+                                Confirmar Ingreso de Mercadería
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* MODAL CONFIG */}
+                <Modal isOpen={isConfigModalOpen} onClose={() => setIsConfigModalOpen(false)} title="Configurar Silo">
+                    <div className="space-y-5 p-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Ajuste el nombre y el producto que se encuentra actualmente en el silo.
+                        </p>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Nombre del Silo / Ubicación</label>
+                            <input
+                                type="text"
+                                value={configSilo.nombre}
+                                onChange={(e) => setConfigSilo({ ...configSilo, nombre: e.target.value })}
+                                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="Ej: Silo 1"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Producto Contenido</label>
+                            <select
+                                value={configSilo.productoId}
+                                onChange={(e) => setConfigSilo({ ...configSilo, productoId: e.target.value })}
+                                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                <option value="">-- Sin Producto / Vacío --</option>
+                                {products.map(p => (
+                                    <option key={p.productoId} value={p.productoId}>{p.nombre}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Capacidad Máxima (Kg)</label>
+                            <input
+                                type="number"
+                                value={configSilo.capacidadKg}
+                                onChange={(e) => setConfigSilo({ ...configSilo, capacidadKg: e.target.value })}
+                                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        <div className="pt-4 flex gap-3">
+                            <button
+                                onClick={() => setIsConfigModalOpen(false)}
+                                className="flex-1 py-3 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={submitConfig}
+                                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Save size={18} />
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
+                </Modal>
+
+            </main>
         </div>
-      )}
-    </div>
-  );
+    );
 }
+

@@ -113,6 +113,9 @@ public class VentaService : IVentaService
                     // Deduct Global Stock
                     producto.StockActual -= item.Cantidad;
                     
+                    // NEW: Link Physical Maples/Cajones Stock
+                    await VincularStockEnvasesAsync(producto, item.Cantidad, request.UsuarioId, request.VehiculoId, venta.VentaId);
+
                     // Add details for notification
                     detallesTexto.Add($"{item.Cantidad} {producto.UnidadDeMedida} de {producto.Nombre}");
 
@@ -158,6 +161,9 @@ public class VentaService : IVentaService
                     if (stockVehiculo.Producto != null)
                     {
                         detallesTexto.Add($"{item.Cantidad} {stockVehiculo.Producto.UnidadDeMedida} de {stockVehiculo.Producto.Nombre}");
+                        
+                        // NEW: Link Physical Maples/Cajones Stock (Global)
+                        await VincularStockEnvasesAsync(stockVehiculo.Producto, item.Cantidad, request.UsuarioId, request.VehiculoId, venta.VentaId);
                     }
 
                     // 3. Crear Detalle de Venta
@@ -443,6 +449,45 @@ public class VentaService : IVentaService
         {
             await transaction.RollbackAsync();
             throw;
+        }
+    }
+
+    private async Task VincularStockEnvasesAsync(Producto prodVendido, decimal cantidadVendida, int usuarioId, int vehiculoId, int ventaId)
+    {
+        // Solo si es Huevo y tiene unidad de medida relevante
+        if (!prodVendido.EsHuevo) return;
+
+        string envaseNombre = null;
+        if (prodVendido.UnidadDeMedida.Equals("Maple", StringComparison.OrdinalIgnoreCase)) envaseNombre = "Maple";
+        else if (prodVendido.UnidadDeMedida.Equals("Cajón", StringComparison.OrdinalIgnoreCase) || 
+                 prodVendido.UnidadDeMedida.Equals("Cajon", StringComparison.OrdinalIgnoreCase)) envaseNombre = "Cajon";
+
+        if (envaseNombre == null) return;
+
+        // Buscar el producto Envase (e.g. "Maple" o "Cajon") en el depósito global
+        // Buscamos exacto o que contenga la palabra clave y sea de tipo Envase
+        var envase = await _context.Productos
+            .FirstOrDefaultAsync(p => p.TipoProducto == TipoProducto.Envase && 
+                                     (p.Nombre.ToUpper() == envaseNombre.ToUpper() || p.Nombre.ToUpper().Contains(envaseNombre.ToUpper())));
+
+        if (envase != null)
+        {
+            // Descontar del Depósito Global (están vinculados al stock general según el usuario)
+            envase.StockActual -= cantidadVendida;
+            if (envase.StockActual < 0) envase.StockActual = 0;
+
+            // Audit Movement (Salida Global por Vínculo de Venta)
+            var movEnvase = new MovimientoStock
+            {
+                Fecha = TimeHelper.Now,
+                TipoMovimiento = TipoMovimientoStock.Egreso,
+                ProductoId = envase.ProductoId,
+                Cantidad = -cantidadVendida,
+                UsuarioId = usuarioId,
+                VehiculoId = vehiculoId,
+                Observaciones = $"Descuento automático por venta de {prodVendido.Nombre} (Venta #{ventaId})"
+            };
+            _context.MovimientosStock.Add(movEnvase);
         }
     }
 }

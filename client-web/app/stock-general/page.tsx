@@ -1,136 +1,98 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Ubicacion } from '@/types/stock';
-import { getUbicaciones } from '@/lib/api-stock';
-import { LayoutDashboard, Warehouse, Wrench, Egg, Home } from 'lucide-react';
+import Header from '@/components/Header';
+import {
+    Home,
+    Database,
+    Factory,
+    Package,
+    Wrench,
+    Egg,
+    TrendingUp
+} from 'lucide-react';
 
 export default function StockGeneralPage() {
-  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
-  const router = useRouter();
+    const router = useRouter();
 
-  useEffect(() => {
-    loadUbicaciones();
-  }, []);
+    const sections = [
+        {
+            title: 'Galpones',
+            description: 'Gestión de galpones, cantidad de aves y registro de mortalidad.',
+            icon: <Home className="h-8 w-8 text-blue-500" />,
+            href: '/stock-general/galpones',
+            color: 'bg-blue-50 dark:bg-blue-900/20'
+        },
+        {
+            title: 'Silos',
+            description: 'Control de stock de alimentos, recargas y consumo.',
+            icon: <Database className="h-8 w-8 text-yellow-500" />,
+            href: '/stock-general/silos',
+            color: 'bg-yellow-50 dark:bg-yellow-900/20'
+        },
+        {
+            title: 'Fábrica',
+            description: 'Producción de alimento balanceado y ventas directas.',
+            icon: <Factory className="h-8 w-8 text-orange-500" />,
+            href: '/stock-general/fabrica',
+            color: 'bg-orange-50 dark:bg-orange-900/20'
+        },
+        {
+            title: 'Depósito',
+            description: 'Inventario general de insumos, maples y otros.',
+            icon: <Package className="h-8 w-8 text-purple-500" />,
+            href: '/stock-general/deposito',
+            color: 'bg-purple-50 dark:bg-purple-900/20'
+        },
+        {
+            title: 'Habitación de Pollitos',
+            description: 'Gestión de crianza y recepción de pollitos.',
+            icon: <Egg className="h-8 w-8 text-pink-500" />,
+            href: '/stock-general/pollitos',
+            color: 'bg-pink-50 dark:bg-pink-900/20'
+        },
+        {
+            title: 'Taller',
+            description: 'Estado de vehículos y registro de mantenimiento.',
+            icon: <Wrench className="h-8 w-8 text-gray-500" />,
+            href: '/stock-general/taller',
+            color: 'bg-gray-50 dark:bg-gray-900/20'
+        }
+    ];
 
-  const loadUbicaciones = async () => {
-    try {
-      const data = await getUbicaciones();
-      setUbicaciones(data);
-    } catch (error) {
-      console.error('Failed to load locations', error);
-    }
-  };
+    return (
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <Header />
 
-  const getIcon = (type: string, name: string) => {
-    if (name.includes('Galpon')) return <Home className="h-8 w-8 text-orange-600" />;
-    if (name.includes('Pollitos')) return <Egg className="h-8 w-8 text-yellow-500" />;
-    if (name.includes('Silo')) return <Warehouse className="h-8 w-8 text-blue-600" />;
-    if (name.includes('Taller')) return <Wrench className="h-8 w-8 text-gray-600" />;
-    return <LayoutDashboard className="h-8 w-8 text-green-600" />;
-  };
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
+                    Administración de Stock General
+                </h1>
 
-  // Group locations
-  const galpones = ubicaciones.filter(u => u.nombre.includes('Galpon'));
-  const pollitos = ubicaciones.filter(u => u.nombre.includes('Pollitos'));
-  const silos = ubicaciones.filter(u => u.nombre.includes('Silo') || u.tipo === 'Silo'); // 'Silo' might be separate entity but let's see if we unified them.
-  // Wait, I created a separate Silo entity in Backend but also "ensureLocations" creates Ubicaciones?
-  // In StockService.EnsureLocationsExistAsync, I didn't add Silos to Ubicaciones table, I added them to Silos table.
-  // BUT, the Dashboard needs to link to Silos.
-  // I should probably manually add a "Silos" card here that links to a silos page.
-
-  const depositos = ubicaciones.filter(u => u.nombre.includes('Deposito'));
-  const talleres = ubicaciones.filter(u => u.nombre.includes('Taller'));
-
-  return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Administración de Stock General</h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-        {/* Galpones Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-orange-500">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Home className="h-6 w-6" /> Galpones (Aves)
-          </h2>
-          <div className="grid grid-cols-2 gap-4">
-            {galpones.map(g => (
-              <button
-                key={g.id}
-                onClick={() => router.push(`/stock-general/galpon/${g.id}`)}
-                className="p-4 bg-orange-50 rounded hover:bg-orange-100 transition text-center border border-orange-200"
-              >
-                {g.nombre}
-              </button>
-            ))}
-          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {sections.map((section) => (
+                        <div
+                            key={section.title}
+                            onClick={() => router.push(section.href)}
+                            className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer overflow-hidden border border-gray-100 dark:border-gray-700"
+                        >
+                            <div className={`p-6 ${section.color}`}>
+                                <div className="flex items-center justify-between mb-4">
+                                    {section.icon}
+                                    <TrendingUp className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                                    {section.title}
+                                </h3>
+                                <p className="text-gray-600 dark:text-gray-300 text-sm">
+                                    {section.description}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </main>
         </div>
-
-        {/* Pollitos Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-yellow-500">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Egg className="h-6 w-6" /> Cría (Pollitos)
-          </h2>
-          <div className="flex flex-col gap-2">
-            {pollitos.map(p => (
-               <button
-               key={p.id}
-               onClick={() => router.push(`/stock-general/galpon/${p.id}?type=pollito`)} // Reusing Galpon page but maybe specialized
-               className="p-4 bg-yellow-50 rounded hover:bg-yellow-100 transition text-center border border-yellow-200"
-             >
-               {p.nombre}
-             </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Silos Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-500">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Warehouse className="h-6 w-6" /> Alimentación (Silos)
-          </h2>
-           <button
-               onClick={() => router.push(`/stock-general/silos`)}
-               className="w-full p-4 bg-blue-50 rounded hover:bg-blue-100 transition text-center border border-blue-200"
-             >
-               Gestionar Silos
-             </button>
-        </div>
-
-        {/* Deposito Section */}
-        <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-green-500">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <LayoutDashboard className="h-6 w-6" /> Depósito General
-          </h2>
-          {depositos.map(d => (
-             <button
-               key={d.id}
-               onClick={() => router.push(`/stock-general/inventario/${d.id}`)}
-               className="w-full p-4 mb-2 bg-green-50 rounded hover:bg-green-100 transition text-center border border-green-200"
-             >
-               {d.nombre} (Maples, etc)
-             </button>
-          ))}
-        </div>
-
-        {/* Taller Section */}
-         <div className="bg-white p-6 rounded-lg shadow-md border-t-4 border-gray-500">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Wrench className="h-6 w-6" /> Taller y Mantenimiento
-          </h2>
-          {talleres.map(t => (
-             <button
-               key={t.id}
-               onClick={() => router.push(`/stock-general/inventario/${t.id}`)}
-               className="w-full p-4 mb-2 bg-gray-50 rounded hover:bg-gray-100 transition text-center border border-gray-200"
-             >
-               {t.nombre}
-             </button>
-          ))}
-        </div>
-
-      </div>
-    </div>
-  );
+    );
 }

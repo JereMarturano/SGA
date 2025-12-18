@@ -41,6 +41,7 @@ export default function Header() {
     { name: 'Vehículos', href: '/vehiculos', icon: Truck, roles: ['Admin', 'Oficina'] },
     { name: 'Empleados', href: '/empleados', icon: Users, roles: ['Admin', 'Oficina'] },
     { name: 'Clientes', href: '/clientes', icon: User, roles: ['Admin', 'Oficina'] },
+    { name: 'Stock General', href: '/stock-general', icon: LayoutDashboard, roles: ['Admin'] }, // New Entry
     { name: 'Estadísticas', href: '/estadisticas', icon: PieChart, roles: ['Admin', 'Oficina'] },
   ];
 

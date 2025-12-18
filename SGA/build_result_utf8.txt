@@ -1,0 +1,6 @@
+﻿MSBUILD : error MSB1008: S├│lo puede especificarse un proyecto.
+    L├¡nea de comandos completa: 'C:\Program Files\dotnet\sdk\9.0.307\MSBuild.dll -maxcpucount -verbosity:m -tlp:default=auto -nologo -restore -consoleloggerparameters:Summary Check-Content build_result.txt -distributedlogger:Microsoft.DotNet.Tools.MSBuild.MSBuildLogger,C:\Program Files\dotnet\sdk\9.0.307\dotnet.dll*Microsoft.DotNet.Tools.MSBuild.MSBuildForwardingLogger,C:\Program Files\dotnet\sdk\9.0.307\dotnet.dll'
+  Modificadores anexados por archivos de respuesta: 
+Modificador: build_result.txt
+
+Para modificar la sintaxis, escriba "MSBuild -help"

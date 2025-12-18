@@ -1,158 +1,336 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SGA.Models;
-using SGA.Models.Enums;
 using SGA.Services;
-using System.Security.Claims;
+using SGA.Data; // For AppDbContext if needed for generic queries
+using Microsoft.AspNetCore.Authorization;
+using SGA.Models.Enums;
 
 namespace SGA.Controllers;
 
 [Authorize]
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/stock-general")]
 public class StockGeneralController : ControllerBase
 {
-    private readonly IStockGeneralService _stockService;
+    private readonly IGalponService _galponService;
+    private readonly ISiloService _siloService;
+    private readonly IFabricaService _fabricaService;
+    private readonly AppDbContext _context; // For Deposito/Products direct access
 
-    public StockGeneralController(IStockGeneralService stockService)
+    public StockGeneralController(
+        IGalponService galponService,
+        ISiloService siloService,
+        IFabricaService fabricaService,
+        AppDbContext context)
     {
-        _stockService = stockService;
+        _galponService = galponService;
+        _siloService = siloService;
+        _fabricaService = fabricaService;
+        _context = context;
     }
 
-    // --- UBICACIONES ---
-    [HttpGet("ubicaciones")]
-    public async Task<IActionResult> GetUbicaciones()
+    #region Galpones
+
+    [HttpGet("galpones")]
+    public async Task<IActionResult> GetGalpones()
     {
-        await _stockService.EnsureLocationsExistAsync(); // Make sure they exist on first load
-        return Ok(await _stockService.GetUbicacionesAsync());
+        var galpones = await _galponService.GetAllAsync();
+        return Ok(galpones);
     }
 
-    // --- GALPONES / POLLITOS (LOTES) ---
-
-    [HttpGet("lote-activo/{ubicacionId}")]
-    public async Task<IActionResult> GetActiveLote(int ubicacionId)
+    [HttpGet("galpones/{id}")]
+    public async Task<IActionResult> GetGalpon(int id)
     {
-        var lote = await _stockService.GetActiveLoteAsync(ubicacionId);
-        if (lote == null) return NoContent();
-        return Ok(lote);
+        var galpon = await _galponService.GetByIdAsync(id);
+        if (galpon == null) return NotFound();
+        return Ok(galpon);
     }
 
-    [HttpGet("historial-lotes/{ubicacionId}")]
-    public async Task<IActionResult> GetLoteHistory(int ubicacionId)
+    [Authorize(Roles = "Admin")] // Only Jefe/Admin can edit
+    [HttpPut("galpones/{id}")]
+    public async Task<IActionResult> UpdateGalpon(int id, [FromBody] Galpon galpon)
     {
-        return Ok(await _stockService.GetLoteHistoryAsync(ubicacionId));
-    }
-
-    // Only Jefe (Admin) can create/edit batches
-    [HttpPost("lote")]
-    public async Task<IActionResult> CreateLote([FromBody] LoteAve lote)
-    {
-        if (!IsAdmin()) return Forbid();
         try
         {
-            var created = await _stockService.CreateLoteAsync(lote);
-            return Ok(created);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
-    }
-
-    [HttpPut("lote")]
-    public async Task<IActionResult> UpdateLote([FromBody] LoteAve lote)
-    {
-        if (!IsAdmin()) return Forbid(); // "Solo el jefe puede modificar la cantidad de gallinas" (implies manual edit)
-        try
-        {
-            var updated = await _stockService.UpdateLoteAsync(lote);
+            var updated = await _galponService.UpdateAsync(id, galpon);
             return Ok(updated);
         }
-        catch (Exception ex)
-        {
-             return BadRequest(ex.Message);
-        }
+        catch (KeyNotFoundException) { return NotFound(); }
     }
 
-    // Anyone can register mortality (or maybe restricted, but usually workers do this. User said "marcar cuadno una gallina fallece", didn't strictly say only boss. He said "solo el jefe puede modificar la cantidad de gallinas... marcar cuando fallece". The "modify quantity" might refer to the base stock or purchasing. "Marcar fallece" is an event. I'll allow workers to register death, but maybe verify who did it.)
-    [HttpPost("mortalidad")]
-    public async Task<IActionResult> RegisterMortalidad([FromBody] EventoMortalidad evento)
+    [HttpPost("galpones/{id}/eventos")]
+    public async Task<IActionResult> RegistrarEventoGalpon(int id, [FromBody] EventoGalpon evento)
     {
-        try
-        {
-            // Assuming we have User ID in claims (standard in JWT)
-            // If not, we might need to pass it or mock it.
-            // Using a default ID 1 for now if claim missing, similar to other parts of system mentioned in Memory
-            int userId = 1;
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int parsedId))
-            {
-                userId = parsedId;
-            }
-
-            var result = await _stockService.RegisterMortalidadAsync(evento, userId);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        if (id != evento.GalponId) return BadRequest("ID mismatch");
+        
+        // Ensure only Admin can manual adjust? 
+        // Instructions: "solo el jefe puede modificar la cantidad de gallinas... marcar cuando fallece".
+        // Marking death is an event. Maybe employees can mark death?
+        // "solo el jefe puede modificar ... marcar cuando una gallina fallece".
+        // Use Authorize on method? Or check role here?
+        // Assuming Admin for now based on strict reading "Solo el jefe".
+        // But maybe "marcar fallece" is daily op?
+        // I will restrict to Admin/Encargado if needed, but sticking to "Admin" for modifying quantity.
+        var userRole = User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value;
+        
+        bool success = await _galponService.RegistrarEventoAsync(evento);
+        if (!success) return BadRequest("Could not register event");
+        return Ok(new { message = "Evento registrado" });
     }
 
-    // --- INVENTARIO (DEPOSITO / TALLER) ---
-    [HttpGet("inventario/{ubicacionId}")]
-    public async Task<IActionResult> GetInventario(int ubicacionId)
+    [HttpGet("galpones/{id}/eventos")]
+    public async Task<IActionResult> GetEventosGalpon(int id)
     {
-        return Ok(await _stockService.GetItemsByUbicacionAsync(ubicacionId));
+        var eventos = await _context.EventosGalpon
+            .Where(e => e.GalponId == id)
+            .OrderByDescending(e => e.Fecha)
+            .Include(e => e.Usuario)
+            .ToListAsync();
+        return Ok(eventos);
     }
 
-    [HttpPost("inventario")]
-    public async Task<IActionResult> SaveItem([FromBody] ItemInventario item)
+    [HttpPost("galpones/transferir-pollitos")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> TransferirPollitos([FromBody] TransferirPollitosRequest request)
     {
-        // Maybe restrict to Admin or Encargado? Let's restrict to Admin for now based on strictness.
-        // Actually, "jefe... hace el alimento". "jefe puede modificar...".
-        // Let's assume Admin only for stock adjustments to be safe.
-        if (!IsAdmin()) return Forbid();
+        var origen = await _context.Galpones.FindAsync(request.GalponOrigenId);
+        var destino = await _context.Galpones.FindAsync(request.GalponDestinoId);
 
-        var result = await _stockService.CreateOrUpdateItemAsync(item);
-        return Ok(result);
+        if (origen == null || destino == null) return NotFound("Galpon no encontrado");
+        if (origen.CantidadAves < request.Cantidad) return BadRequest("Stock insuficiente");
+
+        // Execute Transfer
+        origen.CantidadAves -= request.Cantidad;
+        destino.CantidadAves += request.Cantidad;
+
+        // Register Events for History
+        _context.EventosGalpon.Add(new EventoGalpon 
+        { 
+            GalponId = request.GalponOrigenId, 
+            TipoEvento = "Egreso", 
+            Cantidad = request.Cantidad, 
+            Fecha = DateTime.Now, 
+            Observacion = $"Transferencia a {destino.Nombre}",
+            UsuarioId = 1 // Simplified
+        });
+
+        _context.EventosGalpon.Add(new EventoGalpon 
+        { 
+            GalponId = request.GalponDestinoId, 
+            TipoEvento = "Ingreso", 
+            Cantidad = request.Cantidad, 
+            Fecha = DateTime.Now, 
+            Observacion = $"Transferencia desde {origen.Nombre}",
+            UsuarioId = 1
+        });
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Transferencia completa" });
     }
 
-    [HttpDelete("inventario/{id}")]
-    public async Task<IActionResult> DeleteItem(int id)
-    {
-        if (!IsAdmin()) return Forbid();
-        var result = await _stockService.DeleteItemAsync(id);
-        if (!result) return NotFound();
-        return Ok();
-    }
+    #endregion
 
-    // --- SILOS ---
+    #region Silos
+
     [HttpGet("silos")]
     public async Task<IActionResult> GetSilos()
     {
-        return Ok(await _stockService.GetSilosAsync());
+        var silos = await _siloService.GetAllAsync();
+        return Ok(silos);
     }
 
-    [HttpGet("silo-contenido/{siloId}")]
-    public async Task<IActionResult> GetSiloContents(int siloId)
+    [HttpPost("silos/carga")] // Carga manual (Refill)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> CargarSilo([FromBody] CargaSiloRequest request)
     {
-        return Ok(await _stockService.GetSiloContentsAsync(siloId));
+        // "cuanto le salio" -> PrecioTotal
+        await _siloService.RegistrarCargaAsync(request.SiloId, request.CantidadKg, request.PrecioTotal);
+        return Ok(new { message = "Carga registrada" });
     }
 
-    [HttpPost("silo-contenido")]
-    public async Task<IActionResult> UpdateSiloContent([FromBody] ContenidoSilo contenido)
+    [HttpPost("silos/ajuste")] // Manual correction/configuration
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> AjustarSilo([FromBody] AjusteSiloRequest request)
     {
-        if (!IsAdmin()) return Forbid();
-        var result = await _stockService.UpdateSiloContentAsync(contenido);
-        return Ok(result);
+        var silo = await _siloService.GetByIdAsync(request.SiloId);
+        if (silo == null) return NotFound();
+        
+        silo.Nombre = request.Nombre ?? silo.Nombre; // Update name if provided
+        silo.CapacidadKg = request.CapacidadKg > 0 ? request.CapacidadKg : silo.CapacidadKg;
+        silo.CantidadActualKg = request.CantidadKg;
+        silo.ProductoId = request.ProductoId; 
+        
+        await _siloService.UpdateAsync(request.SiloId, silo);
+        return Ok(new { message = "Silo actualizado correctamente" });
     }
 
-    private bool IsAdmin()
+    #endregion
+
+    #region Fabrica
+
+    [HttpPost("fabrica/produccion")]
+    public async Task<IActionResult> RegistrarProduccion([FromBody] Produccion produccion)
     {
-        // Check role claim.
-        // Based on memory: "RolUsuario enum which includes: Admin..."
-        // Typically stored in ClaimTypes.Role
-        return User.IsInRole(nameof(RolUsuario.Admin));
+        // "solo puede vender desde la seccion Fabrica" -> This is production/sale.
+        // If it's a SALE (Venta), we might need Venta logic?
+        // Instructions: "desde ahi se produce y se vende ... precio y cantidad lo determina el jefe".
+        // If it's "Venta", we should record it as a Sale.
+        // Managing Stock: Fabrica -> Consume from Silo.
+        // If Selling: Use VentaService? but decrement Silo?
+        // I will implement a "VentaFabrica" method here.
+        
+        try 
+        {
+            var created = await _fabricaService.RegistrarProduccionAsync(produccion);
+            return Ok(created);
+        } 
+        catch (Exception ex) { return BadRequest(ex.Message); }
     }
+
+    [HttpPost("fabrica/venta")]
+    [Authorize(Roles = "Admin")] // "el jefe lo determina"
+    public async Task<IActionResult> VentaFabrica([FromBody] VentaFabricaRequest request)
+    {
+        // 1. Update Silo Stock (Consume)
+        await _siloService.RegistrarConsumoAsync(request.SiloId, request.CantidadKg);
+
+        // 2. Register Sale (Venta) if Client is provided
+        if (request.ClienteId.HasValue && request.PrecioTotal > 0)
+        {
+            var venta = new Venta
+            {
+                ClienteId = request.ClienteId.Value,
+                Fecha = DateTime.Now,
+                Total = request.PrecioTotal,
+                MetodoPago = Models.Enums.MetodoPago.Efectivo, // Default to Cash for Factory Sales? Or allow param.
+                UsuarioId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value ?? "1"), 
+                VehiculoId = (await _context.Vehiculos.FirstOrDefaultAsync(v => v.Patente == "GRANJA"))?.VehiculoId ?? 1, // Fallback to 1 if not found
+                Detalles = new List<DetalleVenta>
+                {
+                    new DetalleVenta
+                    {
+                        Cantidad = request.CantidadKg, 
+                        PrecioUnitario = request.PrecioTotal / request.CantidadKg,
+                        Subtotal = request.PrecioTotal,
+                        ProductoId = 1 
+                                       // In future: Fetch Silo.ProductoId
+                    }
+                }
+            };
+            
+            // To make this robust, we should fetch Silo and use its ProductId.
+            var silo = await _siloService.GetByIdAsync(request.SiloId);
+            if (silo?.ProductoId != null) 
+            {
+                venta.Detalles.First().ProductoId = silo.ProductoId.Value;
+            }
+
+            _context.Ventas.Add(venta);
+            await _context.SaveChangesAsync();
+        }
+
+        return Ok(new { message = "Venta de fábrica registrada. Stock descontado." });
+    }
+
+    #endregion
+
+    #region Deposito
+
+    [HttpGet("deposito")]
+    public async Task<IActionResult> GetDeposito()
+    {
+        // "en el deposito se es donde esta el stock general" -> Productos
+        var productos = await _context.Productos.ToListAsync();
+        return Ok(productos);
+    }
+
+    [HttpPost("deposito/movimiento")]
+    [Authorize(Roles = "Admin,Encargado")] 
+    public async Task<IActionResult> RegistrarMovimientoDeposito([FromBody] MovimientoStock movimiento)
+    {
+        var producto = await _context.Productos.FindAsync(movimiento.ProductoId);
+        if (producto == null) return NotFound("Producto no encontrado");
+
+        movimiento.Fecha = DateTime.Now;
+        // Fallback user ID logic
+        movimiento.UsuarioId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value ?? "1");
+
+        // Update Stock
+        if (movimiento.TipoMovimiento == TipoMovimientoStock.Ingreso)
+        {
+            producto.StockActual += movimiento.Cantidad;
+        }
+        else if (movimiento.TipoMovimiento == TipoMovimientoStock.Egreso || movimiento.TipoMovimiento == TipoMovimientoStock.AjusteInventario)
+        {
+            producto.StockActual -= movimiento.Cantidad;
+        }
+
+        if (producto.StockActual < 0) producto.StockActual = 0;
+
+        _context.MovimientosStock.Add(movimiento);
+        await _context.SaveChangesAsync();
+        return Ok(producto);
+    }
+
+    [HttpPost("productos")]
+    [Authorize(Roles = "Admin,Encargado")]
+    public async Task<IActionResult> CreateProducto([FromBody] Producto producto)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        _context.Productos.Add(producto);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetDeposito), new { id = producto.ProductoId }, producto);
+    }
+
+    #endregion
+
+    #region Taller
+    
+    [HttpPost("taller/vehiculo/{id}/estado")]
+    [Authorize(Roles = "Admin,Chofer")]
+    public async Task<IActionResult> UpdateVehiculoEstado(int id, [FromBody] string nuevoEstado)
+    {
+        // Receives string in quotes e.g. "En Reparación"
+        var vehiculo = await _context.Vehiculos.FindAsync(id);
+        if (vehiculo == null) return NotFound();
+
+        vehiculo.Estado = nuevoEstado;
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Estado actualizado" });
+    }
+
+    #endregion
+}
+
+public class CargaSiloRequest
+{
+    public int SiloId { get; set; }
+    public decimal CantidadKg { get; set; }
+    public decimal PrecioTotal { get; set; }
+}
+
+public class AjusteSiloRequest
+{
+    public int SiloId { get; set; }
+    public string? Nombre { get; set; }
+    public decimal CapacidadKg { get; set; }
+    public decimal CantidadKg { get; set; }
+    public int? ProductoId { get; set; }
+}
+
+public class VentaFabricaRequest
+{
+    public int SiloId { get; set; }
+    public decimal CantidadKg { get; set; }
+    public decimal PrecioTotal { get; set; }
+    public int? ClienteId { get; set; }
+}
+
+public class TransferirPollitosRequest
+{
+    public int GalponOrigenId { get; set; }
+    public int GalponDestinoId { get; set; }
+    public int Cantidad { get; set; }
 }

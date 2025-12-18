@@ -1,0 +1,11 @@
+  Determinando los proyectos que se van a restaurar...
+  Todos los proyectos están actualizados para la restauración.
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\StockGeneralController.cs(298,5): error CS1028: Directiva de preprocesador inesperada [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+
+ERROR al compilar.
+
+C:\Users\Jerem\source\repos\SGA\SGA\Controllers\StockGeneralController.cs(298,5): error CS1028: Directiva de preprocesador inesperada [C:\Users\Jerem\source\repos\SGA\SGA\SGA.csproj]
+    0 Advertencia(s)
+    1 Errores
+
+Tiempo transcurrido 00:00:01.23
