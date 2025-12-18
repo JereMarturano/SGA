@@ -15,12 +15,15 @@ interface Silo {
 export default function FabricaPage() {
     const { user } = useAuth();
     const [silos, setSilos] = useState<Silo[]>([]);
+    const [history, setHistory] = useState<any[]>([]);
     const [mode, setMode] = useState<'Produccion' | 'Venta'>('Produccion');
 
     // Form State
-    const [sourceSilo, setSourceSilo] = useState('');
+    const [ingredients, setIngredients] = useState<{ siloId: string; quantity: string }[]>([
+        { siloId: '', quantity: '' }
+    ]);
     const [destSilo, setDestSilo] = useState(''); // Optional for production
-    const [quantity, setQuantity] = useState('');
+    const [totalQuantity, setTotalQuantity] = useState(''); // For Venta (manual) or display in Production
     const [price, setPrice] = useState(''); // For Venta
 
     const fetchSilos = async () => {
@@ -30,36 +33,75 @@ export default function FabricaPage() {
         } catch (error) { console.error(error); }
     };
 
+    const fetchHistory = async () => {
+        try {
+            const res = await api.get('/stock-general/fabrica/historial');
+            setHistory(res.data);
+        } catch (error) { console.error(error); }
+    };
+
     useEffect(() => {
         fetchSilos();
+        fetchHistory();
     }, []);
+
+    const handleAddIngredient = () => {
+        setIngredients([...ingredients, { siloId: '', quantity: '' }]);
+    };
+
+    const handleRemoveIngredient = (index: number) => {
+        setIngredients(ingredients.filter((_, i) => i !== index));
+    };
+
+    const handleIngredientChange = (index: number, field: 'siloId' | 'quantity', value: string) => {
+        const newIngredients = [...ingredients];
+        newIngredients[index][field] = value;
+        setIngredients(newIngredients);
+
+        // Update total quantity based on ingredients
+        if (mode === 'Produccion') {
+            const sum = newIngredients.reduce((acc, curr) => acc + (parseFloat(curr.quantity) || 0), 0);
+            setTotalQuantity(sum.toString());
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!quantity || !sourceSilo) return;
 
         try {
             if (mode === 'Produccion') {
+                const validIngredients = ingredients.filter(i => i.siloId && i.quantity);
+                if (validIngredients.length === 0) {
+                    alert('Debe agregar al menos un ingrediente');
+                    return;
+                }
+
                 await api.post('/stock-general/fabrica/produccion', {
-                    siloOrigenId: parseInt(sourceSilo),
+                    ingredientes: validIngredients.map(i => ({
+                        siloId: parseInt(i.siloId),
+                        cantidadKg: parseFloat(i.quantity)
+                    })),
                     siloDestinoId: destSilo ? parseInt(destSilo) : null,
-                    cantidadKg: parseFloat(quantity),
+                    cantidadKg: parseFloat(totalQuantity),
                     usuarioId: user?.UsuarioId
-                    // Observacion?
                 });
                 alert('Producción registrada');
             } else {
                 // Venta
+                if (!ingredients[0].siloId || !totalQuantity) return;
                 await api.post('/stock-general/fabrica/venta', {
-                    siloId: parseInt(sourceSilo),
-                    cantidadKg: parseFloat(quantity),
+                    siloId: parseInt(ingredients[0].siloId),
+                    cantidadKg: parseFloat(totalQuantity),
                     precioTotal: parseFloat(price)
-                    // client?
                 });
                 alert('Venta Fabrica registrada');
             }
-            setQuantity(''); setPrice('');
+            setIngredients([{ siloId: '', quantity: '' }]);
+            setTotalQuantity('');
+            setPrice('');
+            setDestSilo('');
             fetchSilos(); // refresh stock
+            fetchHistory(); // refresh history
         } catch (error) {
             alert('Error al registrar operación');
         }
@@ -70,93 +112,223 @@ export default function FabricaPage() {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Header />
-            <main className="max-w-3xl mx-auto px-4 py-8">
+            <main className="max-w-4xl mx-auto px-4 py-8">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Fábrica</h1>
 
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-gray-100 dark:border-gray-700">
-                    <div className="flex gap-4 mb-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 border border-gray-100 dark:border-gray-700">
+                    <div className="flex gap-4 mb-8">
                         <button
-                            onClick={() => setMode('Produccion')}
-                            className={`flex-1 py-2 rounded-lg font-medium transition-colors ${mode === 'Produccion' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}
+                            onClick={() => { setMode('Produccion'); setTotalQuantity(''); }}
+                            className={`flex-1 py-3 rounded-xl font-bold transition-all duration-300 ${mode === 'Produccion' ? 'bg-blue-600 text-white shadow-lg shadow-blue-200 dark:shadow-none scale-105' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}
                         >
                             Registrar Producción
                         </button>
                         {isAdmin && (
                             <button
-                                onClick={() => setMode('Venta')}
-                                className={`flex-1 py-2 rounded-lg font-medium transition-colors ${mode === 'Venta' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}
+                                onClick={() => { setMode('Venta'); setIngredients([{ siloId: '', quantity: '' }]); }}
+                                className={`flex-1 py-3 rounded-xl font-bold transition-all duration-300 ${mode === 'Venta' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none scale-105' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}
                             >
                                 Venta de Fábrica
                             </button>
                         )}
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Silo Origen (Materia Prima)</label>
-                            <select
-                                value={sourceSilo}
-                                onChange={(e) => setSourceSilo(e.target.value)}
-                                className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
-                                required
-                            >
-                                <option value="">Seleccione Silo...</option>
-                                {silos.map(s => (
-                                    <option key={s.siloId} value={s.siloId}>
-                                        {s.nombre} ({s.producto?.nombre}) - {s.cantidadActualKg} Kg Disp.
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        <div className="space-y-4">
+                            <label className="block text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                {mode === 'Produccion' ? 'Ingredientes (Materia Prima)' : 'Silo de Origen'}
+                            </label>
 
-                        {mode === 'Produccion' && (
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Silo Destino (Opcional - si se guarda)</label>
+                            {mode === 'Produccion' ? (
+                                <div className="space-y-3">
+                                    {ingredients.map((ing, index) => (
+                                        <div key={index} className="flex gap-3 items-end animate-in fade-in slide-in-from-left-2 duration-300">
+                                            <div className="flex-1">
+                                                <select
+                                                    value={ing.siloId}
+                                                    onChange={(e) => handleIngredientChange(index, 'siloId', e.target.value)}
+                                                    className="w-full p-3 border rounded-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 transition-all"
+                                                    required
+                                                >
+                                                    <option value="">Seleccione Silo...</option>
+                                                    {silos.map(s => (
+                                                        <option key={s.siloId} value={s.siloId}>
+                                                            {s.nombre} ({s.producto?.nombre}) - {s.cantidadActualKg.toLocaleString()} Kg
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="w-32">
+                                                <input
+                                                    type="number"
+                                                    placeholder="Kg"
+                                                    value={ing.quantity}
+                                                    onChange={(e) => handleIngredientChange(index, 'quantity', e.target.value)}
+                                                    className="w-full p-3 border rounded-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500"
+                                                    required
+                                                />
+                                            </div>
+                                            {ingredients.length > 1 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveIngredient(index)}
+                                                    className="p-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                                                >
+                                                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <button
+                                        type="button"
+                                        onClick={handleAddIngredient}
+                                        className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-2 hover:underline p-1"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                        Agregar Ingrediente
+                                    </button>
+                                </div>
+                            ) : (
                                 <select
-                                    value={destSilo}
-                                    onChange={(e) => setDestSilo(e.target.value)}
-                                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
+                                    value={ingredients[0].siloId}
+                                    onChange={(e) => handleIngredientChange(0, 'siloId', e.target.value)}
+                                    className="w-full p-3 border rounded-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500"
+                                    required
                                 >
-                                    <option value="">Consumo inmediato / Sin destino</option>
+                                    <option value="">Seleccione Silo...</option>
                                     {silos.map(s => (
                                         <option key={s.siloId} value={s.siloId}>
-                                            {s.nombre} ({s.producto?.nombre})
+                                            {s.nombre} ({s.producto?.nombre}) - {s.cantidadActualKg.toLocaleString()} Kg
                                         </option>
                                     ))}
                                 </select>
-                            </div>
-                        )}
-
-                        <div>
-                            <label className="block text-sm font-medium mb-1">Cantidad (Kg)</label>
-                            <input
-                                type="number"
-                                value={quantity}
-                                onChange={(e) => setQuantity(e.target.value)}
-                                className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
-                                required
-                            />
+                            )}
                         </div>
 
-                        {mode === 'Venta' && (
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Precio Total ($)</label>
-                                <input
-                                    type="number"
-                                    value={price}
-                                    onChange={(e) => setPrice(e.target.value)}
-                                    className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
-                                    required
-                                />
+                        {mode === 'Produccion' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Silo Destino</label>
+                                    <select
+                                        value={destSilo}
+                                        onChange={(e) => setDestSilo(e.target.value)}
+                                        className="w-full p-3 border rounded-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Consumo inmediato / Sin destino</option>
+                                        {silos.map(s => (
+                                            <option key={s.siloId} value={s.siloId}>
+                                                {s.nombre} ({s.producto?.nombre})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Total Producción (Kg)</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            value={totalQuantity}
+                                            readOnly={mode === 'Produccion'}
+                                            onChange={(e) => setTotalQuantity(e.target.value)}
+                                            className={`w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 ${mode === 'Produccion' ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800 font-bold text-blue-700 dark:text-blue-400' : 'bg-gray-50 dark:bg-gray-700 dark:border-gray-600'}`}
+                                            placeholder="0"
+                                        />
+                                        {mode === 'Produccion' && <span className="absolute right-3 top-3 text-xs text-blue-400 uppercase font-bold">Autocalculado</span>}
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-                        <button type="submit" className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-lg transition-transform active:scale-95">
-                            Confirmar {mode}
+                        {mode === 'Venta' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Cantidad a Vender (Kg)</label>
+                                    <input
+                                        type="number"
+                                        value={totalQuantity}
+                                        onChange={(e) => setTotalQuantity(e.target.value)}
+                                        className="w-full p-3 border rounded-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2">Precio Total ($)</label>
+                                    <input
+                                        type="number"
+                                        value={price}
+                                        onChange={(e) => setPrice(e.target.value)}
+                                        className="w-full p-3 border rounded-xl bg-gray-50 dark:bg-gray-700 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 font-bold text-green-600"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <button
+                            type="submit"
+                            className={`w-full py-4 rounded-xl font-black text-xl shadow-xl transition-all active:scale-95 ${mode === 'Produccion' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
+                        >
+                            CONFIRMAR {mode.toUpperCase()}
                         </button>
                     </form>
+                </div>
+
+                <div className="mt-12 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Historial de Producción</h2>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-gray-400 text-xs uppercase tracking-wider font-bold">
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Fecha</th>
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Ingredientes</th>
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Total Producción</th>
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Destino</th>
+                                    <th className="px-6 py-4 border-b dark:border-gray-700">Usuario</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                {history.map((h, i) => (
+                                    <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                                            {new Date(h.fecha).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">
+                                            <div className="flex flex-wrap gap-1">
+                                                {h.ingredientes?.map((ing: any, idx: number) => (
+                                                    <span key={idx} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-medium">
+                                                        {ing.silo?.nombre}: {ing.cantidadKg}kg
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">
+                                            {h.cantidadKg} Kg
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {h.siloDestino?.nombre || 'Consumo Inmediato'}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                            {h.usuario?.nombre || 'Sistema'}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {history.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic">No hay registros de producción recientes</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </main>
         </div>
     );
 }
+

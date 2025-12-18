@@ -11,10 +11,8 @@ public class Produccion
     [Required]
     public DateTime Fecha { get; set; } = DateTime.Now;
 
-    // Silo del cual se extrajo materia prima (si aplica)
-    public int? SiloOrigenId { get; set; }
-    [ForeignKey("SiloOrigenId")]
-    public Silo? SiloOrigen { get; set; }
+    // List of ingredients used in this production
+    public ICollection<ProduccionIngrediente> Ingredientes { get; set; } = new List<ProduccionIngrediente>();
 
     // Silo destino (si se produjo alimento y se guardó en otro silo)
     public int? SiloDestinoId { get; set; }
