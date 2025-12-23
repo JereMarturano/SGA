@@ -100,6 +100,7 @@ export default function CargaCamionetaPage() {
 
   const [selectedVehiculo, setSelectedVehiculo] = useState<number | null>(null);
   const [selectedChofer, setSelectedChofer] = useState<number | null>(null);
+  const [selectedAcompanante, setSelectedAcompanante] = useState<number | null>(null);
   const [items, setItems] = useState<{ productoId: number; unidadId: string; cantidad: number }[]>(
     []
   );
@@ -221,6 +222,7 @@ export default function CargaCamionetaPage() {
           await api.post('/viajes/iniciar', {
             VehiculoId: Number(selectedVehiculo),
             ChoferId: Number(selectedChofer),
+            AcompananteId: selectedAcompanante ? Number(selectedAcompanante) : null,
             Observaciones: 'Iniciado automáticamente desde Carga de Camioneta'
           });
           tripStarted = true;
@@ -249,6 +251,7 @@ export default function CargaCamionetaPage() {
       setItems([]);
       setSelectedVehiculo(null);
       setSelectedChofer(null);
+      setSelectedAcompanante(null);
       setIsConfirmModalOpen(false);
 
       const message = vehiculo?.enRuta
@@ -567,6 +570,37 @@ export default function CargaCamionetaPage() {
                 </div>
               </div>
             </div>
+            {/* Selección de Acompañante */}
+            <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 mb-6">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                  3
+                </span>
+                Asignar Acompañante (Opcional)
+              </h3>
+              <div className="relative">
+                <select
+                  value={selectedAcompanante || ''}
+                  onChange={(e) => setSelectedAcompanante(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full p-4 pl-12 rounded-2xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold appearance-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all outline-none"
+                >
+                  <option value="">
+                    Sin acompañante
+                  </option>
+                  {usuarios.filter(u => u.usuarioId !== selectedChofer).map((u) => (
+                    <option key={u.usuarioId} value={u.usuarioId}>
+                      {u.nombre} {u.apellido}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                  <User size={20} />
+                </div>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <ChevronRight size={20} className="rotate-90" />
+                </div>
+              </div>
+            </div>
 
             {/* Resumen de Carga (Sticky) */}
             <div
@@ -622,7 +656,7 @@ export default function CargaCamionetaPage() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
                   <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 w-6 h-6 rounded-full flex items-center justify-center text-xs">
-                    2
+                    4
                   </span>
                   Inventario a Cargar
                 </h3>

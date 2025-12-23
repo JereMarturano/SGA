@@ -22,7 +22,7 @@ public class ViajesController : ControllerBase
     {
         try
         {
-            var viaje = await _viajeService.IniciarViajeAsync(dto.VehiculoId, dto.ChoferId, dto.Observaciones);
+            var viaje = await _viajeService.IniciarViajeAsync(dto.VehiculoId, dto.ChoferId, dto.AcompananteId, dto.Observaciones);
             return Ok(viaje);
         }
         catch (Exception ex)
@@ -65,6 +65,7 @@ public class IniciarViajeDto
 {
     public int VehiculoId { get; set; }
     public int ChoferId { get; set; }
+    public int? AcompananteId { get; set; }
     public string? Observaciones { get; set; }
 }
 

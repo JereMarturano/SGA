@@ -37,7 +37,7 @@ export default function TallerPage() {
         }
     };
 
-    const canEdit = user?.Rol === 'Admin' || user?.Rol === 'Chofer';
+    const canEdit = user?.Rol === 'Admin' || user?.Rol === 'Chofer' || user?.Rol === 'Vendedor';
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -62,8 +62,8 @@ export default function TallerPage() {
                                 <button
                                     onClick={() => toggleEstado(v)}
                                     className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${v.estado === 'En Reparación'
-                                            ? 'bg-green-600 hover:bg-green-700 text-white'
-                                            : 'bg-orange-500 hover:bg-orange-600 text-white'
+                                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                                        : 'bg-orange-500 hover:bg-orange-600 text-white'
                                         }`}
                                 >
                                     {v.estado === 'En Reparación' ? 'Marcar Disponible' : 'Enviar a Taller'}

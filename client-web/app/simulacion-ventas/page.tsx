@@ -100,7 +100,7 @@ export default function SimulacionVentasPage() {
           api.get('/productos'),
         ]);
 
-        if (user?.Rol === 'Chofer') {
+        if (user?.Rol === 'Chofer' || user?.Rol === 'Vendedor') {
           try {
             const tripRes = await api.get(`/viajes/activo-por-usuario/${user.UsuarioId}`);
             if (tripRes.data && tripRes.data.vehiculoId) {

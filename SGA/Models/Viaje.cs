@@ -15,9 +15,12 @@ public class Viaje
     public Vehiculo? Vehiculo { get; set; }
 
     public int ChoferId { get; set; } // UsuarioId del Chofer
-
     [ForeignKey("ChoferId")]
     public Usuario? Chofer { get; set; }
+
+    public int? AcompananteId { get; set; } // UsuarioId del Acompañante
+    [ForeignKey("AcompananteId")]
+    public Usuario? Acompanante { get; set; }
 
     public DateTime FechaSalida { get; set; }
     

@@ -17,6 +17,10 @@ interface ViajeActivo {
   vehiculoId: number;
   vehiculo: { patente: string; modelo: string };
   fechaSalida: string;
+  choferId: number;
+  chofer: { nombre: string; apellido: string };
+  acompananteId?: number | null;
+  acompanante?: { nombre: string; apellido: string } | null;
 }
 
 export default function Dashboard() {
@@ -58,7 +62,7 @@ export default function Dashboard() {
       return;
     }
 
-    if (user?.Rol === 'Chofer') {
+    if (user?.Rol === 'Chofer' || user?.Rol === 'Vendedor') {
       // Check for active trip
       const checkTrip = async () => {
         try {
@@ -167,15 +171,19 @@ export default function Dashboard() {
     return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 text-slate-500">Cargando...</div>;
   }
 
-  // --- CHOFER VIEW ---
-  if (user?.Rol === 'Chofer') {
+  // --- CHOFER / VENDEDOR VIEW ---
+  if (user?.Rol === 'Chofer' || user?.Rol === 'Vendedor') {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
         <Header />
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
           <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 md:p-10 shadow-xl border border-slate-100 dark:border-slate-700">
             <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Hola {user.Nombre}</h2>
-            <p className="text-slate-500 dark:text-slate-400">Panel de Chofer</p>
+            <p className="text-slate-500 dark:text-slate-400">
+              {activeTrip?.acompananteId === user.UsuarioId
+                ? `Acompañante de ${activeTrip.chofer?.nombre} ${activeTrip.chofer?.apellido}`
+                : 'Panel de Chofer'}
+            </p>
           </div>
 
           {!activeTrip ? (

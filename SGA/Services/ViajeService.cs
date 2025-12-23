@@ -15,7 +15,7 @@ public class ViajeService : IViajeService
         _context = context;
     }
 
-    public async Task<Viaje> IniciarViajeAsync(int vehiculoId, int choferId, string? observaciones)
+    public async Task<Viaje> IniciarViajeAsync(int vehiculoId, int choferId, int? acompananteId, string? observaciones)
     {
         // Validar si el vehículo está en uso
         var vehiculo = await _context.Vehiculos.FindAsync(vehiculoId);
@@ -33,8 +33,21 @@ public class ViajeService : IViajeService
 
         // Validar si el chofer ya tiene viaje activo
         var existingTrip = await _context.Viajes
-            .AnyAsync(v => v.ChoferId == choferId && v.Estado == EstadoViaje.EnCurso);
+            .AnyAsync(v => (v.ChoferId == choferId || v.AcompananteId == choferId) && v.Estado == EstadoViaje.EnCurso);
         if (existingTrip) throw new InvalidOperationException("El chofer ya tiene un viaje activo.");
+
+        // Validar si el acompañante ya tiene viaje activo
+        if (acompananteId.HasValue)
+        {
+            var existingTripAcompanante = await _context.Viajes
+                .AnyAsync(v => (v.ChoferId == acompananteId || v.AcompananteId == acompananteId) && v.Estado == EstadoViaje.EnCurso);
+            if (existingTripAcompanante) throw new InvalidOperationException("El acompañante ya tiene un viaje activo.");
+
+            // Validar si el acompañante está activo
+            var acompanante = await _context.Usuarios.FindAsync(acompananteId);
+            if (acompanante == null) throw new KeyNotFoundException("Acompañante no encontrado");
+            if (acompanante.Estado != "Activo") throw new InvalidOperationException("El acompañante no está activo.");
+        }
 
         // Validar si el chofer está activo
         var chofer = await _context.Usuarios.FindAsync(choferId);
@@ -45,6 +58,7 @@ public class ViajeService : IViajeService
         {
             VehiculoId = vehiculoId,
             ChoferId = choferId,
+            AcompananteId = acompananteId,
             FechaSalida = TimeHelper.Now,
             Estado = EstadoViaje.EnCurso,
             Observaciones = observaciones
@@ -91,7 +105,9 @@ public class ViajeService : IViajeService
     {
         var viaje = await _context.Viajes
             .Include(v => v.Vehiculo)
-            .FirstOrDefaultAsync(v => v.ChoferId == usuarioId && v.Estado == EstadoViaje.EnCurso);
+            .Include(v => v.Chofer)
+            .Include(v => v.Acompanante)
+            .FirstOrDefaultAsync(v => (v.ChoferId == usuarioId || v.AcompananteId == usuarioId) && v.Estado == EstadoViaje.EnCurso);
 
         // Self-healing: Si existe viaje activo pero el vehículo NO está en ruta (EnRuta == false),
         // es una inconsistencia. Cerramos el viaje automáticamente.
