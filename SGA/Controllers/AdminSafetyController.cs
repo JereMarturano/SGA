@@ -29,7 +29,7 @@ public class AdminSafetyController : ControllerBase
             return StatusCode(500, ex.Message);
         }
     }
-}
+
 
     [HttpPost("hard-reset")]
     [AllowAnonymous] // BE CAREFUL: Removing auth for easier testing, add back for prod

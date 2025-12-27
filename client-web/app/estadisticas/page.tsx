@@ -133,7 +133,7 @@ export default function EstadisticasPage() {
                 </p>
                 <div className="flex items-end justify-between">
                   <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
-                    $ {reporte.totalVentas.toLocaleString('es-AR')}
+                    $ {reporte.totalVentas.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </h3>
                   <span className="flex items-center text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">
                     <ArrowUpRight size={16} />
@@ -148,7 +148,7 @@ export default function EstadisticasPage() {
                 </p>
                 <div className="flex items-end justify-between">
                   <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
-                    $ {(reporte.totalCompras || 0).toLocaleString('es-AR')}
+                    $ {(reporte.totalCompras || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </h3>
                   <span className="flex items-center text-blue-500 text-sm font-bold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">
                     <Truck size={16} />
@@ -163,7 +163,7 @@ export default function EstadisticasPage() {
                 </p>
                 <div className="flex items-end justify-between">
                   <h3 className="text-2xl lg:text-3xl font-black text-red-600 dark:text-red-400">
-                    $ {(reporte.totalPerdidaMermas || 0).toLocaleString('es-AR')}
+                    $ {(reporte.totalPerdidaMermas || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </h3>
                   <span className="flex items-center text-red-500 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
                     <PackageX size={16} />
@@ -178,7 +178,7 @@ export default function EstadisticasPage() {
                 </p>
                 <div className="flex items-end justify-between">
                   <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
-                    $ {(reporte.totalCostoMercaderia || 0).toLocaleString('es-AR')}
+                    $ {(reporte.totalCostoMercaderia || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </h3>
                   <span className="flex items-center text-orange-500 text-sm font-bold bg-orange-50 dark:bg-orange-900/20 px-2 py-1 rounded-lg">
                     <Package size={16} />
@@ -193,7 +193,7 @@ export default function EstadisticasPage() {
                 </p>
                 <div className="flex items-end justify-between">
                   <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
-                    $ {reporte.totalGastos.toLocaleString('es-AR')}
+                    $ {reporte.totalGastos.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </h3>
                   <span className="flex items-center text-red-500 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
                     <ArrowDownRight size={16} />
@@ -210,7 +210,7 @@ export default function EstadisticasPage() {
                   <h3
                     className={`text-2xl lg:text-3xl font-black ${reporte.gananciaNeta >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}
                   >
-                    $ {reporte.gananciaNeta.toLocaleString('es-AR')}
+                    $ {reporte.gananciaNeta.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </h3>
                   <span
                     className={`flex items-center text-sm font-bold px-2 py-1 rounded-lg ${reporte.gananciaNeta >= 0 ? 'text-green-500 bg-green-50 dark:bg-green-900/20' : 'text-red-500 bg-red-50 dark:bg-red-900/20'}`}
@@ -228,7 +228,7 @@ export default function EstadisticasPage() {
                 </p>
                 <div className="flex items-end justify-between">
                   <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
-                    $ {reporte.ticketPromedio.toLocaleString('es-AR')}
+                    $ {reporte.ticketPromedio.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </h3>
                   <span className="flex items-center text-blue-500 text-sm font-bold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">
                     <TrendingUp size={16} /> {reporte.cantidadVentas} Op.
@@ -243,7 +243,7 @@ export default function EstadisticasPage() {
                 </p>
                 <div className="flex items-end justify-between">
                   <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
-                    $ {(reporte.deudaTotalActual || 0).toLocaleString('es-AR')}
+                    $ {(reporte.deudaTotalActual || 0).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                   </h3>
                   <span className="flex items-center text-red-500 text-sm font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
                     <Wallet size={16} />
