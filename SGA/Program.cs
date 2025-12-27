@@ -38,6 +38,7 @@ builder.Services.AddScoped<IStockGeneralService, StockGeneralService>();
 builder.Services.AddScoped<IGalponService, GalponService>();
 builder.Services.AddScoped<ISiloService, SiloService>();
 builder.Services.AddScoped<IFabricaService, FabricaService>();
+builder.Services.AddScoped<ICierreCajaService, CierreCajaService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

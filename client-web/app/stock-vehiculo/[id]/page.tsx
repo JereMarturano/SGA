@@ -7,6 +7,7 @@ import api from '@/lib/axios';
 import { useParams } from 'next/navigation';
 import Header from '@/components/Header';
 
+// Helper types
 interface StockItem {
     stockVehiculoId: number;
     vehiculoId: number;
@@ -16,6 +17,7 @@ interface StockItem {
     producto?: {
         nombre: string;
         tipoProducto: number;
+        unidadDeMedida?: string; // [NEW] Added for unit awareness
     };
 }
 
@@ -52,9 +54,31 @@ export default function StockVehiculoPage() {
         );
     }
 
-    // Calculate totals
-    const totalMaples = stock.reduce((acc, item) => acc + (item.cantidad / 30), 0);
-    const totalHuevos = stock.reduce((acc, item) => acc + item.cantidad, 0);
+    // Helper to normalize quantity to Maples and Eggs for summary
+    const getNormalizedTotals = () => {
+        let totalMaples = 0;
+        let totalHuevos = 0;
+
+        stock.forEach(item => {
+            const uom = item.producto?.unidadDeMedida?.toLowerCase() || 'unidad';
+            // Assuming default for eggs is Maple if not specified, but safe fallback is Unit.
+            // However, based on previous fix, we know DB returns Maples for eggs.
+            const isMaple = uom === 'maple' || uom === 'cajon';
+
+            if (isMaple) {
+                totalMaples += item.cantidad;
+                totalHuevos += item.cantidad * 30; // 1 Maple = 30 Eggs
+            } else {
+                // If tracked in units (eggs)
+                totalMaples += item.cantidad / 30;
+                totalHuevos += item.cantidad;
+            }
+        });
+
+        return { totalMaples, totalHuevos };
+    };
+
+    const { totalMaples, totalHuevos } = getNormalizedTotals();
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
@@ -99,42 +123,67 @@ export default function StockVehiculoPage() {
                         <div className="bg-blue-600 text-white p-6 rounded-3xl shadow-lg shadow-blue-500/30 flex justify-between items-center">
                             <div>
                                 <p className="text-blue-200 text-sm font-bold uppercase mb-1">Total Carga</p>
-                                <p className="text-3xl font-black">{totalMaples.toFixed(1)} <span className="text-lg font-medium opacity-80">maples</span></p>
+                                <p className="text-3xl font-black">{totalMaples.toLocaleString('es-AR', { maximumFractionDigits: 1 })} <span className="text-lg font-medium opacity-80">maples</span></p>
                             </div>
                             <div className="text-right">
                                 <p className="text-blue-200 text-sm font-bold uppercase mb-1">Unidades</p>
-                                <p className="text-xl font-bold">{totalHuevos.toLocaleString()} <span className="text-sm font-medium opacity-80">huevos</span></p>
+                                <p className="text-xl font-bold">{totalHuevos.toLocaleString('es-AR', { maximumFractionDigits: 0 })} <span className="text-sm font-medium opacity-80">huevos</span></p>
                             </div>
                         </div>
 
                         {/* List */}
                         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-                            {stock.map((item, index) => (
-                                <div
-                                    key={item.stockVehiculoId}
-                                    className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-xl">
-                                            <Cuboid size={24} className="text-slate-500 dark:text-slate-300" />
+                            {stock.map((item, index) => {
+                                const uom = item.producto?.unidadDeMedida?.toLowerCase() || 'unidad';
+                                const isMaple = uom === 'maple' || uom === 'cajon';
+
+                                let displayCajones = 0;
+                                let displaySueltos = 0;
+                                let sueltosLabel = '';
+
+                                if (isMaple) {
+                                    // Cantidad is Maples
+                                    // 1 Cajon = 12 Maples
+                                    displayCajones = Math.floor(item.cantidad / 12);
+                                    displaySueltos = item.cantidad % 12;
+                                    sueltosLabel = 'maples';
+                                } else {
+                                    // Cantidad is Units (Huevos)
+                                    // 1 Cajon = 360 Huevos
+                                    displayCajones = Math.floor(item.cantidad / 360);
+                                    displaySueltos = item.cantidad % 360;
+                                    sueltosLabel = 'huevos';
+                                }
+
+                                return (
+                                    <div
+                                        key={item.stockVehiculoId}
+                                        className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="bg-slate-100 dark:bg-slate-700 p-3 rounded-xl">
+                                                <Cuboid size={24} className="text-slate-500 dark:text-slate-300" />
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-slate-800 dark:text-white text-lg">
+                                                    {item.producto?.nombre || `Producto ${item.productoId}`}
+                                                </p>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                    {displayCajones} cajones / {displaySueltos.toLocaleString('es-AR', { maximumFractionDigits: 1 })} {sueltosLabel}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-bold text-slate-800 dark:text-white text-lg">
-                                                {item.producto?.nombre || `Producto ${item.productoId}`}
+                                        <div className="text-right">
+                                            <p className="font-black text-slate-700 dark:text-slate-200 text-xl">
+                                                {item.cantidad.toLocaleString('es-AR', { maximumFractionDigits: 1 })}
                                             </p>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                                {Math.floor(item.cantidad / 30)} cajones / {(item.cantidad % 30)} sueltos
+                                            <p className="text-xs font-bold text-slate-400 uppercase">
+                                                {isMaple ? 'Maples' : 'Unidades'}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-black text-slate-700 dark:text-slate-200 text-xl">
-                                            {(item.cantidad / 30).toFixed(1)}
-                                        </p>
-                                        <p className="text-xs font-bold text-slate-400 uppercase">Maples</p>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 )}

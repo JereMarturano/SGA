@@ -148,7 +148,8 @@ public static class DbInitializer
             {
                  // Update properties if needed, e.g. ensure Type is correct or if it was reset
                  // For now, we trust the existing valid silo's state, but we ensure Product is linked if missing matches
-                 if (existingSilo.ProductoId == null && s.ProductoId != null)
+                 // Ensure Product is linked correctly (Force update for default silos)
+                 if (s.ProductoId != null && existingSilo.ProductoId != s.ProductoId)
                  {
                      existingSilo.ProductoId = s.ProductoId;
                  }

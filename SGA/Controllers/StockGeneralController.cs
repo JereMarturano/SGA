@@ -413,9 +413,26 @@ public class StockGeneralController : ControllerBase
     [HttpGet("deposito")]
     public async Task<IActionResult> GetDeposito()
     {
-        // "en el deposito se es donde esta el stock general" -> Productos
-        var productos = await _context.Productos.ToListAsync();
-        return Ok(productos);
+        // Use database-side projection for direct calculation
+        var result = await _context.Productos
+            .Select(p => new 
+            {
+                p.ProductoId,
+                p.Nombre,
+                TipoProducto = (int)p.TipoProducto, // Force Integer
+                p.StockActual, // Stock en Deposito
+                StockSilo = _context.Silos.Where(s => s.ProductoId == p.ProductoId).Sum(s => s.CantidadActualKg),
+                p.StockMinimoAlerta,
+                p.UnidadDeMedida,
+                p.EsHuevo,
+                p.Tamano,
+                p.Color,
+                p.UnidadesPorBulto,
+                p.CostoUltimaCompra
+            })
+            .ToListAsync();
+
+        return Ok(result);
     }
 
     [HttpPost("deposito/movimiento")]

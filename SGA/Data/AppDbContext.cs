@@ -32,6 +32,7 @@ public class AppDbContext : DbContext
     public DbSet<Silo> Silos { get; set; }
     public DbSet<Produccion> Producciones { get; set; }
     public DbSet<ProduccionIngrediente> ProduccionIngredientes { get; set; }
+    public DbSet<CierreCajaDiario> CierresCajaDiarios { get; set; }
 
 
     // Stock General entities

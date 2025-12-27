@@ -41,14 +41,27 @@ interface Producto {
   nombre: string;
   esHuevo: boolean;
   costoUltimaCompra: number;
+  unidadDeMedida: string; // [FIX] Added to track base unit
 }
 
 type UnitType = 'UNIDAD' | 'MAPLE' | 'CAJON';
 
-const UNIT_FACTORS: Record<UnitType, number> = {
+// Default factors (display only, normalization handled by helper)
+const UNIT_FACTORS_DISPLAY: Record<UnitType, number> = {
   UNIDAD: 1,
   MAPLE: 30,
   CAJON: 360,
+};
+
+const getNormalizedFactor = (targetUnit: string, productUnit: string) => {
+  const factors: Record<string, number> = {
+    'unidad': 1,
+    'maple': 30,
+    'cajon': 360,
+  };
+  const target = factors[targetUnit.toLowerCase()] || 1;
+  const base = factors[productUnit.toLowerCase()] || 1;
+  return target / base;
 };
 
 export default function SimulacionVentasPage() {
@@ -119,8 +132,11 @@ export default function SimulacionVentasPage() {
             nombreCompleto: c.nombreCompleto || `${c.nombre} ${c.apellido || ''}`.trim(),
           }))
         );
-        // Filter only eggs as requested
-        setProductos(productosRes.data.filter((p: Producto) => p.esHuevo));
+        // Filter only eggs as requested and map unit
+        setProductos(productosRes.data.filter((p: any) => p.esHuevo).map((p: any) => ({
+          ...p,
+          unidadDeMedida: p.unidadDeMedida || 'UNIDAD'
+        })));
         setLoadingData(false);
       } catch (error) {
         console.error('Error loading data:', error);
@@ -129,7 +145,6 @@ export default function SimulacionVentasPage() {
       }
     };
 
-    fetchData();
     fetchData();
   }, [isAuthenticated, router, user, user?.Rol]);
 
@@ -186,7 +201,8 @@ export default function SimulacionVentasPage() {
     if (selectedProducto && unitType) {
       const prod = productos.find((p) => p.productoId === selectedProducto);
       if (prod && prod.costoUltimaCompra > 0) {
-        const factor = UNIT_FACTORS[unitType];
+        // Calculate factor relative to Base Unit
+        const factor = getNormalizedFactor(unitType, prod.unidadDeMedida);
         const costPerUnit = prod.costoUltimaCompra * factor;
         const suggestedPrice = costPerUnit * 1.1; // +10% margin
         setPrecio(suggestedPrice.toFixed(2));
@@ -197,13 +213,25 @@ export default function SimulacionVentasPage() {
   const calculateTotals = () => {
     const qty = parseFloat(cantidad) || 0;
     const price = parseFloat(precio) || 0;
-    const factor = UNIT_FACTORS[unitType];
 
-    const totalUnits = qty * factor;
-    const unitPrice = totalUnits > 0 ? price / factor : 0; // Price per egg
+    // [FIX] Use Normalized Factor
+    const prod = productos.find(p => p.productoId === Number(selectedProducto));
+    const factorToBase = prod ? getNormalizedFactor(unitType, prod.unidadDeMedida) : 1;
+
+    const totalUnitsNormalized = qty * factorToBase; // This is Quantity in Base Units (e.g. Maples)
+
+    // For display "Total Huevos" we verify base unit
+    let totalHuevos = 0;
+    if (prod?.unidadDeMedida?.toLowerCase() === 'maple' || prod?.unidadDeMedida?.toLowerCase() === 'cajon') {
+      totalHuevos = totalUnitsNormalized * 30;
+    } else {
+      totalHuevos = totalUnitsNormalized;
+    }
+
+    const unitPrice = totalUnitsNormalized > 0 ? price / factorToBase : 0; // Price per Base Unit
     const totalAmount = qty * price;
 
-    return { totalUnits, unitPrice, totalAmount };
+    return { totalUnits: totalUnitsNormalized, totalHuevosDisplay: totalHuevos, unitPrice, totalAmount };
   };
 
   const validatePrice = () => {
@@ -225,24 +253,12 @@ export default function SimulacionVentasPage() {
     console.log('handlePreSubmit triggered');
     setMessage(null);
 
-    console.log('Form Data:', {
-      selectedVehiculo,
-      selectedCliente,
-      selectedProducto,
-      cantidad,
-      precio,
-      metodoPago,
-      fechaVencimiento,
-    });
-
     if (!selectedVehiculo || !selectedCliente || !selectedProducto || !cantidad || !precio) {
-      console.log('Validation failed: Missing fields');
       setMessage({ type: 'error', text: 'Por favor complete todos los campos requeridos.' });
       return;
     }
 
     if (metodoPago === 3 && !fechaVencimiento) {
-      console.log('Validation failed: Missing due date for Cta Cte');
       setMessage({ type: 'error', text: 'Debe indicar una fecha de pago para Cuenta Corriente.' });
       return;
     }
@@ -251,9 +267,6 @@ export default function SimulacionVentasPage() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const due = new Date(fechaVencimiento);
-      // Fix timezone issue when comparing dates represented as strings
-      // We can just compare the string 'YYYY-MM-DD' if we want strictly >
-      // But safer:
       const dueDay = new Date(due.getFullYear(), due.getMonth(), due.getDate());
       const currentDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
@@ -264,7 +277,6 @@ export default function SimulacionVentasPage() {
     }
 
     if (!validatePrice()) {
-      console.log('Validation failed: Price validation');
       setMessage({
         type: 'error',
         text: 'El precio de venta es menor o igual al costo de compra. Verifique el precio.',
@@ -273,15 +285,17 @@ export default function SimulacionVentasPage() {
     }
 
     // Validate Stock
-    const { totalUnits } = calculateTotals();
-    const currentStock = vehicleStock.get(Number(selectedProducto)) || 0;
+    const { totalUnits } = calculateTotals(); // totalUnits is in Base Unit
+    const currentStock = vehicleStock.get(Number(selectedProducto)) || 0; // currentStock is in Base Unit
+
     console.log('Stock Validation:', { totalUnits, currentStock });
 
     if (totalUnits > currentStock) {
-      const currentStockMaples = (currentStock / 30).toFixed(1);
+      const prod = productos.find(p => p.productoId === Number(selectedProducto));
+      const uom = prod?.unidadDeMedida || 'Unidad';
       setMessage({
         type: 'error',
-        text: `Stock insuficiente. Disponible: ${currentStockMaples} maples (${currentStock} huevos).`,
+        text: `Stock insuficiente. Disponible: ${currentStock.toLocaleString()} ${uom}.`,
       });
       return;
     }
@@ -295,8 +309,6 @@ export default function SimulacionVentasPage() {
     setShowConfirmModal(false);
 
     try {
-      // Logic for explicit date removed, backend handles it.
-      // const dateTime = new Date(`${fecha}T${hora}:00`);
       const { totalUnits, unitPrice } = calculateTotals();
 
       const payload = {
@@ -309,7 +321,7 @@ export default function SimulacionVentasPage() {
         items: [
           {
             productoId: Number(selectedProducto),
-            cantidad: totalUnits,
+            cantidad: totalUnits, // Sends correct quantity in Base Unit (1 Cajon -> 12 Maples)
             precioUnitario: unitPrice,
           },
         ],
@@ -333,7 +345,7 @@ export default function SimulacionVentasPage() {
     }
   };
 
-  const { totalUnits, unitPrice, totalAmount } = calculateTotals();
+  const { totalUnits, totalHuevosDisplay, unitPrice, totalAmount } = calculateTotals();
   const selectedProdData = productos.find((p) => p.productoId === selectedProducto);
 
   if (loadingData) {
@@ -366,8 +378,6 @@ export default function SimulacionVentasPage() {
 
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-8">
           <form onSubmit={handlePreSubmit} className="space-y-8">
-            {/* Fecha y Hora removidos - Se usan automáticos */}
-
             {/* Vehículo y Cliente */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -477,18 +487,22 @@ export default function SimulacionVentasPage() {
                   <option value="">
                     {loadingStock ? 'Cargando stock...' : 'Seleccionar Producto'}
                   </option>
-                  {availableProducts.map((p) => (
-                    <option key={p.productoId} value={p.productoId}>
-                      {p.nombre} (Disp: {Math.floor((vehicleStock.get(p.productoId) || 0) / 30)}{' '}
-                      maples)
-                    </option>
-                  ))}
+                  {availableProducts.map((p) => {
+                    const qty = vehicleStock.get(p.productoId) || 0;
+                    // Only display maples if base unit is maple or huge quantity
+                    // For clarity: Show Qty + BaseUnit
+                    return (
+                      <option key={p.productoId} value={p.productoId}>
+                        {p.nombre} (Disp: {qty.toLocaleString()} {p.unidadDeMedida})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               {selectedProdData && selectedProdData.costoUltimaCompra > 0 && (
                 <p className="text-xs text-slate-500 pl-2">
                   Costo ref ({unitType}): $
-                  {(selectedProdData.costoUltimaCompra * UNIT_FACTORS[unitType]).toFixed(2)} (+10%
+                  {(selectedProdData.costoUltimaCompra * getNormalizedFactor(unitType, selectedProdData.unidadDeMedida)).toFixed(2)} (+10%
                   ganancia)
                 </p>
               )}
@@ -556,7 +570,7 @@ export default function SimulacionVentasPage() {
               <div className="text-right">
                 <p className="text-xs text-slate-500 uppercase font-bold">Total Huevos</p>
                 <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                  {totalUnits.toLocaleString()}
+                  {Math.round(totalHuevosDisplay).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -676,7 +690,7 @@ export default function SimulacionVentasPage() {
                 <strong>Producto:</strong> {selectedProdData?.nombre}
               </li>
               <li>
-                <strong>Cantidad:</strong> {cantidad} {unitType} ({totalUnits} huevos)
+                <strong>Cantidad:</strong> {cantidad} {unitType} ({Math.round(totalHuevosDisplay)} huevos)
               </li>
               <li>
                 <strong>Total:</strong> $
