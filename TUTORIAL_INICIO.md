@@ -336,7 +336,7 @@ Una vez que la aplicación esté corriendo:
 1. **Explora las funcionalidades**:
    - Gestión de inventario
    - Carga de vehículos
-   - Simulación de ventas
+   - Ventas de Empleado
    - Reportes y estadísticas
 
 2. **Revisa la documentación de la API**:

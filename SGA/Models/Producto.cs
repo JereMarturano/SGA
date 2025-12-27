@@ -36,4 +36,16 @@ public class Producto
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal CostoUltimaCompra { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal PrecioSugerido { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal PrecioMinimo { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal PrecioMaximo { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal UltimoMargen { get; set; }
 }

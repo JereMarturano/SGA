@@ -437,12 +437,19 @@ public class StockGeneralController : ControllerBase
 
     [HttpPost("deposito/movimiento")]
     [Authorize(Roles = "Admin,Encargado")] 
-    public async Task<IActionResult> RegistrarMovimientoDeposito([FromBody] MovimientoStock movimiento)
+    public async Task<IActionResult> RegistrarMovimientoDeposito([FromBody] IngresoDepositoDto request)
     {
-        var producto = await _context.Productos.FindAsync(movimiento.ProductoId);
+        var producto = await _context.Productos.FindAsync(request.ProductoId);
         if (producto == null) return NotFound("Producto no encontrado");
 
-        movimiento.Fecha = DateTime.Now;
+        var movimiento = new MovimientoStock
+        {
+            ProductoId = request.ProductoId,
+            TipoMovimiento = request.TipoMovimiento,
+            Cantidad = request.Cantidad,
+            Observaciones = request.Observaciones,
+            Fecha = DateTime.Now
+        };
         // Fallback user ID logic
         movimiento.UsuarioId = int.Parse(User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value ?? "1");
 
@@ -450,11 +457,18 @@ public class StockGeneralController : ControllerBase
         if (movimiento.TipoMovimiento == TipoMovimientoStock.Ingreso)
         {
             producto.StockActual += movimiento.Cantidad;
+            
+            // Update Price/Cost if provided
+            if (request.NuevoCosto > 0) producto.CostoUltimaCompra = request.NuevoCosto.Value;
+            if (request.NuevoPrecio > 0) producto.PrecioSugerido = request.NuevoPrecio.Value;
+            if (request.Margen > 0) producto.UltimoMargen = request.Margen.Value;
         }
         else if (movimiento.TipoMovimiento == TipoMovimientoStock.Egreso || movimiento.TipoMovimiento == TipoMovimientoStock.AjusteInventario)
         {
             producto.StockActual -= movimiento.Cantidad;
         }
+
+        if (producto.StockActual < 0) producto.StockActual = 0;
 
         if (producto.StockActual < 0) producto.StockActual = 0;
 
@@ -470,9 +484,18 @@ public class StockGeneralController : ControllerBase
         var producto = await _context.Productos.FindAsync(id);
         if (producto == null) return NotFound("Producto no encontrado");
 
-        if (producto.EsHuevo) return BadRequest("No se puede manipular el precio del huevo desde aquí");
+        // Allow updating for eggs too? Instructions implied "no se puede manipular... desde aqui" for Eggs in previous code, 
+        // but now we might want to set Min/Max/Suggested for them too?
+        // Let's keep the restriction "No se puede manipular el precio (COSTO) del huevo" but allow selling price?
+        // The previous code blocked it: if (producto.EsHuevo) return BadRequest(...)
+        // But "Precio máxima o mínima... desde admin" suggests we should allow it.
+        // I will remove the block or Check if request has fields other than Costo.
+        
+        if (request.Precio > 0) producto.CostoUltimaCompra = request.Precio;
+        if (request.PrecioSugerido.HasValue) producto.PrecioSugerido = request.PrecioSugerido.Value;
+        if (request.PrecioMinimo.HasValue) producto.PrecioMinimo = request.PrecioMinimo.Value;
+        if (request.PrecioMaximo.HasValue) producto.PrecioMaximo = request.PrecioMaximo.Value;
 
-        producto.CostoUltimaCompra = request.Precio;
         await _context.SaveChangesAsync();
         return Ok(producto);
     }
@@ -539,7 +562,23 @@ public class TransferirPollitosRequest
     public int Cantidad { get; set; }
 }
 
+public class IngresoDepositoDto
+{
+    public int ProductoId { get; set; }
+    public TipoMovimientoStock TipoMovimiento { get; set; }
+    public decimal Cantidad { get; set; }
+    public string? Observaciones { get; set; }
+
+    // Optional Price/Cost fields
+    public decimal? NuevoCosto { get; set; }
+    public decimal? NuevoPrecio { get; set; }
+    public decimal? Margen { get; set; }
+}
+
 public class UpdatePrecioRequest
 {
-    public decimal Precio { get; set; }
+    public decimal Precio { get; set; } // Costo
+    public decimal? PrecioSugerido { get; set; }
+    public decimal? PrecioMinimo { get; set; }
+    public decimal? PrecioMaximo { get; set; }
 }

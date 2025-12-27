@@ -329,7 +329,7 @@ export default function SimulacionVentasPage() {
 
       await api.post('/ventas', payload);
 
-      setMessage({ type: 'success', text: 'Venta simulada registrada exitosamente.' });
+      setMessage({ type: 'success', text: 'Venta registrada exitosamente.' });
 
       // Reset fields
       setCantidad('');
@@ -368,7 +368,7 @@ export default function SimulacionVentasPage() {
           </Link>
           <div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-white">
-              Simulación de Ventas
+              Ventas de Empleado
             </h1>
             <p className="text-slate-500 dark:text-slate-400">
               Registrar ventas manuales o históricas

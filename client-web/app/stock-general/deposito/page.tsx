@@ -17,6 +17,9 @@ interface Producto {
     unidadesPorBulto: number;
     stockSilo?: number;
     tipoProducto: number;
+    precioSugerido?: number;
+    precioMinimo?: number;
+    precioMaximo?: number;
 }
 
 export default function DepositoPage() {
@@ -38,6 +41,14 @@ export default function DepositoPage() {
     // Price Edit Modal
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [priceAmount, setPriceAmount] = useState('');
+    const [priceMin, setPriceMin] = useState('');
+    const [priceMax, setPriceMax] = useState('');
+    const [priceSuggested, setPriceSuggested] = useState('');
+
+    // Ingreso Cost/Margin State
+    const [newCost, setNewCost] = useState('');
+    const [margin, setMargin] = useState('');
+    const [suggestedPrice, setSuggestedPrice] = useState('');
 
     // New Product Modal
     const [isNewProdModalOpen, setIsNewProdModalOpen] = useState(false);
@@ -82,6 +93,11 @@ export default function DepositoPage() {
         setMoveType(type);
         setAmount('');
         setObs('');
+        // Reset Ingreso fields
+        setNewCost(prod.costoUltimaCompra > 0 ? prod.costoUltimaCompra.toString() : '');
+        setMargin('');
+        setSuggestedPrice('');
+
         setModalUnit(prod.esHuevo ? 'Maple' : 'Original');
         setIsModalOpen(true);
     };
@@ -99,7 +115,11 @@ export default function DepositoPage() {
                 productoId: selectedProd.productoId,
                 tipoMovimiento: moveType,
                 cantidad: finalCantidad,
-                observaciones: obs
+                observaciones: obs,
+                // Extra fields
+                nuevoCosto: newCost ? parseFloat(newCost) : undefined,
+                margen: margin ? parseFloat(margin) : undefined,
+                nuevoPrecio: suggestedPrice ? parseFloat(suggestedPrice) : undefined
             });
             setIsModalOpen(false);
             fetchProductos();
@@ -109,10 +129,13 @@ export default function DepositoPage() {
     };
 
     const submitPrecioUpdate = async () => {
-        if (!selectedProd || !priceAmount) return;
+        if (!selectedProd) return;
         try {
             await api.put(`/stock-general/productos/${selectedProd.productoId}/precio`, {
-                precio: parseFloat(priceAmount)
+                precio: priceAmount ? parseFloat(priceAmount) : 0,
+                precioMinimo: priceMin ? parseFloat(priceMin) : undefined,
+                precioMaximo: priceMax ? parseFloat(priceMax) : undefined,
+                precioSugerido: priceSuggested ? parseFloat(priceSuggested) : undefined
             });
             setIsPriceModalOpen(false);
             fetchProductos();
@@ -243,6 +266,9 @@ export default function DepositoPage() {
                                                         onClick={() => {
                                                             setSelectedProd(p);
                                                             setPriceAmount(p.costoUltimaCompra.toString());
+                                                            setPriceMin(p.precioMinimo ? p.precioMinimo.toString() : '');
+                                                            setPriceMax(p.precioMaximo ? p.precioMaximo.toString() : '');
+                                                            setPriceSuggested(p.precioSugerido ? p.precioSugerido.toString() : '');
                                                             setIsPriceModalOpen(true);
                                                         }}
                                                         className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-500 rounded transition-colors"
@@ -295,6 +321,66 @@ export default function DepositoPage() {
                                 )}
                             </div>
                         </div>
+
+                        {moveType === 'Ingreso' && (
+                            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800 space-y-3">
+                                <h4 className="text-sm font-bold text-blue-800 dark:text-blue-200">Configuración de Costo y Precio</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-medium mb-1 text-gray-500">Costo Unitario</label>
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1.5 text-gray-400 text-xs">$</span>
+                                            <input
+                                                type="number"
+                                                value={newCost}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setNewCost(val);
+                                                    if (val && margin) {
+                                                        const cost = parseFloat(val);
+                                                        const marg = parseFloat(margin);
+                                                        setSuggestedPrice((cost * (1 + marg / 100)).toFixed(2));
+                                                    }
+                                                }}
+                                                className="w-full p-1.5 pl-5 text-sm border rounded bg-white dark:bg-gray-700 dark:border-gray-600"
+                                                placeholder={selectedProd?.costoUltimaCompra.toString()}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium mb-1 text-gray-500">Margen Ganancia %</label>
+                                        <input
+                                            type="number"
+                                            value={margin}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                setMargin(val);
+                                                if (newCost && val) {
+                                                    const cost = parseFloat(newCost);
+                                                    const marg = parseFloat(val);
+                                                    setSuggestedPrice((cost * (1 + marg / 100)).toFixed(2));
+                                                }
+                                            }}
+                                            className="w-full p-1.5 text-sm border rounded bg-white dark:bg-gray-700 dark:border-gray-600"
+                                            placeholder="Ej: 20"
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-bold mb-1 text-blue-600">Precio Venta Sugerido</label>
+                                        <div className="relative">
+                                            <span className="absolute left-2 top-1.5 text-gray-500 text-xs">$</span>
+                                            <input
+                                                type="number"
+                                                value={suggestedPrice}
+                                                onChange={(e) => setSuggestedPrice(e.target.value)}
+                                                className="w-full p-1.5 pl-5 text-sm font-bold border-2 border-blue-200 rounded bg-white dark:bg-gray-700 dark:border-gray-600 text-blue-700 dark:text-blue-300"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         <div>
                             <label className="block text-sm font-medium mb-1">Observación</label>
                             <input value={obs} onChange={(e) => setObs(e.target.value)} className="w-full p-2 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600" />
@@ -306,7 +392,7 @@ export default function DepositoPage() {
                 <Modal isOpen={isPriceModalOpen} onClose={() => setIsPriceModalOpen(false)} title={`Actualizar Precio - ${selectedProd?.nombre}`}>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium mb-1">Nuevo Precio (por {selectedProd?.unidadDeMedida})</label>
+                            <label className="block text-sm font-medium mb-1">Costo Unitario (Compra)</label>
                             <div className="relative">
                                 <span className="absolute left-3 top-2 text-gray-500">$</span>
                                 <input
@@ -318,7 +404,49 @@ export default function DepositoPage() {
                                 />
                             </div>
                         </div>
-                        <button onClick={submitPrecioUpdate} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-500/20">Guardar Precio</button>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Precio Mínimo</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={priceMin}
+                                        onChange={(e) => setPriceMin(e.target.value)}
+                                        className="w-full p-2 pl-7 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Precio Máximo</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={priceMax}
+                                        onChange={(e) => setPriceMax(e.target.value)}
+                                        className="w-full p-2 pl-7 border rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Precio Sugerido (Venta)</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2 text-gray-500">$</span>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={priceSuggested}
+                                    onChange={(e) => setPriceSuggested(e.target.value)}
+                                    className="w-full p-2 pl-7 border-2 border-blue-100 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 font-bold text-blue-600"
+                                />
+                            </div>
+                        </div>
+
+                        <button onClick={submitPrecioUpdate} className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-lg shadow-blue-500/20">Guardar Cambios</button>
                     </div>
                 </Modal>
 

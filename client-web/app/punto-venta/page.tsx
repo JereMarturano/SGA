@@ -38,6 +38,9 @@ interface Producto {
   esHuevo: boolean;
   unidadesPorBulto: number;
   unidadDeMedida: string;
+  precioSugerido?: number;
+  precioMinimo?: number;
+  precioMaximo?: number;
 }
 
 interface Vehiculo {
@@ -129,6 +132,9 @@ export default function PuntoVentaPage() {
           esHuevo: p.esHuevo,
           unidadesPorBulto: p.unidadesPorBulto || 1,
           unidadDeMedida: p.unidadDeMedida,
+          precioSugerido: p.precioSugerido,
+          precioMinimo: p.precioMinimo,
+          precioMaximo: p.precioMaximo
         }));
         setProductos(productsMapped);
         setVehiculos(vehiculosRes.data);
@@ -185,7 +191,9 @@ export default function PuntoVentaPage() {
 
     const factor = getNormalizedFactor(initialUnit, prod.unidadDeMedida);
 
-    if (isGranja) {
+    if (prod.precioSugerido && prod.precioSugerido > 0) {
+      setAddPrice((prod.precioSugerido * factor).toFixed(2));
+    } else if (isGranja) {
       // Cost + 10%
       const costPlus10 = (prod.costoUltimaCompra * 1.10) * factor;
       setAddPrice(Math.round(costPlus10).toFixed(2));
@@ -199,7 +207,9 @@ export default function PuntoVentaPage() {
     if (addingProduct) {
       const factor = getNormalizedFactor(addUnit, addingProduct.unidadDeMedida);
 
-      if (isGranja) {
+      if (addingProduct.precioSugerido && addingProduct.precioSugerido > 0) {
+        setAddPrice((addingProduct.precioSugerido * factor).toFixed(2));
+      } else if (isGranja) {
         const costPlus10 = (addingProduct.costoUltimaCompra * 1.10) * factor;
         setAddPrice(Math.round(costPlus10).toFixed(2));
       } else {
@@ -239,9 +249,24 @@ export default function PuntoVentaPage() {
     }
 
     // Unit Price (Price per ONE egg/unit)
-    const unitPrice = price / factor; // The entered price is "Per Unit selected" (e.g., Price per MAPLE)?
-    // NO, usually "Precio" field in sales is "Precio Unitario" or "Total"?
-    // In Simulacion: "Precio ({unitType})" -> entered by user.
+    // The entered price is "Per Unit selected" (e.g., Price per MAPLE)
+    // So 'price' is indeed Price Per Selected Unit Type.
+    const unitPrice = price / factor;
+
+    // Validate Price Limits
+    if (addingProduct.precioMinimo && addingProduct.precioMinimo > 0) {
+      if (unitPrice < addingProduct.precioMinimo) {
+        alert(`El precio unitario ($${unitPrice.toFixed(2)}) está por debajo del mínimo permitido ($${addingProduct.precioMinimo})`);
+        return;
+      }
+    }
+    if (addingProduct.precioMaximo && addingProduct.precioMaximo > 0) {
+      if (unitPrice > addingProduct.precioMaximo) {
+        alert(`El precio unitario ($${unitPrice.toFixed(2)}) excede el máximo permitido ($${addingProduct.precioMaximo})`);
+        return;
+      }
+    }
+
     // Then calculateTotals: totalAmount = qty * price.
     // So 'price' is indeed Price Per Selected Unit Type.
 
