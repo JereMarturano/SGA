@@ -19,6 +19,7 @@ public class ReportesController : ControllerBase
     }
 
     [HttpGet("financiero")]
+    [AllowAnonymous]
     public async Task<ActionResult<ReporteFinancieroDTO>> ObtenerReporteFinanciero(
         [FromQuery] DateTime inicio, 
         [FromQuery] DateTime fin, 
@@ -32,6 +33,7 @@ public class ReportesController : ControllerBase
         try
         {
             var reporte = await _reporteService.GenerarReporteFinancieroAsync(inicio, fin, vehiculoId);
+            Console.WriteLine($"[DEBUG] Reporte: Inicio={inicio}, Fin={fin}, TotalCompras={reporte.TotalCompras}, Ventas={reporte.TotalVentas}");
             return Ok(reporte);
         }
         catch (Exception ex)

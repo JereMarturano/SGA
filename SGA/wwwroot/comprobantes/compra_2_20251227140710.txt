@@ -1,0 +1,11 @@
+=== COMPROBANTE DE COMPRA ===
+ID Compra: 2
+Fecha: 27/12/2025 14:07:10
+Proveedor: Diego
+Usuario ID: 1
+-----------------------------
+DETALLE:
+Producto ID: 1 | Cant: 192 | Costo U.: $ 3.166,67 | Subtotal: $ 608.000,00
+-----------------------------
+TOTAL: $ 608.000,00
+=============================

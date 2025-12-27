@@ -3,6 +3,7 @@ export interface ReporteFinanciero {
   fechaFin: string;
   totalVentas: number;
   totalCostoMercaderia: number;
+  totalCompras: number;
   totalGastos: number;
   gananciaNeta: number;
   totalPerdidaMermas: number;
@@ -72,7 +73,7 @@ export const fetchReporteFinanciero = async (
   const inicioStr = inicio.toISOString();
   const finStr = fin.toISOString();
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/reportes/financiero?inicio=${inicioStr}&fin=${finStr}`
+    `/api/reportes/financiero?inicio=${inicioStr}&fin=${finStr}`
   );
   if (!res.ok) throw new Error('Error al obtener reporte financiero');
   return res.json();

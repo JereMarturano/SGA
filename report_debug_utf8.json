@@ -1,0 +1,295 @@
+﻿{
+    "fechaInicio":  "2025-12-01T00:00:00",
+    "fechaFin":  "2026-01-01T23:59:59.9999999",
+    "totalVentas":  2599791.57,
+    "totalCostoMercaderia":  9021876.26690,
+    "totalCompras":  1828000.00,
+    "totalGastos":  80000.00,
+    "gananciaNeta":  -7789951.63690,
+    "totalPerdidaMermas":  1287866.94000,
+    "margenGananciaPorcentaje":  -299.63754505519840577065953022,
+    "ventasPorMetodoPago":  [
+                                {
+                                    "metodoPago":  0,
+                                    "total":  2115918.57,
+                                    "cantidadTransacciones":  36
+                                },
+                                {
+                                    "metodoPago":  3,
+                                    "total":  101535.00,
+                                    "cantidadTransacciones":  5
+                                },
+                                {
+                                    "metodoPago":  1,
+                                    "total":  382338.00,
+                                    "cantidadTransacciones":  9
+                                }
+                            ],
+    "ventasPorProducto":  [
+                              {
+                                  "productoId":  1,
+                                  "nombreProducto":  "Huevo Blanco Grande",
+                                  "cantidadVendida":  1879.93,
+                                  "totalGenerado":  2056933.57
+                              },
+                              {
+                                  "productoId":  5,
+                                  "nombreProducto":  "Huevo Color Grande",
+                                  "cantidadVendida":  1000.00,
+                                  "totalGenerado":  185600.00
+                              },
+                              {
+                                  "productoId":  2,
+                                  "nombreProducto":  "Huevo Blanco Mediano",
+                                  "cantidadVendida":  999.90,
+                                  "totalGenerado":  109989.00
+                              },
+                              {
+                                  "productoId":  3,
+                                  "nombreProducto":  "Huevo Blanco Chico",
+                                  "cantidadVendida":  987.90,
+                                  "totalGenerado":  108669.00
+                              },
+                              {
+                                  "productoId":  6,
+                                  "nombreProducto":  "Huevo Color Mediano",
+                                  "cantidadVendida":  760.00,
+                                  "totalGenerado":  83600.00
+                              },
+                              {
+                                  "productoId":  4,
+                                  "nombreProducto":  "Huevo Blanco Jumbo",
+                                  "cantidadVendida":  500.00,
+                                  "totalGenerado":  55000.00
+                              }
+                          ],
+    "ventasPorFecha":  [
+                           {
+                               "fecha":  "2025-12-02T00:00:00",
+                               "total":  189100.08,
+                               "cantidadVentas":  17
+                           },
+                           {
+                               "fecha":  "2025-12-03T00:00:00",
+                               "total":  15600.00,
+                               "cantidadVentas":  3
+                           },
+                           {
+                               "fecha":  "2025-12-05T00:00:00",
+                               "total":  16500.00,
+                               "cantidadVentas":  2
+                           },
+                           {
+                               "fecha":  "2025-12-09T00:00:00",
+                               "total":  6600.00,
+                               "cantidadVentas":  1
+                           },
+                           {
+                               "fecha":  "2025-12-10T00:00:00",
+                               "total":  42900.00,
+                               "cantidadVentas":  7
+                           },
+                           {
+                               "fecha":  "2025-12-11T00:00:00",
+                               "total":  13200.00,
+                               "cantidadVentas":  2
+                           },
+                           {
+                               "fecha":  "2025-12-15T00:00:00",
+                               "total":  9900.00,
+                               "cantidadVentas":  2
+                           },
+                           {
+                               "fecha":  "2025-12-17T00:00:00",
+                               "total":  3300.00,
+                               "cantidadVentas":  1
+                           },
+                           {
+                               "fecha":  "2025-12-18T00:00:00",
+                               "total":  25520.00,
+                               "cantidadVentas":  4
+                           },
+                           {
+                               "fecha":  "2025-12-27T00:00:00",
+                               "total":  2277171.49,
+                               "cantidadVentas":  11
+                           }
+                       ],
+    "gastosPorTipo":  [
+                          {
+                              "tipoGasto":  1,
+                              "total":  80000.00,
+                              "cantidadRegistros":  2
+                          }
+                      ],
+    "ventasPorDia":  [
+                         {
+                             "fecha":  "2025-12-01",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-02",
+                             "total":  189100.08
+                         },
+                         {
+                             "fecha":  "2025-12-03",
+                             "total":  15600.00
+                         },
+                         {
+                             "fecha":  "2025-12-04",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-05",
+                             "total":  16500.00
+                         },
+                         {
+                             "fecha":  "2025-12-06",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-07",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-08",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-09",
+                             "total":  6600.00
+                         },
+                         {
+                             "fecha":  "2025-12-10",
+                             "total":  42900.00
+                         },
+                         {
+                             "fecha":  "2025-12-11",
+                             "total":  13200.00
+                         },
+                         {
+                             "fecha":  "2025-12-12",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-13",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-14",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-15",
+                             "total":  9900.00
+                         },
+                         {
+                             "fecha":  "2025-12-16",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-17",
+                             "total":  3300.00
+                         },
+                         {
+                             "fecha":  "2025-12-18",
+                             "total":  25520.00
+                         },
+                         {
+                             "fecha":  "2025-12-19",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-20",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-21",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-22",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-23",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-24",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-25",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-26",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-27",
+                             "total":  2277171.49
+                         },
+                         {
+                             "fecha":  "2025-12-28",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-29",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-30",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2025-12-31",
+                             "total":  0
+                         },
+                         {
+                             "fecha":  "2026-01-01",
+                             "total":  0
+                         }
+                     ],
+    "cantidadVentas":  50,
+    "ticketPromedio":  51995.8314,
+    "totalHuevosVendidos":  0,
+    "clientesActivos":  0,
+    "tendenciaVentas":  [
+
+                        ],
+    "topClientes":  [
+                        {
+                            "clienteId":  1,
+                            "nombreCliente":  "Jeremias Marturano",
+                            "totalComprado":  2599791.57,
+                            "cantidadCompras":  50
+                        }
+                    ],
+    "ventasPorVendedor":  [
+                              {
+                                  "usuarioId":  2,
+                                  "nombreVendedor":  "Lucas Rodriguez",
+                                  "totalVendido":  2317869.49,
+                                  "cantidadVentas":  19
+                              },
+                              {
+                                  "usuarioId":  1,
+                                  "nombreVendedor":  "Santiago Perez",
+                                  "totalVendido":  275322.08,
+                                  "cantidadVentas":  30
+                              },
+                              {
+                                  "usuarioId":  7,
+                                  "nombreVendedor":  "Chofer Test",
+                                  "totalVendido":  6600.00,
+                                  "cantidadVentas":  1
+                              }
+                          ],
+    "deudaTotalActual":  18325.00,
+    "variacionVentas":  100,
+    "tendenciaVentasPositiva":  true,
+    "variacionMargen":  0,
+    "tendenciaMargenPositiva":  true
+}

@@ -202,6 +202,30 @@ public class InventarioController : ControllerBase
         var vehiculos = await _context.Vehiculos.ToListAsync();
         return Ok(vehiculos);
     }
+
+    [HttpGet("debug-compras")]
+    [AllowAnonymous]
+    public async Task<IActionResult> DebugCompras()
+    {
+        var compras = await _context.Compras
+            .OrderByDescending(c => c.Fecha)
+            .Take(10)
+            .ToListAsync();
+        
+        var serverTime = SGA.Helpers.TimeHelper.Now;
+        var utcTime = DateTime.UtcNow;
+        
+        return Ok(new { 
+            ServerTime = serverTime, 
+            UtcTime = utcTime, 
+            Compras = compras.Select(c => new { 
+                c.CompraId, 
+                c.Fecha, 
+                FechaKind = c.Fecha.Kind.ToString(), 
+                c.Total 
+            }) 
+        });
+    }
     [HttpGet("resumen-caja/{vehiculoId}")]
     public async Task<ActionResult<ResumenCajaDTO>> GetResumenCaja(int vehiculoId)
     {

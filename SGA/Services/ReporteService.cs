@@ -18,16 +18,18 @@ public class ReporteService : IReporteService
     public async Task<ReporteFinancieroDTO> GenerarReporteFinancieroAsync(DateTime fechaInicio, DateTime fechaFin, int? vehiculoId = null)
     {
         // Asegurar rango de fechas correcto (inclusive el último día hasta el último tick)
-        var inicio = DateTime.SpecifyKind(fechaInicio.Date, DateTimeKind.Utc);
-        var fin = DateTime.SpecifyKind(fechaFin.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+        // Asegurar rango de fechas correcto
+        // Trabajamos con Fechas "Unspecified" (Local Argentina) ya que así se guardan en la BD vía TimeHelper
+        var inicio = fechaInicio.Date; 
+        var fin = fechaFin.Date.AddDays(1).AddTicks(-1);
 
         // 1. Consultar Ventas
         var queryVentas = _context.Ventas
-            .Include(v => v.Cliente) // Include Cliente
-            .Include(v => v.Usuario) // Include Usuario (Vendedor)
+            .Include(v => v.Cliente) 
+            .Include(v => v.Usuario) 
             .Include(v => v.Detalles)
             .ThenInclude(d => d.Producto)
-            .Where(v => v.Fecha >= inicio && v.Fecha <= fin);
+            .Where(v => v.Fecha >= inicio && v.Fecha <= fin && v.Activa); // Solo ventas activas
 
         if (vehiculoId.HasValue)
         {
@@ -55,17 +57,39 @@ public class ReporteService : IReporteService
             .SumAsync(c => c.Total);
 
         // 3.2 Calcular Costo de Mercadería Vendida (CMV) - Aproximación por Costo Última Compra
-        var totalCostoMercaderia = ventas
-            .SelectMany(v => v.Detalles)
-            .Sum(d => d.Cantidad * (d.Producto?.CostoUltimaCompra ?? 0));
+        // 3.2 Calcular Costo de Mercadería Vendida (CMV) - SQL Directo
+        var queryDetalles = _context.DetallesVenta
+            .Include(d => d.Producto)
+            .Where(d => d.Venta.Fecha >= inicio && d.Venta.Fecha <= fin && d.Venta.Activa);
+
+        if (vehiculoId.HasValue)
+        {
+             queryDetalles = queryDetalles.Where(d => d.Venta.VehiculoId == vehiculoId.Value);
+        }
+
+        var totalCostoMercaderia = await queryDetalles
+            .SumAsync(d => d.Cantidad * (
+                (d.Producto != null && d.Producto.CostoUltimaCompra > 0)
+                ? d.Producto.CostoUltimaCompra 
+                : (d.PrecioUnitario * 0.7m)
+            ));
 
         // 3.3 Calcular Pérdida por Mermas (General y de Vehículos)
-        var mermas = await _context.MovimientosStock
+        var queryMermas = _context.MovimientosStock
              .Include(m => m.Producto)
-             .Where(m => m.TipoMovimiento == TipoMovimientoStock.Merma && m.Fecha >= inicio && m.Fecha <= fin)
-             .ToListAsync();
+             .Where(m => m.TipoMovimiento == TipoMovimientoStock.Merma && m.Fecha >= inicio && m.Fecha <= fin);
 
-        var totalPerdidaMermas = mermas.Sum(m => Math.Abs(m.Cantidad) * (m.Producto?.CostoUltimaCompra ?? 0));
+        if (vehiculoId.HasValue)
+        {
+            queryMermas = queryMermas.Where(m => m.VehiculoId == vehiculoId.Value);
+        }
+
+        var totalPerdidaMermas = await queryMermas.SumAsync(m => 
+            Math.Abs(m.Cantidad) * (
+                (m.Producto != null && m.Producto.CostoUltimaCompra > 0)
+                ? m.Producto.CostoUltimaCompra 
+                : (m.Producto != null ? m.Producto.PrecioSugerido * 0.7m : 0)
+            ));
 
         var totalVentas = ventas.Sum(v => v.Total);
         var totalGastos = gastos.Sum(g => g.Monto);
@@ -144,26 +168,29 @@ public class ReporteService : IReporteService
             .ToList();
 
         // Top Clientes
+        // Solo incluimos ventas con ClienteId > 0
         reporte.TopClientes = ventas
+            .Where(v => v.ClienteId > 0)
             .GroupBy(v => v.ClienteId)
             .Select(g => new VentaPorClienteDTO
             {
                 ClienteId = g.Key,
-                NombreCliente = g.First().Cliente?.NombreCompleto ?? "Cliente Eliminado",
+                NombreCliente = g.First().Cliente?.NombreCompleto ?? $"Cliente #{g.Key}",
                 TotalComprado = g.Sum(v => v.Total),
                 CantidadCompras = g.Count()
             })
             .OrderByDescending(x => x.TotalComprado)
-            .Take(5)
+            .Take(10)
             .ToList();
 
         // Ventas por Vendedor
         reporte.VentasPorVendedor = ventas
+            .Where(v => v.UsuarioId > 0)
             .GroupBy(v => v.UsuarioId)
             .Select(g => new VentaPorVendedorDTO
             {
                 UsuarioId = g.Key,
-                NombreVendedor = g.First().Usuario?.Nombre ?? "Usuario Eliminado",
+                NombreVendedor = g.First().Usuario?.Nombre ?? $"Usuario #{g.Key}",
                 TotalVendido = g.Sum(v => v.Total),
                 CantidadVentas = g.Count()
             })

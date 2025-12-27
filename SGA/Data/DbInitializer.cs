@@ -29,17 +29,17 @@ public static class DbInitializer
         {
             var productos = new Producto[]
             {
-                new Producto { Nombre = "Huevo Blanco Grande", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Grande, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30 },
-                new Producto { Nombre = "Huevo Blanco Mediano", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Mediano, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30 },
-                new Producto { Nombre = "Huevo Blanco Chico", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Chico, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30 },
-                new Producto { Nombre = "Huevo Blanco Jumbo", TipoProducto = TipoProducto.Huevo, StockActual = 500, StockMinimoAlerta = 50, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Jumbo, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30 },
-                new Producto { Nombre = "Huevo Color Grande", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Grande, Color = ColorHuevo.Color, UnidadesPorBulto = 30 },
-                new Producto { Nombre = "Huevo Color Mediano", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Mediano, Color = ColorHuevo.Color, UnidadesPorBulto = 30 },
+                new Producto { Nombre = "Huevo Blanco Grande", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Grande, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30, CostoUltimaCompra = 2000, PrecioSugerido = 2500, PrecioMinimo = 2300, PrecioMaximo = 3000 },
+                new Producto { Nombre = "Huevo Blanco Mediano", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Mediano, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30, CostoUltimaCompra = 1800, PrecioSugerido = 2200, PrecioMinimo = 2000, PrecioMaximo = 2700 },
+                new Producto { Nombre = "Huevo Blanco Chico", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Chico, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30, CostoUltimaCompra = 1500, PrecioSugerido = 1900, PrecioMinimo = 1700, PrecioMaximo = 2400 },
+                new Producto { Nombre = "Huevo Blanco Jumbo", TipoProducto = TipoProducto.Huevo, StockActual = 500, StockMinimoAlerta = 50, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Jumbo, Color = ColorHuevo.Blanco, UnidadesPorBulto = 30, CostoUltimaCompra = 2200, PrecioSugerido = 2800, PrecioMinimo = 2500, PrecioMaximo = 3500 },
+                new Producto { Nombre = "Huevo Color Grande", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Grande, Color = ColorHuevo.Color, UnidadesPorBulto = 30, CostoUltimaCompra = 2100, PrecioSugerido = 2600, PrecioMinimo = 2400, PrecioMaximo = 3100 },
+                new Producto { Nombre = "Huevo Color Mediano", TipoProducto = TipoProducto.Huevo, StockActual = 1000, StockMinimoAlerta = 100, UnidadDeMedida = "Maple", EsHuevo = true, Tamano = TamanoHuevo.Mediano, Color = ColorHuevo.Color, UnidadesPorBulto = 30, CostoUltimaCompra = 1900, PrecioSugerido = 2300, PrecioMinimo = 2100, PrecioMaximo = 2800 },
                 // Add basic insumos for Silos
-                new Producto { Nombre = "Maiz", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false },
-                new Producto { Nombre = "Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false },
-                new Producto { Nombre = "Alimento Balanceado", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false },
-                new Producto { Nombre = "Retazo Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 100, UnidadDeMedida = "Kg", EsHuevo = false }
+                new Producto { Nombre = "Maiz", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false, CostoUltimaCompra = 180 },
+                new Producto { Nombre = "Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false, CostoUltimaCompra = 350 },
+                new Producto { Nombre = "Alimento Balanceado", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 1000, UnidadDeMedida = "Kg", EsHuevo = false, CostoUltimaCompra = 450 },
+                new Producto { Nombre = "Retazo Soja", TipoProducto = TipoProducto.Insumo, StockActual = 0, StockMinimoAlerta = 100, UnidadDeMedida = "Kg", EsHuevo = false, CostoUltimaCompra = 280 }
             };
             context.Productos.AddRange(productos);
             context.SaveChanges();
@@ -159,6 +159,25 @@ public static class DbInitializer
 
 
 
+
+        // Seed Clientes if missing or update debt for testing
+        if (!context.Clientes.Any())
+        {
+            var clientes = new Cliente[]
+            {
+                new Cliente { NombreCompleto = "Gervasio Gatti", DNI = "12345678", Direccion = "Calle Falsa 123", Deuda = 150000, VentasTotales = 500000 },
+                new Cliente { NombreCompleto = "Martín Fierro", DNI = "87654321", Direccion = "Pampa 456", Deuda = 85000, VentasTotales = 250000 },
+                new Cliente { NombreCompleto = "Juan Moreira", DNI = "44556677", Direccion = "Pulperia 789", Deuda = 0, VentasTotales = 120000 }
+            };
+            context.Clientes.AddRange(clientes);
+        }
+        else if (context.Clientes.Sum(c => c.Deuda) == 0)
+        {
+            // If we have clients but no debt, let's assign some to the first one for dashboard verification
+            var firstClient = context.Clientes.FirstOrDefault();
+            if (firstClient != null) firstClient.Deuda = 125000;
+        }
+        context.SaveChanges();
 
         // Seed Usuarios if missing
         if (!context.Usuarios.Any())

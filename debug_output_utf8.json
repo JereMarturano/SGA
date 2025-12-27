@@ -1,0 +1,42 @@
+﻿{
+    "serverTime":  "2025-12-27T17:39:02.2535712",
+    "utcTime":  "2025-12-27T20:39:02.2535716Z",
+    "compras":  [
+                    {
+                        "compraId":  6,
+                        "fecha":  "2025-12-27T17:27:57.969397",
+                        "fechaKind":  "Unspecified",
+                        "total":  114000.00
+                    },
+                    {
+                        "compraId":  5,
+                        "fecha":  "2025-12-27T17:23:08.0269295",
+                        "fechaKind":  "Unspecified",
+                        "total":  216000.00
+                    },
+                    {
+                        "compraId":  4,
+                        "fecha":  "2025-12-27T14:18:36.2362399",
+                        "fechaKind":  "Unspecified",
+                        "total":  400000.00
+                    },
+                    {
+                        "compraId":  3,
+                        "fecha":  "2025-12-27T14:07:38.8404173",
+                        "fechaKind":  "Unspecified",
+                        "total":  390000.00
+                    },
+                    {
+                        "compraId":  2,
+                        "fecha":  "2025-12-27T14:07:10.3477313",
+                        "fechaKind":  "Unspecified",
+                        "total":  608000.00
+                    },
+                    {
+                        "compraId":  1,
+                        "fecha":  "2025-12-02T14:05:59.8268246",
+                        "fechaKind":  "Unspecified",
+                        "total":  100000.00
+                    }
+                ]
+}

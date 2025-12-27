@@ -1,0 +1,16 @@
+using System;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
+using SGA.Data;
+using SGA.Models;
+
+// Configuración manual del DbContext para script standalone (o casi)
+// En realidad, lo más fácil es inyectarlo en el controlador temporalmente o usar un endpoint de debug.
+// Ya tengo un endpoint de debug en InventarioController: GetVehiculosDebug.
+// Voy a modificar InventarioController.GetVehiculosDebug para que me devuelva las compras.
+
+// Paso 1: Crear un endpoint de debug en InventarioController
+// Paso 2: Modificar el endpoint para devolver las compras
+// Paso 3: Probar el endpoint
+// Paso 4: Si funciona, eliminar el endpoint de debug
+    

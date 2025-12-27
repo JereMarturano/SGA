@@ -31,6 +31,22 @@ public class AdminSafetyController : ControllerBase
     }
 }
 
+    [HttpPost("hard-reset")]
+    [AllowAnonymous] // BE CAREFUL: Removing auth for easier testing, add back for prod
+    public async Task<IActionResult> HardReset()
+    {
+        try
+        {
+            await _restorationService.HardResetAsync();
+            return Ok(new { message = "Sistema reseteado a 0 exitosamente." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al resetear sistema.", error = ex.Message });
+        }
+    }
+}
+
 public class RevertirDto
 {
     public DateTime? Desde { get; set; }

@@ -16,6 +16,7 @@ import {
   Package,
   Activity,
   PackageX,
+  Truck,
 } from 'lucide-react';
 import { fetchReporteFinanciero, ReporteFinanciero, VentaPorMetodoPago } from '@/lib/api-reportes';
 import { format, subDays, startOfMonth, endOfMonth } from 'date-fns';
@@ -136,6 +137,21 @@ export default function EstadisticasPage() {
                   </h3>
                   <span className="flex items-center text-green-500 text-sm font-bold bg-green-50 dark:bg-green-900/20 px-2 py-1 rounded-lg">
                     <ArrowUpRight size={16} />
+                  </span>
+                </div>
+              </div>
+
+              {/* 1.2 Compras (Inversión Stock) */}
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">
+                  Compras (Reposición Stock)
+                </p>
+                <div className="flex items-end justify-between">
+                  <h3 className="text-2xl lg:text-3xl font-black text-slate-800 dark:text-white">
+                    $ {(reporte.totalCompras || 0).toLocaleString('es-AR')}
+                  </h3>
+                  <span className="flex items-center text-blue-500 text-sm font-bold bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">
+                    <Truck size={16} />
                   </span>
                 </div>
               </div>
