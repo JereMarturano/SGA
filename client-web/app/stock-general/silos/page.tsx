@@ -10,7 +10,7 @@ import Modal from '@/components/Modal';
 interface Product {
     productoId: number;
     nombre: string;
-    tipoProducto: string;
+    tipoProducto: string | number;
 }
 
 interface Silo {
@@ -40,7 +40,8 @@ export default function SilosPage() {
     const [configSilo, setConfigSilo] = useState({
         nombre: '',
         productoId: '',
-        capacidadKg: ''
+        capacidadKg: '',
+        cantidadKg: ''
     });
 
     const [error, setError] = useState('');
@@ -59,8 +60,8 @@ export default function SilosPage() {
     const fetchProducts = async () => {
         try {
             const res = await api.get('/stock-general/deposito');
-            // Filter only Insumos for Silos
-            setProducts(res.data.filter((p: Product) => p.tipoProducto === 'Insumo'));
+            // Filter only Insumos for Silos (1 = Insumo)
+            setProducts(res.data.filter((p: Product) => p.tipoProducto === 'Insumo' || p.tipoProducto === 1));
         } catch (error) {
             console.error(error);
         }
@@ -87,7 +88,8 @@ export default function SilosPage() {
         setConfigSilo({
             nombre: silo.nombre,
             productoId: silo.productoId?.toString() || '',
-            capacidadKg: silo.capacidadKg.toString()
+            capacidadKg: silo.capacidadKg.toString(),
+            cantidadKg: silo.cantidadActualKg.toString()
         });
         setIsConfigModalOpen(true);
     };
@@ -114,7 +116,7 @@ export default function SilosPage() {
                 siloId: selectedSilo.siloId,
                 nombre: configSilo.nombre,
                 capacidadKg: parseFloat(configSilo.capacidadKg),
-                cantidadKg: selectedSilo.cantidadActualKg,
+                cantidadKg: parseFloat(configSilo.cantidadKg),
                 productoId: configSilo.productoId ? parseInt(configSilo.productoId) : null
             });
 
@@ -299,6 +301,16 @@ export default function SilosPage() {
                                     <option key={p.productoId} value={p.productoId}>{p.nombre}</option>
                                 ))}
                             </select>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">Cantidad Actual (Kg)</label>
+                            <input
+                                type="number"
+                                value={configSilo.cantidadKg}
+                                onChange={(e) => setConfigSilo({ ...configSilo, cantidadKg: e.target.value })}
+                                className="w-full p-3 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
+                            />
                         </div>
 
                         <div>

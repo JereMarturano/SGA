@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SGA.Data;
 
@@ -11,9 +12,11 @@ using SGA.Data;
 namespace SGA.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251227164435_AddCierreCajaDiario")]
+    partial class AddCierreCajaDiario
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1096,9 +1099,6 @@ namespace SGA.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ViajeId"));
 
-                    b.Property<int?>("AcompananteId")
-                        .HasColumnType("int");
-
                     b.Property<int>("ChoferId")
                         .HasColumnType("int");
 
@@ -1118,8 +1118,6 @@ namespace SGA.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("ViajeId");
-
-                    b.HasIndex("AcompananteId");
 
                     b.HasIndex("ChoferId");
 
@@ -1462,10 +1460,6 @@ namespace SGA.Migrations
 
             modelBuilder.Entity("SGA.Models.Viaje", b =>
                 {
-                    b.HasOne("SGA.Models.Usuario", "Acompanante")
-                        .WithMany()
-                        .HasForeignKey("AcompananteId");
-
                     b.HasOne("SGA.Models.Usuario", "Chofer")
                         .WithMany()
                         .HasForeignKey("ChoferId")
@@ -1477,8 +1471,6 @@ namespace SGA.Migrations
                         .HasForeignKey("VehiculoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Acompanante");
 
                     b.Navigation("Chofer");
 

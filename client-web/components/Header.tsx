@@ -6,6 +6,7 @@ import {
   Users,
   Truck,
   PieChart,
+  DollarSign,
   Menu,
   User,
   X,
@@ -42,6 +43,7 @@ export default function Header() {
     { name: 'Empleados', href: '/empleados', icon: Users, roles: ['Admin', 'Oficina'] },
     { name: 'Clientes', href: '/clientes', icon: User, roles: ['Admin', 'Oficina'] },
     { name: 'Stock General', href: '/stock-general', icon: LayoutDashboard, roles: ['Admin'] }, // New Entry
+    { name: 'Cierre Caja', href: '/admin/cierre-caja', icon: DollarSign, roles: ['Admin'] },
     { name: 'Estadísticas', href: '/estadisticas', icon: PieChart, roles: ['Admin', 'Oficina'] },
   ];
 

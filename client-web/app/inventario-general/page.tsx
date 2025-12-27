@@ -11,6 +11,7 @@ interface Producto {
   productoId: number;
   nombre: string;
   stockActual: number;
+  unidadDeMedida: string; // [NEW] Needed for conversion
 }
 
 type UnitType = 'UNIDAD' | 'MAPLE' | 'CAJON';
@@ -19,6 +20,17 @@ const UNIT_FACTORS: Record<UnitType, number> = {
   UNIDAD: 1,
   MAPLE: 30,
   CAJON: 360, // 12 Maples * 30 Eggs
+};
+
+const getNormalizedFactor = (targetUnit: string, productUnit: string) => {
+  const factors: Record<string, number> = {
+    'unidad': 1,
+    'maple': 30,
+    'cajon': 360,
+  };
+  const target = factors[targetUnit.toLowerCase()] || 1;
+  const base = factors[productUnit.toLowerCase()] || 1;
+  return target / base;
 };
 
 export default function InventarioGeneralPage() {
@@ -40,7 +52,14 @@ export default function InventarioGeneralPage() {
     const fetchProductos = async () => {
       try {
         const response = await api.get('/productos');
-        setProductos(response.data);
+        // Ensure mapping includes new field
+        const mapped = response.data.map((p: any) => ({
+          productoId: p.productoId,
+          nombre: p.nombre,
+          stockActual: p.stockActual,
+          unidadDeMedida: p.unidadDeMedida || 'UNIDAD'
+        }));
+        setProductos(mapped);
       } catch (error) {
         console.error('Error fetching products:', error);
       } finally {
@@ -55,8 +74,8 @@ export default function InventarioGeneralPage() {
     const price = parseFloat(formData.precio) || 0;
     const factor = UNIT_FACTORS[formData.unitType];
 
-    const totalUnits = qty * factor;
-    const unitCost = totalUnits > 0 ? price / factor : 0;
+    const totalUnits = qty * factor; // Total Eggs
+    const unitCost = totalUnits > 0 ? price / factor : 0; // Cost per Egg
     const totalCost = qty * price;
 
     return { totalUnits, unitCost, totalCost };
@@ -66,19 +85,31 @@ export default function InventarioGeneralPage() {
     e.preventDefault();
     setSubmitting(true);
 
-    const { totalUnits, unitCost } = calculateTotals();
+    const { totalUnits, totalCost } = calculateTotals();
+    const selectedProd = productos.find(p => p.productoId.toString() === formData.productoId);
 
     try {
-      // Construct the payload matching CompraRequest
+      if (!selectedProd) throw new Error("Producto no seleccionado");
+
+      // Normalize to Product Base Unit
+      // Example: Buying 1 Cajon (360 eggs). Product is Maple (30).
+      // Factor (Cajon -> Maple) = 360 / 30 = 12.
+      const factorToBase = getNormalizedFactor(formData.unitType, selectedProd.unidadDeMedida);
+
+      const qtyEntered = parseFloat(formData.cantidad);
+      const qtyNormalized = qtyEntered * factorToBase; // 1 * 12 = 12 Maples.
+
+      const costPerBaseUnit = totalCost / qtyNormalized; // 36000 / 12 = 3000 per Maple.
+
       const payload = {
-        usuarioId: 1, // TODO: Get from Auth Context
+        usuarioId: 1,
         proveedor: formData.proveedor,
         observaciones: `[${formData.cantidad} ${formData.unitType}] ${formData.observaciones}`,
         items: [
           {
             productoId: parseInt(formData.productoId),
-            cantidad: totalUnits,
-            costoUnitario: unitCost,
+            cantidad: qtyNormalized,
+            costoUnitario: costPerBaseUnit,
           },
         ],
       };
@@ -159,11 +190,10 @@ export default function InventarioGeneralPage() {
                       key={type}
                       type="button"
                       onClick={() => setFormData({ ...formData, unitType: type })}
-                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${
-                        formData.unitType === type
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
-                          : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                      }`}
+                      className={`px-3 py-2 rounded-lg text-sm font-bold transition-all ${formData.unitType === type
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                        }`}
                     >
                       {type}
                     </button>

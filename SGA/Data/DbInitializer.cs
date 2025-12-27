@@ -66,43 +66,31 @@ public static class DbInitializer
              context.SaveChanges();
         }
 
-        // Seed Vehiculos if missing
-        if (!context.Vehiculos.Any())
+        // Seed Vehiculos (Robust Check)
+        var vehiclesToEnsure = new Vehiculo[]
         {
-            var vehiculos = new Vehiculo[]
+            new Vehiculo { Patente = "AA123BB", Marca = "Peugeot", Modelo = "Boxer", CapacidadCarga = 1500, ConsumoPromedioLts100Km = 12, EnRuta = false },
+            new Vehiculo { Patente = "CC456DD", Marca = "Fiat", Modelo = "Fiorino", CapacidadCarga = 650, ConsumoPromedioLts100Km = 9, EnRuta = false },
+            new Vehiculo { Patente = "GRANJA", Marca = "SGA", Modelo = "Punto de Venta", CapacidadCarga = 999999, ConsumoPromedioLts100Km = 0, EnRuta = false }
+        };
+
+        foreach (var v in vehiclesToEnsure)
+        {
+            var existing = context.Vehiculos.FirstOrDefault(x => x.Patente == v.Patente);
+            if (existing == null)
             {
-                new Vehiculo { Patente = "AA123BB", Marca = "Peugeot", Modelo = "Boxer", CapacidadCarga = 1500, ConsumoPromedioLts100Km = 12, EnRuta = false },
-                new Vehiculo { Patente = "CC456DD", Marca = "Fiat", Modelo = "Fiorino", CapacidadCarga = 650, ConsumoPromedioLts100Km = 9, EnRuta = false },
-                new Vehiculo { Patente = "GRANJA", Marca = "SGA", Modelo = "Punto de Venta", CapacidadCarga = 999999, ConsumoPromedioLts100Km = 0, EnRuta = false }
-            };
-            context.Vehiculos.AddRange(vehiculos);
+                context.Vehiculos.Add(v);
+            }
+            else if (v.Patente == "GRANJA")
+            {
+                var activeTrip = context.Viajes.Any(viaje => viaje.VehiculoId == existing.VehiculoId && viaje.Estado == EstadoViaje.EnCurso);
+                if (existing.EnRuta && !activeTrip)
+                {
+                    existing.EnRuta = false;
+                }
+            }
         }
-        else
-        {
-             var granja = context.Vehiculos.FirstOrDefault(v => v.Patente == "GRANJA");
-             if (granja == null)
-             {
-                context.Vehiculos.Add(new Vehiculo 
-                { 
-                    Patente = "GRANJA", 
-                    Marca = "SGA", 
-                    Modelo = "Punto de Venta", 
-                    CapacidadCarga = 999999, 
-                    ConsumoPromedioLts100Km = 0, 
-                    EnRuta = false 
-                });
-                context.SaveChanges();
-             }
-             else
-             {
-                 var activeTrip = context.Viajes.Any(v => v.VehiculoId == granja.VehiculoId && v.Estado == EstadoViaje.EnCurso);
-                 if (granja.EnRuta && !activeTrip)
-                 {
-                     granja.EnRuta = false;
-                     context.SaveChanges();
-                 }
-             }
-        }
+        context.SaveChanges();
 
         // Seed Galpones (Robust Check)
         var galpones = new[]
@@ -160,7 +148,8 @@ public static class DbInitializer
             {
                  // Update properties if needed, e.g. ensure Type is correct or if it was reset
                  // For now, we trust the existing valid silo's state, but we ensure Product is linked if missing matches
-                 if (existingSilo.ProductoId == null && s.ProductoId != null)
+                 // Ensure Product is linked correctly (Force update for default silos)
+                 if (s.ProductoId != null && existingSilo.ProductoId != s.ProductoId)
                  {
                      existingSilo.ProductoId = s.ProductoId;
                  }
@@ -224,7 +213,8 @@ public static class DbInitializer
 
              // FORCE Fix bad password seed
              officialAdmin.ContrasenaHash = PasswordHelper.HashPassword("admin123");
-             Console.WriteLine("DEBUG: Admin password reset to 'admin123'");
+             officialAdmin.DNI = "33123456";
+             Console.WriteLine("DEBUG: Admin password reset to 'admin123' and DNI to '33123456'");
         }
         
         context.SaveChanges(); // Ensure IDs are set

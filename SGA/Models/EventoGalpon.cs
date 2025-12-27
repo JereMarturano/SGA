@@ -22,6 +22,13 @@ public class EventoGalpon
 
     public int Cantidad { get; set; }
 
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal Costo { get; set; }
+
+    public int? ProductoId { get; set; }
+    [ForeignKey("ProductoId")]
+    public Producto? Producto { get; set; }
+
     [MaxLength(250)]
     public string? Observacion { get; set; }
 

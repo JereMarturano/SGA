@@ -15,6 +15,8 @@ interface Producto {
     costoUltimaCompra: number;
     esHuevo: boolean;
     unidadesPorBulto: number;
+    stockSilo?: number;
+    tipoProducto: number;
 }
 
 export default function DepositoPage() {
@@ -159,6 +161,13 @@ export default function DepositoPage() {
                             Nuevo Producto
                         </button>
                     )}
+                    <button
+                        onClick={fetchProductos}
+                        className="ml-2 p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        title="Actualizar Datos"
+                    >
+                        <ArrowRightLeft className={`${isLoading ? 'animate-spin' : ''}`} size={20} />
+                    </button>
                 </div>
 
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
@@ -179,6 +188,9 @@ export default function DepositoPage() {
                                 let displayStock = p.stockActual;
                                 let displayCost = p.costoUltimaCompra;
 
+                                // Backend is now consistent
+                                const stockSiloValue = p.stockSilo || 0;
+
                                 if (p.esHuevo && isCajonView) {
                                     displayStock = p.stockActual / 12;
                                     displayCost = p.costoUltimaCompra * 12;
@@ -191,19 +203,34 @@ export default function DepositoPage() {
                                             <div className="text-xs text-gray-400">ID: {p.productoId}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`font-bold ${p.stockActual < 50 ? 'text-red-500' : 'text-gray-700 dark:text-gray-200'}`}>
-                                                    {Number(displayStock.toFixed(2)).toLocaleString()}
-                                                </span>
-                                                <span className="text-xs text-gray-400 font-medium">{currentViewUnit}</span>
-                                                {p.esHuevo && (
-                                                    <button
-                                                        onClick={() => toggleUnit(p.productoId)}
-                                                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-blue-500"
-                                                        title="Cambiar vista Maple / Cajon"
-                                                    >
-                                                        <ArrowRightLeft size={14} />
-                                                    </button>
+                                            <div className="flex flex-col gap-1">
+                                                {/* Mostrar Depósito solo si no es Insumo (Silo) con stock 0 */}
+                                                {(p.tipoProducto !== 1 || p.stockActual > 0) && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] uppercase font-bold text-gray-400 w-14">Depósito:</span>
+                                                        <span className={`font-bold ${p.stockActual < 50 ? 'text-red-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                                                            {Number(displayStock.toFixed(2)).toLocaleString()}
+                                                        </span>
+                                                        <span className="text-xs text-gray-400 font-medium">{currentViewUnit}</span>
+                                                        {p.esHuevo && (
+                                                            <button
+                                                                onClick={() => toggleUnit(p.productoId)}
+                                                                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-blue-500"
+                                                                title="Cambiar vista Maple / Cajon"
+                                                            >
+                                                                <ArrowRightLeft size={14} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {(p.tipoProducto === 1 || (stockSiloValue > 0)) && (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] uppercase font-bold text-blue-500 w-14">Silos:</span>
+                                                        <span className="font-bold text-blue-600 dark:text-blue-400">
+                                                            {Number((stockSiloValue).toFixed(2)).toLocaleString()}
+                                                        </span>
+                                                        <span className="text-xs text-blue-400 font-medium">Kg</span>
+                                                    </div>
                                                 )}
                                             </div>
                                         </td>
@@ -366,7 +393,7 @@ export default function DepositoPage() {
                         <button onClick={submitNewProduct} className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium">Crear Producto</button>
                     </div>
                 </Modal>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }

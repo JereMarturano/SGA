@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SGA.Data;
 
@@ -11,9 +12,11 @@ using SGA.Data;
 namespace SGA.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251223182850_AddPollitosCostTracking")]
+    partial class AddPollitosCostTracking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -64,45 +67,6 @@ namespace SGA.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.ToTable("Asistencias");
-                });
-
-            modelBuilder.Entity("SGA.Models.CierreCajaDiario", b =>
-                {
-                    b.Property<int>("CierreId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CierreId"));
-
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("FechaCierre")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Observaciones")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("SaldoNeto")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalGastos")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalHuevosVendidos")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TotalVentas")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("UsuarioId")
-                        .HasColumnType("int");
-
-                    b.HasKey("CierreId");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("CierresCajaDiarios");
                 });
 
             modelBuilder.Entity("SGA.Models.Cliente", b =>
@@ -1096,9 +1060,6 @@ namespace SGA.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ViajeId"));
 
-                    b.Property<int?>("AcompananteId")
-                        .HasColumnType("int");
-
                     b.Property<int>("ChoferId")
                         .HasColumnType("int");
 
@@ -1119,8 +1080,6 @@ namespace SGA.Migrations
 
                     b.HasKey("ViajeId");
 
-                    b.HasIndex("AcompananteId");
-
                     b.HasIndex("ChoferId");
 
                     b.HasIndex("VehiculoId");
@@ -1129,17 +1088,6 @@ namespace SGA.Migrations
                 });
 
             modelBuilder.Entity("SGA.Models.Asistencia", b =>
-                {
-                    b.HasOne("SGA.Models.Usuario", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Usuario");
-                });
-
-            modelBuilder.Entity("SGA.Models.CierreCajaDiario", b =>
                 {
                     b.HasOne("SGA.Models.Usuario", "Usuario")
                         .WithMany()
@@ -1462,10 +1410,6 @@ namespace SGA.Migrations
 
             modelBuilder.Entity("SGA.Models.Viaje", b =>
                 {
-                    b.HasOne("SGA.Models.Usuario", "Acompanante")
-                        .WithMany()
-                        .HasForeignKey("AcompananteId");
-
                     b.HasOne("SGA.Models.Usuario", "Chofer")
                         .WithMany()
                         .HasForeignKey("ChoferId")
@@ -1477,8 +1421,6 @@ namespace SGA.Migrations
                         .HasForeignKey("VehiculoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Acompanante");
 
                     b.Navigation("Chofer");
 

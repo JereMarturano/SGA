@@ -72,11 +72,97 @@ public class StockGeneralController : ControllerBase
         // Assuming Admin for now based on strict reading "Solo el jefe".
         // But maybe "marcar fallece" is daily op?
         // I will restrict to Admin/Encargado if needed, but sticking to "Admin" for modifying quantity.
-        var userRole = User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value;
-        
+        // Set UsuarioId from Context if not present
+        var userIdStr = User.Claims.FirstOrDefault(c => c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/primarysid")?.Value 
+                        ?? User.Claims.FirstOrDefault(c => c.Type == "id")?.Value
+                        ?? "1";
+        evento.UsuarioId = int.Parse(userIdStr);
+
+        // Handle Product Consumption (Vaccines/Food)
+        if (evento.ProductoId.HasValue && evento.ProductoId.Value > 0)
+        {
+            var producto = await _context.Productos.FindAsync(evento.ProductoId.Value);
+            if (producto == null) return BadRequest("Producto no encontrado");
+            
+            if (producto.StockActual < evento.Cantidad) return BadRequest($"Stock insuficiente de {producto.Nombre}");
+            
+            // Reduce Stock
+            producto.StockActual -= evento.Cantidad;
+            
+            // Auto-calculate Cost if not provided
+            if (evento.Costo == 0) 
+            {
+                evento.Costo = evento.Cantidad * producto.CostoUltimaCompra; 
+            }
+            
+            // Register Stock Movement
+            _context.MovimientosStock.Add(new MovimientoStock {
+                ProductoId = producto.ProductoId,
+                TipoMovimiento = TipoMovimientoStock.Egreso,
+                Cantidad = evento.Cantidad,
+                Fecha = DateTime.Now,
+                Observaciones = $"Consumo en Galpón {id} ({evento.TipoEvento})",
+                UsuarioId = evento.UsuarioId
+            });
+        }
+
         bool success = await _galponService.RegistrarEventoAsync(evento);
         if (!success) return BadRequest("Could not register event");
+        
+        // Save changes for Stock Movement if any
+        if (evento.ProductoId.HasValue) await _context.SaveChangesAsync();
+
         return Ok(new { message = "Evento registrado" });
+    }
+
+    [HttpGet("galpones/{id}/estadisticas")]
+    public async Task<IActionResult> GetEstadisticasGalpon(int id)
+    {
+        var galpon = await _galponService.GetByIdAsync(id);
+        if (galpon == null) return NotFound();
+
+        var eventos = await _context.EventosGalpon.Where(e => e.GalponId == id).ToListAsync();
+
+        // 1. Initial Quantity & Investment
+        // Logic: Sum of all "Ingreso" events. If none, usage fallback to Current if it's a new setup.
+        var ingresos = eventos.Where(e => e.TipoEvento == "Ingreso").Sum(e => e.Cantidad);
+        var cantidadInicial = ingresos > 0 ? ingresos : galpon.CantidadAves; 
+        
+        // If we have "Ingreso" events, we assume they are the start. 
+        // If we have transferred OUT (Egreso without death), we should handle it? 
+        // For "Cost per Chick", usually we divide TotalCost by CurrentCount.
+        
+        var inversionInicial = cantidadInicial * galpon.PrecioCompraAve;
+
+        // 2. Operational Costs (Vaccines, Food) recorded in events
+        var gastosOperativos = eventos.Sum(e => e.Costo);
+
+        var totalInversion = inversionInicial + gastosOperativos;
+
+        // 3. Current Stock
+        var stockActual = galpon.CantidadAves;
+
+        // 4. Intelligent Average Cost
+        // "cuanto mas mueren mas aumenta el precio promedio de cada uno"
+        var costoPromedio = stockActual > 0 ? (totalInversion / stockActual) : 0;
+
+        // 5. Mortality
+        var muertes = eventos.Where(e => e.TipoEvento == "Muerte").Sum(e => e.Cantidad);
+        var mortalidadPorcentaje = cantidadInicial > 0 ? ((double)muertes / cantidadInicial * 100) : 0;
+
+        // 6. Food Consumption
+        var consumoAlimento = eventos.Where(e => e.TipoEvento == "Alimentacion" || e.TipoEvento == "Comida").Sum(e => e.Cantidad);
+
+        return Ok(new {
+             CantidadInicial = cantidadInicial,
+             StockActual = stockActual,
+             TotalInversion = totalInversion,
+             GastosOperativos = gastosOperativos,
+             CostoPromedio = costoPromedio,
+             Muertes = muertes,
+             MortalidadPorcentaje = mortalidadPorcentaje,
+             ConsumoAlimento = consumoAlimento
+        });
     }
 
     [HttpGet("galpones/{id}/eventos")]
@@ -327,9 +413,26 @@ public class StockGeneralController : ControllerBase
     [HttpGet("deposito")]
     public async Task<IActionResult> GetDeposito()
     {
-        // "en el deposito se es donde esta el stock general" -> Productos
-        var productos = await _context.Productos.ToListAsync();
-        return Ok(productos);
+        // Use database-side projection for direct calculation
+        var result = await _context.Productos
+            .Select(p => new 
+            {
+                p.ProductoId,
+                p.Nombre,
+                TipoProducto = (int)p.TipoProducto, // Force Integer
+                p.StockActual, // Stock en Deposito
+                StockSilo = _context.Silos.Where(s => s.ProductoId == p.ProductoId).Sum(s => s.CantidadActualKg),
+                p.StockMinimoAlerta,
+                p.UnidadDeMedida,
+                p.EsHuevo,
+                p.Tamano,
+                p.Color,
+                p.UnidadesPorBulto,
+                p.CostoUltimaCompra
+            })
+            .ToListAsync();
+
+        return Ok(result);
     }
 
     [HttpPost("deposito/movimiento")]

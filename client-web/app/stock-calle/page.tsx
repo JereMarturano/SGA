@@ -146,6 +146,7 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
       cantidadTeorica: number;
       cantidadFisica: string;
       unitType: UnitType;
+      baseUnit: string; // [NEW] Track product's base unit
     }[]
   >([]);
   const [resumenCaja, setResumenCaja] = useState<ResumenCaja | null>(null);
@@ -154,6 +155,32 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
   const [loading, setLoading] = useState(false);
   const [fetchingStock, setFetchingStock] = useState(true);
 
+  // [NEW] Helper for conversion
+  const getNormalizedFactor = (targetUnit: string, productBaseUnit: string) => {
+    const factors: Record<string, number> = {
+      'unidad': 1,
+      'maple': 30,
+      'cajon': 360, // 12 maples * 30 eggs
+      'bulto': 30 // Fallback generic bulto
+    };
+
+    const target = targetUnit.toLowerCase();
+    const base = productBaseUnit.toLowerCase();
+
+    // Special case: If base is Maple, treat 1 Maple as 1 "base unit" (factor 1 relative to itself)
+    // But our factors are all relative to UNIT (egg).
+    // Factor = TargetFactorInUnits / BaseFactorInUnits
+
+    // Example: Target=Cajon (360), Base=Maple (30). Result = 12.
+    // Example: Target=Maple (30), Base=Maple (30). Result = 1.
+    // Example: Target=Unit (1), Base=Maple (30). Result = 0.0333.
+
+    const tf = factors[target] || 1;
+    const bf = factors[base] || 1;
+
+    return tf / bf;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -161,13 +188,26 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
         const stockResponse = await api.get<StockVehiculoItem[]>(
           `/inventario/stock-vehiculo/${vehiculo.vehiculoId}`
         );
-        const items = stockResponse.data.map((item) => ({
-          productoId: item.productoId,
-          nombre: item.producto.nombre,
-          cantidadTeorica: item.cantidad,
-          cantidadFisica: '', // Start empty for manual verification
-          unitType: 'MAPLE' as UnitType, // Default to Maple
-        }));
+
+        // [FIX] Map properly including base unit check
+        const items = stockResponse.data.map((item) => {
+          // Default to Maple if it's an egg product or tracked in maples, otherwise Unit
+          // We'll trust the database 'unidadDeMedida' if available, else guess.
+          // Note: The interface StockVehiculoItem in this file didn't have unity info.
+          // We need to extend the backend or cast if the backend sends it (it usually does in 'producto').
+          // Let's assume item.producto has 'unidadDeMedida'.
+          const p = item.producto as any; // Cast to access extra props if TS complains or extend interface
+          const baseUnit = p.unidadDeMedida || 'UNIDAD';
+
+          return {
+            productoId: item.productoId,
+            nombre: item.producto.nombre,
+            cantidadTeorica: item.cantidad,
+            cantidadFisica: '',
+            unitType: (baseUnit.toLowerCase() === 'maple' || baseUnit.toLowerCase() === 'cajon') ? 'MAPLE' : 'UNIDAD' as UnitType,
+            baseUnit: baseUnit
+          };
+        });
         setStockItems(items);
 
         // Fetch Cash Summary
@@ -195,8 +235,6 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
 
     setLoading(true);
     try {
-      // TODO: In a real app, get the logged-in user ID from AuthContext.
-      // For now, defaulting to 1 (Admin) as per current prototype state.
       const currentUserId = 1;
 
       const payload = {
@@ -205,12 +243,15 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
         nuevoKilometraje: parseFloat(kilometraje),
         stockRetorno: stockItems.map((item) => {
           const qty = parseFloat(item.cantidadFisica) || 0;
-          const factor = UNIT_FACTORS[item.unitType];
-          const totalUnits = qty * factor;
+
+          // [FIX] Convert User Input (e.g. Cajon) -> Database Unit (e.g. Maple)
+          // QtyEntered * Factor(SelectedUnit -> BaseUnit)
+          const conversionFactor = getNormalizedFactor(item.unitType, item.baseUnit);
+          const totalInBaseUnits = qty * conversionFactor;
 
           return {
             productoId: item.productoId,
-            cantidadFisica: totalUnits,
+            cantidadFisica: totalInBaseUnits,
           };
         }),
       };
@@ -300,8 +341,18 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
 
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
                 {stockItems.map((item, idx) => {
-                  const factor = UNIT_FACTORS[item.unitType];
-                  const theoreticalQty = item.cantidadTeorica / factor;
+                  // [FIX] Calculate Theoretical Display
+                  // Amount in DB (Base Units) divided by Factor(Selected -> Base)
+                  // Actually: AmountDB * (FactorBase / FactorSelected) matches "Convert Base to Selected".
+                  // Example: 12 Maples DB. Selected Cajon.
+                  // Res = 12 * (30 / 360) = 1. Correct.
+
+                  // Re-using helper logic: 
+                  // Factor = getNormalizedFactor(item.unitType, item.baseUnit) returns "How many Base Units in One Selected Unit"
+                  // So, QtySelected = QtyBase / Factor.
+
+                  const factorToSelected = getNormalizedFactor(item.unitType, item.baseUnit);
+                  const theoreticalQty = item.cantidadTeorica / factorToSelected;
 
                   return (
                     <div
@@ -322,7 +373,7 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
                             {theoreticalQty.toLocaleString('es-AR', { maximumFractionDigits: 2 })}
                           </span>
                           <span className="lowercase">
-                            {item.unitType === 'CAJON' ? 'cajones' : item.unitType + 's'}
+                            {item.unitType === 'CAJON' ? 'cajones' : item.unitType.toLowerCase() + 's'}
                           </span>
                         </div>
                       </div>
