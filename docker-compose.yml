@@ -1,15 +1,15 @@
 services:
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: postgres:15-alpine
     container_name: sga_db
     environment:
-      ACCEPT_EULA: "Y"
-      SA_PASSWORD: "Password123!"
-      MSSQL_PID: "Express"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "Password123!"
+      POSTGRES_DB: SGA_Avicola
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      - mssql_data:/var/opt/mssql
+      - postgres_data:/var/lib/postgresql/data
 
   api:
     build:
@@ -17,7 +17,7 @@ services:
       dockerfile: Dockerfile
     container_name: sga_api
     environment:
-      - ConnectionStrings__DefaultConnection=Server=db;Database=SGA_Avicola;User Id=sa;Password=Password123!;TrustServerCertificate=True;
+      - ConnectionStrings__DefaultConnection=Host=db;Database=SGA_Avicola;Username=postgres;Password=Password123!
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
       - "8080:8080"
@@ -25,4 +25,4 @@ services:
       - db
 
 volumes:
-  mssql_data:
+  postgres_data:

@@ -52,7 +52,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Cliente>()
             .HasIndex(c => c.DNI)
             .IsUnique()
-            .HasFilter("[DNI] IS NOT NULL");
+            .HasFilter("\"DNI\" IS NOT NULL");
 
         modelBuilder.Entity<Vehiculo>()
             .HasIndex(v => v.Patente)
