@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace SGA.Controllers;
 
 [Authorize]
+[AllowAnonymous] // Debug
 [ApiController]
 [Route("api/[controller]")]
 public class ProductosController : ControllerBase
@@ -20,6 +21,7 @@ public class ProductosController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<List<Producto>>> ObtenerProductos()
     {
         return await _context.Productos.ToListAsync();

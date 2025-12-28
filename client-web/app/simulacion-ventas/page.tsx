@@ -42,6 +42,9 @@ interface Producto {
   esHuevo: boolean;
   costoUltimaCompra: number;
   unidadDeMedida: string; // [FIX] Added to track base unit
+  precioMinimo?: number;
+  precioMaximo?: number;
+  precioSugerido?: number;
 }
 
 type UnitType = 'UNIDAD' | 'MAPLE' | 'CAJON';
@@ -135,7 +138,10 @@ export default function SimulacionVentasPage() {
         // Filter only eggs as requested and map unit
         setProductos(productosRes.data.filter((p: any) => p.esHuevo).map((p: any) => ({
           ...p,
-          unidadDeMedida: p.unidadDeMedida || 'UNIDAD'
+          unidadDeMedida: p.unidadDeMedida || 'UNIDAD',
+          precioMinimo: p.precioMinimo,
+          precioMaximo: p.precioMaximo,
+          precioSugerido: p.precioSugerido
         })));
         setLoadingData(false);
       } catch (error) {
@@ -200,12 +206,18 @@ export default function SimulacionVentasPage() {
   useEffect(() => {
     if (selectedProducto && unitType) {
       const prod = productos.find((p) => p.productoId === selectedProducto);
-      if (prod && prod.costoUltimaCompra > 0) {
-        // Calculate factor relative to Base Unit
+      if (prod) {
         const factor = getNormalizedFactor(unitType, prod.unidadDeMedida);
-        const costPerUnit = prod.costoUltimaCompra * factor;
-        const suggestedPrice = costPerUnit * 1.1; // +10% margin
-        setPrecio(suggestedPrice.toFixed(2));
+
+        if (prod.precioMinimo && prod.precioMinimo > 0) {
+          // Use Min Price as base default
+          setPrecio((prod.precioMinimo * factor).toFixed(2));
+        } else if (prod.costoUltimaCompra > 0) {
+          // Fallback to Cost + Margin if no Min Price set
+          const costPerUnit = prod.costoUltimaCompra * factor;
+          const suggestedPrice = costPerUnit * 1.3; // +30% fallback margin (updated from 10%)
+          setPrecio(suggestedPrice.toFixed(2));
+        }
       }
     }
   }, [selectedProducto, unitType, productos]);
@@ -239,12 +251,29 @@ export default function SimulacionVentasPage() {
     const prod = productos.find((p) => p.productoId === selectedProducto);
     if (!prod) return true;
 
-    const { unitPrice } = calculateTotals();
+    // isAdmin override
+    if (user?.Rol === 'Admin' || user?.Rol === 'Administrador') {
+      return true;
+    }
 
-    // Validate against cost (must be greater than cost)
-    if (prod.costoUltimaCompra > 0 && unitPrice <= prod.costoUltimaCompra) {
+    const { unitPrice } = calculateTotals();
+    const factor = getNormalizedFactor(unitType, prod.unidadDeMedida);
+
+    // Check against Minimum Price if set
+    if (prod.precioMinimo && prod.precioMinimo > 0) {
+      // unitPrice is per Base Unit. prod.precioMinimo is per Base Unit.
+      // We allow a small tolerance for rounding errors (e.g. 0.01)
+      if (unitPrice < (prod.precioMinimo - 0.01)) {
+        // We return a specific error object if possible, or just false and handle message outside
+        // For now, returning false triggers the generic error message
+        return false;
+      }
+    }
+    // Fallback security: never sell below cost (if no min price set)
+    else if (prod.costoUltimaCompra > 0 && unitPrice <= prod.costoUltimaCompra) {
       return false;
     }
+
     return true;
   };
 
@@ -277,9 +306,14 @@ export default function SimulacionVentasPage() {
     }
 
     if (!validatePrice()) {
+      const prod = productos.find((p) => p.productoId === selectedProducto);
+      const isMinPriceError = prod && prod.precioMinimo && prod.precioMinimo > 0;
+
       setMessage({
         type: 'error',
-        text: 'El precio de venta es menor o igual al costo de compra. Verifique el precio.',
+        text: isMinPriceError
+          ? `El precio ingresado es menor al mínimo permitido ($${((prod?.precioMinimo || 0) * getNormalizedFactor(unitType, prod?.unidadDeMedida || 'UNIDAD')).toLocaleString()}).`
+          : 'El precio de venta es inválido (menor al costo).',
       });
       return;
     }
@@ -499,12 +533,23 @@ export default function SimulacionVentasPage() {
                   })}
                 </select>
               </div>
-              {selectedProdData && selectedProdData.costoUltimaCompra > 0 && (
-                <p className="text-xs text-slate-500 pl-2">
-                  Costo ref ({unitType}): $
-                  {(selectedProdData.costoUltimaCompra * getNormalizedFactor(unitType, selectedProdData.unidadDeMedida)).toFixed(2)} (+10%
-                  ganancia)
-                </p>
+              {selectedProdData && (
+                <div className="pl-2 mt-1">
+                  {selectedProdData.precioMinimo && selectedProdData.precioMinimo > 0 ? (
+                    <p className="text-xs text-blue-600 font-bold">
+                      Sugerido ({unitType}):
+                      ${(selectedProdData.precioMinimo * getNormalizedFactor(unitType, selectedProdData.unidadDeMedida)).toLocaleString('es-AR')} -
+                      ${((selectedProdData.precioMaximo || (selectedProdData.precioMinimo * 1.5)) * getNormalizedFactor(unitType, selectedProdData.unidadDeMedida)).toLocaleString('es-AR')}
+                    </p>
+                  ) : (
+                    /* Fallback if no min price is set yet */
+                    selectedProdData.costoUltimaCompra > 0 && (
+                      <p className="text-xs text-orange-500">
+                        Sin precio configurado. Usando referencia automática.
+                      </p>
+                    )
+                  )}
+                </div>
               )}
             </div>
 

@@ -43,7 +43,11 @@ export default function InventarioGeneralPage() {
     productoId: '',
     cantidad: '',
     unitType: 'CAJON' as UnitType,
-    precio: '',
+
+    precio: '', // Precio TOTAL por la unidad seleccionada (Cajon/Maple/etc)
+    margin: '30', // Default 30% margin
+    precioMin: '',
+    precioMax: '',
     proveedor: '',
     observaciones: '',
   });
@@ -71,7 +75,7 @@ export default function InventarioGeneralPage() {
 
   const calculateTotals = () => {
     const qty = parseFloat(formData.cantidad) || 0;
-    const price = parseFloat(formData.precio) || 0;
+    const price = parseFloat(formData.precio) || 0; // This is unit price of the selected UnitType (e.g. Price per Cajon)
     const factor = UNIT_FACTORS[formData.unitType];
 
     const totalUnits = qty * factor; // Total Eggs
@@ -80,6 +84,46 @@ export default function InventarioGeneralPage() {
 
     return { totalUnits, unitCost, totalCost };
   };
+
+  // Effect to recalculate suggested prices when Cost or Margin changes
+  useEffect(() => {
+    if (!formData.productoId || !formData.precio || !formData.cantidad) return;
+
+    const { unitCost } = calculateTotals(); // Cost per individual egg
+    // We usually sell by Maple or Dozen, or Unit?
+    // Prices in system are usually stored per "Unidad".
+    // But user might want to see suggested price per MAPLE or CAJON?
+    // Let's stick to Base Unit of Product (usually Unit or Maple).
+    // Wait, Product.UnidadDeMedida usually is MAPLE for eggs? Or UNIDAD?
+    // Let's assume we store prices per "Unidad" (1 egg) in backend for consistency, 
+    // BUT if the product is "Maple", price is per Maple.
+    // Let's check: Product model has 'UnidadDeMedida'.
+    // If we are selling eggs, we usually talk about Price per Maple.
+
+    // Let's calculate the Cost per Base Unit of the selected product.
+    const selectedProd = productos.find(p => p.productoId.toString() === formData.productoId);
+    if (!selectedProd) return;
+
+    // Calculate Cost Per Base Unit (e.g. Cost per Maple)
+    // 1. Get Cost Per Egg (unitCost)
+    // 2. Multiply by factor of Base Unit.
+    // If prod.unidadDeMedida is 'MAPLE', factor is 30.
+    const productFactor = UNIT_FACTORS[(selectedProd.unidadDeMedida.toUpperCase() as UnitType)] || 1;
+
+    // Cost per Base Unit (The unit the product is tracked in)
+    const costPerBaseParam = unitCost * productFactor;
+
+    const margin = parseFloat(formData.margin) || 0;
+    const minPrice = costPerBaseParam * (1 + margin / 100);
+    const maxPrice = minPrice * 1.25; // Default spread
+
+    setFormData(prev => ({
+      ...prev,
+      precioMin: minPrice.toFixed(2),
+      precioMax: maxPrice.toFixed(2)
+    }));
+
+  }, [formData.precio, formData.cantidad, formData.unitType, formData.margin, formData.productoId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,6 +154,9 @@ export default function InventarioGeneralPage() {
             productoId: parseInt(formData.productoId),
             cantidad: qtyNormalized,
             costoUnitario: costPerBaseUnit,
+            margenGanancia: parseFloat(formData.margin) || 0,
+            precioMinimoNuevo: parseFloat(formData.precioMin) || 0,
+            precioMaximoNuevo: parseFloat(formData.precioMax) || 0
           },
         ],
       };
@@ -256,6 +303,62 @@ export default function InventarioGeneralPage() {
               </div>
             </div>
 
+
+
+            {/* Margin & Pricing Section */}
+            <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-900/30 mb-6">
+              <h4 className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2">
+                <Calculator size={18} /> Configuración de Precios (Sugeridos)
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Margin Input */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Margen Ganancia (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    className="w-full px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-blue-500 font-bold text-slate-700 dark:text-slate-200"
+                    value={formData.margin}
+                    onChange={(e) => setFormData({ ...formData, margin: e.target.value })}
+                  />
+                </div>
+                {/* Min Price Auto */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Precio Minimo (Sugerido)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                    <input
+                      type="number"
+                      readOnly
+                      className="w-full pl-8 pr-4 py-3 rounded-xl bg-slate-200 dark:bg-slate-700 border-none text-slate-600 dark:text-slate-300 font-bold outline-none cursor-not-allowed"
+                      value={formData.precioMin}
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1 pl-1">Base + Margen ({formData.margin}%)</p>
+                </div>
+                {/* Max Price Editable */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    Precio Máximo (Techo)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">$</span>
+                    <input
+                      type="number"
+                      className="w-full pl-8 pr-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-bold outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 dark:text-slate-200"
+                      value={formData.precioMax}
+                      onChange={(e) => setFormData({ ...formData, precioMax: e.target.value })}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Summary Card */}
             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
               <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
@@ -323,7 +426,7 @@ export default function InventarioGeneralPage() {
             </button>
           </form>
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 }

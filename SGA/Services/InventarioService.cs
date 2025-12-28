@@ -262,6 +262,35 @@ public class InventarioService : IInventarioService
                 // Actualizar Costo de Última Compra (por unidad)
                 producto.CostoUltimaCompra = item.CostoUnitario;
 
+                // Actualizar Margen y Precios Sugeridos si vienen en el request
+                if (item.MargenGanancia.HasValue)
+                    producto.UltimoMargen = item.MargenGanancia.Value;
+                
+                // FALLBACK: Si hay margen pero no precio minimo (o es 0), calculamos
+                if ((!item.PrecioMinimoNuevo.HasValue || item.PrecioMinimoNuevo.Value <= 0) && item.MargenGanancia.HasValue)
+                {
+                     var margen = item.MargenGanancia.Value;
+                     producto.PrecioMinimo = item.CostoUnitario * (1 + (margen / 100m));
+                     
+                     // Si tampoco hay maximo, calculamos spread
+                     if (!item.PrecioMaximoNuevo.HasValue || item.PrecioMaximoNuevo.Value <= 0)
+                     {
+                         producto.PrecioMaximo = producto.PrecioMinimo * 1.25m;
+                     }
+                }
+                else if (item.PrecioMinimoNuevo.HasValue)
+                {
+                    producto.PrecioMinimo = item.PrecioMinimoNuevo.Value;
+                }
+
+                if (item.PrecioMaximoNuevo.HasValue && item.PrecioMaximoNuevo.Value > 0)
+                    producto.PrecioMaximo = item.PrecioMaximoNuevo.Value;
+                else if (producto.PrecioMaximo < producto.PrecioMinimo)
+                {
+                    // Si el maximo quedó desfasado (o no se envio), lo corregimos
+                     producto.PrecioMaximo = producto.PrecioMinimo * 1.25m;
+                }
+
                 // 2. Registrar Detalle Compra
                 var detalle = new DetalleCompra
                 {

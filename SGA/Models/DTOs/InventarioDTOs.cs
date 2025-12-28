@@ -36,6 +36,11 @@ public class ItemCompra
     public int ProductoId { get; set; }
     public decimal Cantidad { get; set; }
     public decimal CostoUnitario { get; set; }
+    
+    // New pricing fields
+    public decimal? MargenGanancia { get; set; }
+    public decimal? PrecioMinimoNuevo { get; set; }
+    public decimal? PrecioMaximoNuevo { get; set; }
 }
 
 public class CerrarRepartoRequest

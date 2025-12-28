@@ -193,9 +193,12 @@ export default function PuntoVentaPage() {
 
     if (prod.precioSugerido && prod.precioSugerido > 0) {
       setAddPrice((prod.precioSugerido * factor).toFixed(2));
+    } else if (prod.precioMinimo && prod.precioMinimo > 0) {
+      // Default to Min Price if no specific single Suggested Price is set
+      setAddPrice((prod.precioMinimo * factor).toFixed(2));
     } else if (isGranja) {
-      // Cost + 10%
-      const costPlus10 = (prod.costoUltimaCompra * 1.10) * factor;
+      // Fallback if no pricing set
+      const costPlus10 = (prod.costoUltimaCompra * 1.30) * factor; // 30% default fallback
       setAddPrice(Math.round(costPlus10).toFixed(2));
     } else {
       setAddPrice((prod.precioBase * factor).toFixed(2));
@@ -209,8 +212,10 @@ export default function PuntoVentaPage() {
 
       if (addingProduct.precioSugerido && addingProduct.precioSugerido > 0) {
         setAddPrice((addingProduct.precioSugerido * factor).toFixed(2));
+      } else if (addingProduct.precioMinimo && addingProduct.precioMinimo > 0) {
+        setAddPrice((addingProduct.precioMinimo * factor).toFixed(2));
       } else if (isGranja) {
-        const costPlus10 = (addingProduct.costoUltimaCompra * 1.10) * factor;
+        const costPlus10 = (addingProduct.costoUltimaCompra * 1.30) * factor; // 30% default
         setAddPrice(Math.round(costPlus10).toFixed(2));
       } else {
         setAddPrice((addingProduct.precioBase * factor).toFixed(2));
@@ -495,13 +500,21 @@ export default function PuntoVentaPage() {
                           <p className="text-xs text-gray-500">
                             {isGranja ? (
                               <>
-                                Global: {prod.stockActual.toLocaleString()} {prod.unidadDeMedida}
-                                {prod.esHuevo && prod.unidadDeMedida.toLowerCase() !== 'maple' && ` (~${Math.floor(prod.stockActual / 30)} maples)`}
+                                <div>Global: {prod.stockActual.toLocaleString()} {prod.unidadDeMedida}</div>
+                                {prod.precioMinimo && prod.precioMinimo > 0 && (
+                                  <div className="text-xs text-blue-600 mt-1 font-bold">
+                                    Sug: ${prod.precioMinimo.toLocaleString()} - ${prod.precioMaximo?.toLocaleString() || '?'}
+                                  </div>
+                                )}
                               </>
                             ) : (
                               <>
-                                Disp: {(vehicleStock.get(prod.productoId) || 0).toLocaleString()} {prod.unidadDeMedida}
-                                {prod.esHuevo && prod.unidadDeMedida.toLowerCase() !== 'maple' && ` (~${Math.floor((vehicleStock.get(prod.productoId) || 0) / 30)} maples)`}
+                                <div>Disp: {(vehicleStock.get(prod.productoId) || 0).toLocaleString()} {prod.unidadDeMedida}</div>
+                                {prod.precioMinimo && prod.precioMinimo > 0 && (
+                                  <div className="text-xs text-blue-600 mt-1 font-bold">
+                                    Sug: ${prod.precioMinimo.toLocaleString()} - ${prod.precioMaximo?.toLocaleString() || '?'}
+                                  </div>
+                                )}
                               </>
                             )}
                           </p>
@@ -557,6 +570,12 @@ export default function PuntoVentaPage() {
                       onChange={(e) => setAddPrice(e.target.value)}
                       className="w-full p-2 border rounded-lg dark:bg-gray-900 dark:border-gray-600"
                     />
+                    {addingProduct.precioMinimo && addingProduct.precioMinimo > 0 && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Sug: ${(addingProduct.precioMinimo * getNormalizedFactor(addUnit, addingProduct.unidadDeMedida)).toFixed(2)} -
+                        ${(addingProduct.precioMaximo ? addingProduct.precioMaximo * getNormalizedFactor(addUnit, addingProduct.unidadDeMedida) : 0).toFixed(2)}
+                      </p>
+                    )}
                   </div>
                 </div>
 
