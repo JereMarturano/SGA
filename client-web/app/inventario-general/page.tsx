@@ -185,7 +185,7 @@ export default function InventarioGeneralPage() {
             className="flex items-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
           >
             <ArrowLeft size={20} className="mr-2" />
-            Volver al Dashboard
+            Volver al Panel de Control
           </Link>
         </div>
 

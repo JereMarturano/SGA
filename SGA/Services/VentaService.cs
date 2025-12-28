@@ -244,7 +244,7 @@ public class VentaService : IVentaService
                 var nombreCliente = cliente?.NombreCompleto ?? "Cliente Desconocido";
                 var listaProductos = string.Join(", ", detallesTexto);
 
-                var mensajeNotificacion = $"{nombreUsuario} vendió {listaProductos} a {nombreCliente}, por el valor de ${venta.Total}";
+                var mensajeNotificacion = $"{nombreUsuario} vendió {listaProductos} a {nombreCliente}, por el valor de ${venta.Total:N2}";
 
                 await _notificacionService.CrearNotificacionAsync(
                     mensajeNotificacion,

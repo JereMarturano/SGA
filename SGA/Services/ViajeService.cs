@@ -3,6 +3,7 @@ using SGA.Data;
 using SGA.Helpers;
 using SGA.Models;
 using SGA.Models.Enums;
+using SGA.Models.DTOs;
 
 namespace SGA.Services;
 
@@ -74,7 +75,7 @@ public class ViajeService : IViajeService
         return viaje;
     }
 
-    public async Task<Viaje> FinalizarViajeAsync(int viajeId, string? observaciones)
+    public async Task<Viaje> FinalizarViajeAsync(int viajeId, string? observaciones, List<AjusteStockCierreDto>? ajustes = null)
     {
         var viaje = await _context.Viajes
             .Include(v => v.Vehiculo)
@@ -88,6 +89,60 @@ public class ViajeService : IViajeService
         if (!string.IsNullOrEmpty(observaciones))
         {
             viaje.Observaciones += " | Final: " + observaciones;
+        }
+
+        // Process Adjustments (Stock Reconciliation)
+        if (ajustes != null && ajustes.Any())
+        {
+            foreach (var ajuste in ajustes)
+            {
+                var diff = ajuste.CantidadReal - ajuste.CantidadTeorica;
+                
+                // Only process if there is a difference or if we want to enforce the Real quantity
+                if (diff != 0)
+                {
+                    // Update StockVehiculo to match Real Quantity
+                    var stock = await _context.StockVehiculos
+                        .FirstOrDefaultAsync(s => s.VehiculoId == viaje.VehiculoId && s.ProductoId == ajuste.ProductoId);
+
+                    if (stock != null)
+                    {
+                        stock.Cantidad = ajuste.CantidadReal;
+                        stock.UltimaActualizacion = TimeHelper.Now;
+                    }
+                    else
+                    {
+                        // Create if not exists (unlikely if theoretical > 0, but possible if theoretical was 0 and found stock)
+                        if (ajuste.CantidadReal > 0)
+                        {
+                            _context.StockVehiculos.Add(new StockVehiculo
+                            {
+                                VehiculoId = viaje.VehiculoId,
+                                ProductoId = ajuste.ProductoId,
+                                Cantidad = ajuste.CantidadReal,
+                                UltimaActualizacion = TimeHelper.Now
+                            });
+                        }
+                    }
+
+                    // Register Movement (Merma or Ajuste)
+                    // If diff < 0 (Real < Theoretical) => Missing => Merma
+                    // If diff > 0 (Real > Theoretical) => Surplus => Ajuste (Entrada)
+                    var tipo = diff < 0 ? TipoMovimientoStock.Merma : TipoMovimientoStock.AjusteInventario;
+                    
+                    var mov = new MovimientoStock
+                    {
+                        Fecha = TimeHelper.Now,
+                        TipoMovimiento = tipo,
+                        VehiculoId = viaje.VehiculoId,
+                        ProductoId = ajuste.ProductoId,
+                        Cantidad = diff, // Negative for Merma, Positive for Ajuste
+                        UsuarioId = viaje.ChoferId,
+                        Observaciones = $"Cierre Viaje #{viajeId}: {(diff < 0 ? "Faltante" : "Sobrante")} de {Math.Abs(diff)}"
+                    };
+                    _context.MovimientosStock.Add(mov);
+                }
+            }
         }
 
         // Liberar Vehiculo

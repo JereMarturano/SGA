@@ -84,7 +84,7 @@ public class AlertaService : IAlertaService
                 Tipo = "Warning",
                 Fecha = TimeHelper.Now,
                 Icono = "AlertCircle",
-                Url = $"/clientes/{cliente.ClienteId}",
+                Url = $"/clientes?id={cliente.ClienteId}",
                 ClaveUnica = clave
             });
         }
@@ -108,7 +108,7 @@ public class AlertaService : IAlertaService
                 Tipo = "Info",
                 Fecha = TimeHelper.Now,
                 Icono = "UserX",
-                Url = $"/clientes/{cliente.ClienteId}",
+                Url = $"/clientes?id={cliente.ClienteId}",
                 ClaveUnica = clave
             });
         }

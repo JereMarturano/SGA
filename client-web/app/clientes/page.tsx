@@ -14,7 +14,8 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 import api from '@/lib/axios';
 
@@ -56,10 +57,24 @@ interface PaymentHistory {
 }
 
 export default function ClientesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <ClientesContent />
+    </Suspense>
+  );
+}
+
+function ClientesContent() {
   const [clients, setClients] = useState<Client[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const highlightDone = useRef(false);
 
   // New Modals State
   const [isDebtModalOpen, setIsDebtModalOpen] = useState(false);
@@ -106,6 +121,26 @@ export default function ClientesPage() {
   useEffect(() => {
     fetchClients();
   }, []);
+
+  useEffect(() => {
+    if (!loading && clients.length > 0 && !highlightDone.current) {
+      const clientId = searchParams.get('id');
+      if (clientId) {
+        const client = clients.find((c) => c.id === parseInt(clientId));
+        if (client) {
+          handleOpenDebtModal(client);
+          highlightDone.current = true;
+          // Scroll to the client card
+          setTimeout(() => {
+            const element = document.getElementById(`client-card-${clientId}`);
+            if (element) {
+              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }, 100);
+        }
+      }
+    }
+  }, [loading, clients, searchParams]);
 
   const handleEdit = (client: Client) => {
     setCurrentClient(client);
@@ -248,7 +283,11 @@ export default function ClientesPage() {
           {clients.map((client) => (
             <div
               key={client.id}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all"
+              id={`client-card-${client.id}`}
+              className={`bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border transition-all ${searchParams.get('id') === client.id.toString()
+                ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-lg'
+                : 'border-slate-100 dark:border-slate-700'
+                } hover:shadow-md`}
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-4">
@@ -274,13 +313,12 @@ export default function ClientesPage() {
                   </button>
                   <span
                     className={`px-2 py-1 rounded-lg text-xs font-bold flex items-center
-                    ${
-                      client.status === 'Activo'
+                    ${client.status === 'Activo'
                         ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                         : client.status === 'Moroso'
                           ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                           : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'
-                    }`}
+                      }`}
                   >
                     {client.status}
                   </span>
@@ -510,21 +548,19 @@ export default function ClientesPage() {
           <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl mb-4">
             <button
               onClick={() => setDebtAction('pagar')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
-                debtAction === 'pagar'
-                  ? 'bg-white dark:bg-slate-600 text-green-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${debtAction === 'pagar'
+                ? 'bg-white dark:bg-slate-600 text-green-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
             >
               Registrar Pago
             </button>
             <button
               onClick={() => setDebtAction('ajustar')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
-                debtAction === 'ajustar'
-                  ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${debtAction === 'ajustar'
+                ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
             >
               Ajustar Deuda
             </button>
@@ -644,21 +680,19 @@ export default function ClientesPage() {
           <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl mb-4 shrink-0">
             <button
               onClick={() => setHistoryTab('ventas')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
-                historyTab === 'ventas'
-                  ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${historyTab === 'ventas'
+                ? 'bg-white dark:bg-slate-600 text-blue-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
             >
               Compras
             </button>
             <button
               onClick={() => setHistoryTab('pagos')}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${
-                historyTab === 'pagos'
-                  ? 'bg-white dark:bg-slate-600 text-green-600 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-              }`}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-bold transition-all ${historyTab === 'pagos'
+                ? 'bg-white dark:bg-slate-600 text-green-600 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+                }`}
             >
               Pagos
             </button>

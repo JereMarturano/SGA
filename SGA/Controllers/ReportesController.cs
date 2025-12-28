@@ -70,4 +70,17 @@ public class ReportesController : ControllerBase
             return StatusCode(500, new { message = "Error al obtener historial de mermas.", error = ex.Message });
         }
     }
+    [HttpGet("ventas-empleado")]
+    public async Task<ActionResult<List<ReporteVentaEmpleadoDto>>> GetVentasPorEmpleado([FromQuery] DateTime? fechaInicio, [FromQuery] DateTime? fechaFin)
+    {
+        try
+        {
+            var reporte = await _reporteService.ObtenerVentasPorEmpleadoAsync(fechaInicio, fechaFin);
+            return Ok(reporte);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error al obtener reporte de ventas por empleado.", error = ex.Message });
+        }
+    }
 }

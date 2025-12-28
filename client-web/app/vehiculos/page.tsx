@@ -32,20 +32,22 @@ export default function VehiculosPage() {
   const fetchVehicles = async () => {
     try {
       const response = await api.get('/vehiculos');
-      const data = response.data.map((v: any) => ({
-        id: v.vehiculoId,
-        name: `${v.marca} ${v.modelo}`,
-        plate: v.patente,
-        mileage: v.kilometraje,
-        lastOilChange: v.ultimoCambioAceite
-          ? new Date(v.ultimoCambioAceite).toISOString().split('T')[0]
-          : '',
-        oilType: v.tipoAceite || '',
-        nextOilChangeKm: v.kilometrajeProximoCambioAceite || v.kilometraje + 10000,
-        notes: v.notas || '',
-        tireCondition: v.estadoCubiertas || 'Bueno',
-        status: v.estado || 'Activo',
-      }));
+      const data = response.data
+        .map((v: any) => ({
+          id: v.vehiculoId,
+          name: `${v.marca} ${v.modelo}`,
+          plate: v.patente,
+          mileage: v.kilometraje,
+          lastOilChange: v.ultimoCambioAceite
+            ? new Date(v.ultimoCambioAceite).toISOString().split('T')[0]
+            : '',
+          oilType: v.tipoAceite || '',
+          nextOilChangeKm: v.kilometrajeProximoCambioAceite || v.kilometraje + 10000,
+          notes: v.notas || '',
+          tireCondition: v.estadoCubiertas || 'Bueno',
+          status: v.estado || 'Activo',
+        }))
+        .filter((v: Vehicle) => !v.name.includes('SGA Punto de Venta'));
       setVehicles(data);
     } catch (error) {
       console.error('Error fetching vehicles:', error);
@@ -184,13 +186,12 @@ export default function VehiculosPage() {
               <div className="absolute top-4 right-4">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-bold
-                  ${
-                    vehicle.status === 'Activo'
+                  ${vehicle.status === 'Activo'
                       ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                       : vehicle.status === 'Mantenimiento'
                         ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                         : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-400'
-                  }`}
+                    }`}
                 >
                   {vehicle.status}
                 </span>
@@ -243,13 +244,12 @@ export default function VehiculosPage() {
                   </div>
                   <span
                     className={`font-bold text-sm px-2 py-0.5 rounded-lg
-                        ${
-                          vehicle.tireCondition === 'Bueno'
-                            ? 'text-green-600 bg-green-50 dark:bg-green-900/20'
-                            : vehicle.tireCondition === 'Regular'
-                              ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
-                              : 'text-red-600 bg-red-50 dark:bg-red-900/20'
-                        }`}
+                        ${vehicle.tireCondition === 'Bueno'
+                        ? 'text-green-600 bg-green-50 dark:bg-green-900/20'
+                        : vehicle.tireCondition === 'Regular'
+                          ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20'
+                          : 'text-red-600 bg-red-50 dark:bg-red-900/20'
+                      }`}
                   >
                     {vehicle.tireCondition}
                   </span>

@@ -36,7 +36,7 @@ public class ViajesController : ControllerBase
     {
         try
         {
-            var viaje = await _viajeService.FinalizarViajeAsync(id, dto.Observaciones);
+            var viaje = await _viajeService.FinalizarViajeAsync(id, dto.Observaciones, dto.Ajustes);
             return Ok(viaje);
         }
         catch (Exception ex)
@@ -72,4 +72,5 @@ public class IniciarViajeDto
 public class FinalizarViajeDto
 {
     public string? Observaciones { get; set; }
+    public List<Models.DTOs.AjusteStockCierreDto>? Ajustes { get; set; }
 }

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SGA.Data;
 
@@ -11,9 +12,11 @@ using SGA.Data;
 namespace SGA.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251228152833_AddPedidos")]
+    partial class AddPedidos
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -763,9 +766,6 @@ namespace SGA.Migrations
 
                     b.Property<int>("ClienteId")
                         .HasColumnType("int");
-
-                    b.Property<bool>("EstaPagado")
-                        .HasColumnType("bit");
 
                     b.Property<int>("Estado")
                         .HasColumnType("int");

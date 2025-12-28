@@ -193,18 +193,20 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
         const items = stockResponse.data.map((item) => {
           // Default to Maple if it's an egg product or tracked in maples, otherwise Unit
           // We'll trust the database 'unidadDeMedida' if available, else guess.
-          // Note: The interface StockVehiculoItem in this file didn't have unity info.
-          // We need to extend the backend or cast if the backend sends it (it usually does in 'producto').
-          // Let's assume item.producto has 'unidadDeMedida'.
           const p = item.producto as any; // Cast to access extra props if TS complains or extend interface
           const baseUnit = p.unidadDeMedida || 'UNIDAD';
+          const defaultUnitType = (baseUnit.toLowerCase() === 'maple' || baseUnit.toLowerCase() === 'cajon') ? 'MAPLE' : 'UNIDAD' as UnitType;
+
+          // Calculate initial theoretical value in the default unit type
+          const factor = getNormalizedFactor(defaultUnitType, baseUnit);
+          const initialQty = item.cantidad / factor;
 
           return {
             productoId: item.productoId,
             nombre: item.producto.nombre,
             cantidadTeorica: item.cantidad,
-            cantidadFisica: '',
-            unitType: (baseUnit.toLowerCase() === 'maple' || baseUnit.toLowerCase() === 'cajon') ? 'MAPLE' : 'UNIDAD' as UnitType,
+            cantidadFisica: initialQty.toString(), // Pre-fill with theoretical
+            unitType: defaultUnitType,
             baseUnit: baseUnit
           };
         });
@@ -231,6 +233,22 @@ const CerrarRepartoModal = ({ vehiculo, onClose, onSuccess }: CerrarRepartoModal
     if (!kilometraje) {
       alert('Por favor ingrese el nuevo kilometraje.');
       return;
+    }
+
+    const nuevoKm = parseFloat(kilometraje);
+    const anteriorKm = vehiculo.kilometraje;
+
+    if (nuevoKm < anteriorKm) {
+      alert(`El nuevo kilometraje (${nuevoKm}) no puede ser menor al anterior (${anteriorKm}).`);
+      return;
+    }
+
+    // Validador de kilometraje "irrisorio" (e.g. mas de 2000km en un reparto)
+    const diferencia = nuevoKm - anteriorKm;
+    if (diferencia > 2000) {
+      if (!confirm(`Ha ingresado una diferencia de ${diferencia.toLocaleString()} km. ¿Está seguro que el kilometraje ${nuevoKm} es correcto?`)) {
+        return;
+      }
     }
 
     setLoading(true);
@@ -561,7 +579,7 @@ export default function StockCallePage() {
             className="flex items-center text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
           >
             <ArrowLeft size={20} className="mr-2" />
-            Volver al Dashboard
+            Volver al Panel de Control
           </Link>
         </div>
 

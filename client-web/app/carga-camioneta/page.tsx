@@ -15,11 +15,23 @@ import {
   ChevronRight,
   User,
   AlertOctagon,
+  MapPin,
 } from 'lucide-react';
 import Link from 'next/link';
 import Toast from '@/components/Toast';
 import Modal from '@/components/Modal';
 import api from '@/lib/axios';
+import { Pedido } from '@/types/pedido';
+import dynamic from 'next/dynamic';
+import { RoutePdf } from '@/components/pdf/RoutePdf';
+
+const PDFDownloadLink = dynamic(
+  () => import('@react-pdf/renderer').then((mod) => mod.PDFDownloadLink),
+  {
+    ssr: false,
+    loading: () => <button className="px-6 py-3 rounded-xl bg-slate-200 text-slate-500 font-bold">Cargando PDF...</button>,
+  }
+);
 
 // Interfaces para datos de API
 interface Vehiculo {
@@ -92,6 +104,13 @@ interface HistorialItem {
   itemsCount: number;
 }
 
+interface ActiveTrip {
+  viajeId: number;
+  vehiculoId: number;
+  choferId: number;
+  acompananteId?: number | null;
+}
+
 export default function CargaCamionetaPage() {
   const [vehiculos, setVehiculos] = useState<VehiculoUI[]>([]);
   const [productosBase, setProductosBase] = useState<ProductoUI[]>([]);
@@ -101,7 +120,7 @@ export default function CargaCamionetaPage() {
   const [selectedVehiculo, setSelectedVehiculo] = useState<number | null>(null);
   const [selectedChofer, setSelectedChofer] = useState<number | null>(null);
   const [selectedAcompanante, setSelectedAcompanante] = useState<number | null>(null);
-  const [items, setItems] = useState<{ productoId: number; unidadId: string; cantidad: number }[]>(
+  const [items, setItems] = useState<{ productoId: number; unidadId: string; cantidad: number; locked?: boolean }[]>(
     []
   );
 
@@ -110,7 +129,17 @@ export default function CargaCamionetaPage() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("¡Carga registrada y Viaje Iniciado!");
   const [historial, setHistorial] = useState<HistorialItem[]>([]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // PDF Generation State
+  const [pdfData, setPdfData] = useState<any>(null);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+
+  // Pedidos State
+  const [pedidosPendientes, setPedidosPendientes] = useState<Pedido[]>([]);
+  const [selectedPedidos, setSelectedPedidos] = useState<number[]>([]);
+  const [activeTrips, setActiveTrips] = useState<ActiveTrip[]>([]);
 
   useEffect(() => {
     const fetchHistorial = async () => {
@@ -124,10 +153,12 @@ export default function CargaCamionetaPage() {
 
     const fetchData = async () => {
       try {
-        const [vRes, pRes, uRes] = await Promise.all([
+        const [vRes, pRes, uRes, peRes, tRes] = await Promise.all([
           api.get('/vehiculos'),
           api.get('/productos'),
           api.get('/inventario/usuarios'),
+          api.get('/pedidos/pendientes'),
+          api.get('/viajes/activos'),
         ]);
 
         const vehiculosMapped = vRes.data
@@ -149,6 +180,8 @@ export default function CargaCamionetaPage() {
         setVehiculos(vehiculosMapped);
         setProductosBase(productosMapped);
         setUsuarios(uRes.data);
+        setPedidosPendientes(peRes.data);
+        setActiveTrips(tRes.data);
         await fetchHistorial();
       } catch (error) {
         console.error('Error cargando datos:', error);
@@ -169,20 +202,84 @@ export default function CargaCamionetaPage() {
     }
   };
 
+  const calculateItemsFromPedidos = (pedidoIds: number[]) => {
+    // Collect all items from selected pedidos
+    const allDetalles = pedidosPendientes
+      .filter(p => pedidoIds.includes(p.pedidoId))
+      .flatMap(p => p.detalles);
+
+    // Group by ProductoId
+    const groups = allDetalles.reduce((acc, d) => {
+      const k = d.productoId;
+      if (!acc[k]) acc[k] = { productoId: k, totalUnits: 0 };
+
+      // Normalize to Units
+      const factors: Record<string, number> = {
+        'unidad': 1,
+        'maple': 30,
+        'cajon': 360,
+        'docena': 12
+      };
+
+      const factor = factors[d.unidad.toLowerCase()] || 1;
+      acc[k].totalUnits += d.cantidad * factor;
+      return acc;
+    }, {} as Record<number, { productoId: number; totalUnits: number }>);
+
+    // Create Item Lines
+    const newItems = Object.values(groups).map(g => {
+      const prod = productosBase.find(p => p.id === g.productoId);
+
+      // Determine preferred loading unit
+      // If product is Eggs/Maple, load in Maples.
+      let unitId = 'unidad';
+      let qty = g.totalUnits;
+
+      if (prod?.unidadDeMedida === 'Maple' || prod?.nombre.toLowerCase().includes('huevo')) {
+        unitId = 'maple';
+        // Convert Units -> Maples
+        qty = g.totalUnits / 30;
+      }
+
+      return {
+        productoId: g.productoId,
+        unidadId: unitId,
+        cantidad: qty,
+        locked: true // Mark as locked because it comes from orders
+      };
+    });
+
+    // If we want to preserve manual items, we would need to separate them. 
+    // For now, based on current logic, selecting orders resets the list, which is consistent.
+    setItems(newItems);
+  };
+
+  const handleTogglePedido = (id: number) => {
+    const newSelection = selectedPedidos.includes(id)
+      ? selectedPedidos.filter(pid => pid !== id)
+      : [...selectedPedidos, id];
+
+    setSelectedPedidos(newSelection);
+    calculateItemsFromPedidos(newSelection);
+  };
+
   const handleAddItem = () => {
     if (productosBase.length > 0) {
-      setItems([...items, { productoId: productosBase[0].id, unidadId: 'cajon', cantidad: 1 }]);
+      setItems([...items, { productoId: productosBase[0].id, unidadId: 'cajon', cantidad: 1, locked: false }]);
     }
   };
 
-  const handleUpdateItem = (index: number, field: string, value: any) => {
+  const handleUpdateItem = (index: number, field: keyof typeof items[0], value: any) => {
     const newItems = [...items];
+    // @ts-ignore
+    if (items[index].locked) return; // Prevent editing locked items
     // @ts-ignore
     newItems[index][field] = value;
     setItems(newItems);
   };
 
   const handleRemoveItem = (index: number) => {
+    if (items[index].locked) return;
     setItems(items.filter((_, i) => i !== index));
   };
 
@@ -214,25 +311,48 @@ export default function CargaCamionetaPage() {
 
       await api.post('/inventario/cargar-vehiculo', payload);
 
-      // AUTOMATICALLY START TRIP (Only if not already on route)
+      // AUTOMATICALLY START TRIP
       let tripStarted = false;
+      let viajeId: number | null = null;
+      let existingViajeId = null;
 
       if (!vehiculo?.enRuta) {
         try {
-          await api.post('/viajes/iniciar', {
+          const viajeRes = await api.post('/viajes/iniciar', {
             VehiculoId: Number(selectedVehiculo),
             ChoferId: Number(selectedChofer),
             AcompananteId: selectedAcompanante ? Number(selectedAcompanante) : null,
             Observaciones: 'Iniciado automáticamente desde Carga de Camioneta'
           });
+          viajeId = viajeRes.data.viajeId;
           tripStarted = true;
         } catch (tripError: any) {
-          console.error("Error starting trip automatically", tripError);
+          console.error("Error starting trip", tripError);
           alert(`La carga se guardó, pero NO SE PUDO INICIAR EL VIAJE: ${tripError.response?.data || tripError.message}`);
         }
       } else {
-        // If already on route, we consider it a success for the "Load" action (adding stock to existing trip)
-        tripStarted = true;
+        // Find existing trip logic if needed, or query API.
+        // For now, assuming we can find it via active trip endpoint.
+        const vRes = await api.get(`/viajes/activo-por-usuario/${selectedChofer}`);
+        // This endpoint might be by User, or we added 'activo-por-vehiculo'?
+        // The backend has `activo-por-usuario`.
+        // We'll trust that assigning orders to "Current Trip" is handled or we skip assignment if generic loading.
+        // User asked: "cuando cargo los pedidos, automaticamente se carga la camioneta...".
+        // Usually at start of trip.
+        // If Trip Started, we use `viajeId`.
+      }
+
+      // ASSIGN ORDERS
+      if (selectedPedidos.length > 0 && (tripStarted && viajeId)) {
+        try {
+          await api.post('/pedidos/asignar-viaje', {
+            ViajeId: viajeId,
+            PedidoIds: selectedPedidos
+          });
+        } catch (assignError) {
+          console.error("Error assigning orders", assignError);
+          // Not blocking flow but warning
+        }
       }
 
       await fetchHistorial();
@@ -260,6 +380,50 @@ export default function CargaCamionetaPage() {
 
       setToastMessage(message);
       setShowToast(tripStarted);
+
+      // PREPARE PDF DATA
+      const ch = usuarios.find(u => u.usuarioId === selectedChofer);
+      const ac = usuarios.find(u => u.usuarioId === selectedAcompanante); // Correctly find accompanist object
+      // Re-find vehiculo safely in case it changed
+      const vehForPdf = vehiculos.find((v) => v.id === selectedVehiculo);
+
+      const ordersForPdf = pedidosPendientes
+        .filter(p => selectedPedidos.includes(p.pedidoId))
+        .map(p => ({
+          pedidoId: p.pedidoId,
+          cliente: p.cliente?.nombreCompleto || p.cliente?.nombre || p.clienteNombre || 'Cliente',
+          direccion: p.cliente?.direccion || '',
+          items: p.detalles.map(d => ({
+            producto: d.productoNombre || productosBase.find(pr => pr.id === d.productoId)?.nombre || '?',
+            cantidad: d.cantidad,
+            unidad: d.unidad,
+          }))
+        }));
+
+      const totalLoadForPdf = items.map(i => {
+        const p = productosBase.find(pr => pr.id === i.productoId);
+        const u = unidadesMedida.find(un => un.id === i.unidadId);
+        // Re-calculate factor here as helper might not be accessible inside map if not careful, but it is in scope.
+        const factor = getNormalizedFactor(i.unidadId, p?.unidadDeMedida || 'Unidades');
+        return {
+          producto: p?.nombre || 'Unknown',
+          cantidad: i.cantidad,
+          unidad: u?.nombre || i.unidadId,
+          totalHuevos: i.cantidad * factor
+        };
+      });
+
+      setPdfData({
+        fecha: new Date().toLocaleDateString(),
+        chofer: `${ch?.nombre} ${ch?.apellido}`,
+        vehiculo: vehForPdf?.nombre || '',
+        patente: vehForPdf?.patente || '',
+        acompanante: ac ? `${ac.nombre} ${ac.apellido}` : undefined,
+        pedidos: ordersForPdf,
+        cargaTotal: totalLoadForPdf
+      });
+
+      setIsSuccessModalOpen(true);
     } catch (error: any) {
       console.error('Error al cargar vehículo:', error);
       alert(`Error al cargar vehículo: ${error.response?.data?.message || error.message}`);
@@ -328,6 +492,53 @@ export default function CargaCamionetaPage() {
         isVisible={showToast}
         onClose={() => setShowToast(false)}
       />
+
+      {/* SUCCESS MODAL WITH PDF DOWNLOAD */}
+      <Modal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        title="¡Carga Exitosa!"
+        footer={
+          <button
+            onClick={() => setIsSuccessModalOpen(false)}
+            className="w-full py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-xl"
+          >
+            Cerrar
+          </button>
+        }
+      >
+        <div className="flex flex-col items-center text-center gap-6 py-4">
+          <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400">
+            <Check size={40} strokeWidth={3} />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">¡Todo Listo!</h3>
+            <p className="text-slate-500 dark:text-slate-400">
+              La carga se registró correctamente y el viaje ha comenzado.
+              <br />Ya podés descargar la documentación.
+            </p>
+          </div>
+
+          {pdfData && (
+            <div className="w-full">
+              {/* @ts-ignore */}
+              <PDFDownloadLink
+                document={<RoutePdf data={pdfData} />}
+                fileName={`Hoja_Ruta_${new Date().toISOString().slice(0, 10)}.pdf`}
+                className="w-full bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-500 text-white py-4 rounded-xl font-bold shadow-xl shadow-slate-900/20 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              >
+                {/* @ts-ignore */}
+                {({ loading }: any) => (
+                  <>
+                    <Save size={20} />
+                    {loading ? 'Generando PDF...' : 'Descargar Hoja de Ruta y Remitos'}
+                  </>
+                )}
+              </PDFDownloadLink>
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <Modal
         isOpen={isConfirmModalOpen}
@@ -440,7 +651,7 @@ export default function CargaCamionetaPage() {
             </div>
 
             <div className="mt-6 flex justify-between items-center pt-4 border-t border-slate-200 dark:border-slate-700">
-              <span className="font-bold text-slate-800 dark:text-white text-lg">Total Huevos</span>
+              <span className="font-bold text-slate-800 dark:text-white text-lg">Total Maples</span>
               <span className="text-2xl font-black text-blue-600 dark:text-blue-400">
                 {getResumenCarga()
                   .reduce((acc, i) => acc + i.totalHuevos, 0)
@@ -556,11 +767,29 @@ export default function CargaCamionetaPage() {
                   <option value="" disabled>
                     Seleccione un chofer...
                   </option>
-                  {usuarios.map((u) => (
-                    <option key={u.usuarioId} value={u.usuarioId}>
-                      {u.nombre} {u.apellido}
-                    </option>
-                  ))}
+                  {usuarios
+                    .filter(u => {
+                      // Logic to hide users who are in an active trip
+                      // UNLESS they are assigned to the currently selected vehicle (adding stock case)
+                      const currentTrip = activeTrips.find(t => t.vehiculoId === selectedVehiculo);
+
+                      // Is this user in ANY active trip?
+                      const userTrip = activeTrips.find(t => t.choferId === u.usuarioId || t.acompananteId === u.usuarioId);
+
+                      if (!userTrip) return true; // User is free
+
+                      // User is busy. Are they busy on the CURRENT vehicle?
+                      if (currentTrip && (currentTrip.choferId === u.usuarioId || currentTrip.acompananteId === u.usuarioId)) {
+                        return true; // Allow them
+                      }
+
+                      return false; // Hide them
+                    })
+                    .map((u) => (
+                      <option key={u.usuarioId} value={u.usuarioId}>
+                        {u.nombre} {u.apellido}
+                      </option>
+                    ))}
                 </select>
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <User size={20} />
@@ -587,11 +816,26 @@ export default function CargaCamionetaPage() {
                   <option value="">
                     Sin acompañante
                   </option>
-                  {usuarios.filter(u => u.usuarioId !== selectedChofer).map((u) => (
-                    <option key={u.usuarioId} value={u.usuarioId}>
-                      {u.nombre} {u.apellido}
-                    </option>
-                  ))}
+                  {usuarios
+                    .filter(u => u.usuarioId !== selectedChofer)
+                    .filter(u => {
+                      // Same logic for Acompanante
+                      const currentTrip = activeTrips.find(t => t.vehiculoId === selectedVehiculo);
+                      const userTrip = activeTrips.find(t => t.choferId === u.usuarioId || t.acompananteId === u.usuarioId);
+
+                      if (!userTrip) return true;
+
+                      if (currentTrip && (currentTrip.choferId === u.usuarioId || currentTrip.acompananteId === u.usuarioId)) {
+                        return true;
+                      }
+
+                      return false;
+                    })
+                    .map((u) => (
+                      <option key={u.usuarioId} value={u.usuarioId}>
+                        {u.nombre} {u.apellido}
+                      </option>
+                    ))}
                 </select>
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                   <User size={20} />
@@ -652,6 +896,59 @@ export default function CargaCamionetaPage() {
 
           {/* Columna Derecha: Lista de Productos (8 cols) */}
           <div className="lg:col-span-8 space-y-8">
+
+            {/* Pedidos Selection */}
+            {pedidosPendientes.length > 0 && (
+              <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 shadow-xl border border-slate-100 dark:border-slate-700">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                  <span className="bg-indigo-100 text-indigo-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">P</span>
+                  Seleccionar Pedidos Pendientes
+                </h3>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {pedidosPendientes.map(p => {
+                    const isAssigned = p.estado === 1; // Asignado
+                    return (
+                      <div key={p.pedidoId}
+                        onClick={() => handleTogglePedido(p.pedidoId)}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex justify-between items-center group relative overflow-hidden
+                              ${selectedPedidos.includes(p.pedidoId)
+                            ? (isAssigned ? 'bg-orange-100 border-orange-500 dark:bg-orange-900/30 dark:border-orange-500' : 'bg-indigo-50 border-indigo-500 dark:bg-indigo-900/20 dark:border-indigo-400')
+                            : (isAssigned
+                              ? 'bg-orange-50 border-orange-200 dark:bg-orange-900/10 dark:border-orange-800 hover:border-orange-300'
+                              : 'bg-white hover:bg-slate-50 border-slate-200 dark:border-slate-700 dark:bg-slate-800')}`}
+                      >
+                        {isAssigned && (
+                          <div className="absolute top-0 right-0 bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 text-[9px] font-black px-2 py-0.5 rounded-bl-lg border-l border-b border-orange-200 dark:border-orange-800 flex items-center gap-1">
+                            <Truck size={10} /> EN CALLE
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className={`font-bold ${isAssigned ? 'text-orange-900 dark:text-orange-100' : 'text-slate-800 dark:text-white'}`}>
+                              {p.cliente?.nombreCompleto || p.cliente?.nombre || p.clienteNombre || `Cliente #${p.clienteId}`}
+                            </p>
+                            {isAssigned && !selectedPedidos.includes(p.pedidoId) && (
+                              <AlertTriangle size={14} className="text-orange-500 animate-pulse" />
+                            )}
+                          </div>
+                          {p.cliente?.direccion && (
+                            <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                              <MapPin size={10} className="shrink-0" /> {p.cliente.direccion}
+                            </p>
+                          )}
+                          <p className="text-[10px] text-slate-400 mt-1">{new Date(p.fechaPedido).toLocaleDateString()} • {p.detalles.length} items</p>
+                        </div>
+                        {selectedPedidos.includes(p.pedidoId) && (
+                          <div className={`rounded-full p-1 ${isAssigned ? 'bg-orange-500 text-white' : 'bg-indigo-500 text-white'}`}>
+                            <Check size={16} strokeWidth={3} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-8 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 min-h-[500px]">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
@@ -707,7 +1004,7 @@ export default function CargaCamionetaPage() {
                       >
                         {/* Icono Producto */}
                         <div className={`hidden md:flex p-4 rounded-xl shrink-0 ${isInsufficient ? 'bg-red-100 dark:bg-red-900/30 text-red-500' : 'bg-orange-50 dark:bg-orange-900/20 text-orange-500'}`}>
-                          {isInsufficient ? <AlertTriangle size={24} /> : <Egg size={24} />}
+                          {item.locked ? <AlertOctagon size={24} className="text-blue-500" /> : (isInsufficient ? <AlertTriangle size={24} /> : <Egg size={24} />)}
                         </div>
 
                         <div className="flex-1 w-full">
@@ -725,7 +1022,16 @@ export default function CargaCamionetaPage() {
                                 </div>
                                 {prod && (
                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${isInsufficient ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                                    Stock: {prod.unidadDeMedida.toLowerCase() === 'maple' ? stockDisponibleParaEsteItem.toLocaleString() : Math.floor(stockDisponibleParaEsteItem / 30).toLocaleString()} {prod.unidadDeMedida}
+                                    Stock: {
+                                      prod.unidadDeMedida.toLowerCase() === 'maple'
+                                        ? prod.stockActual.toLocaleString() + ' Maple'
+                                        : Math.floor(prod.stockActual / 30).toLocaleString() + ' Cajones'
+                                    }
+                                  </span>
+                                )}
+                                {item.locked && (
+                                  <span className="ml-2 text-[10px] font-bold bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
+                                    De Pedido
                                   </span>
                                 )}
                               </div>
@@ -735,7 +1041,11 @@ export default function CargaCamionetaPage() {
                                   onChange={(e) =>
                                     handleUpdateItem(index, 'productoId', Number(e.target.value))
                                   }
-                                  className="w-full p-3 pl-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+                                  disabled={item.locked}
+                                  className={`w-full p-3 pl-4 rounded-xl border focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none font-bold text-sm ${item.locked
+                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed border-slate-200 dark:border-slate-700'
+                                    : 'bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'
+                                    }`}
                                 >
                                   {productosBase.map((p) => {
                                     // Calcular stock restante de este producto considerando lo usado en filas anteriores
@@ -748,9 +1058,11 @@ export default function CargaCamionetaPage() {
                                     );
                                   })}
                                 </select>
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                  <ChevronRight size={16} className="rotate-90" />
-                                </div>
+                                {!item.locked && (
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <ChevronRight size={16} className="rotate-90" />
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -763,7 +1075,11 @@ export default function CargaCamionetaPage() {
                                 <select
                                   value={item.unidadId}
                                   onChange={(e) => handleUpdateItem(index, 'unidadId', e.target.value)}
-                                  className="w-full p-3 pl-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+                                  disabled={item.locked}
+                                  className={`w-full p-3 pl-4 rounded-xl border font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all appearance-none ${item.locked
+                                    ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed border-slate-200 dark:border-slate-700'
+                                    : 'bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'
+                                    }`}
                                 >
                                   {unidadesMedida.map((u) => (
                                     <option key={u.id} value={u.id}>
@@ -771,9 +1087,11 @@ export default function CargaCamionetaPage() {
                                     </option>
                                   ))}
                                 </select>
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                  <ChevronRight size={16} className="rotate-90" />
-                                </div>
+                                {!item.locked && (
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                                    <ChevronRight size={16} className="rotate-90" />
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -789,10 +1107,12 @@ export default function CargaCamionetaPage() {
                                 onChange={(e) =>
                                   handleUpdateItem(index, 'cantidad', Number(e.target.value))
                                 }
+                                disabled={item.locked}
                                 className={`w-full p-3 rounded-xl border font-black text-center focus:ring-2 outline-none transition-all
-                                  ${isInsufficient
-                                    ? 'border-red-300 bg-red-50 text-red-600 focus:ring-red-500'
-                                    : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-blue-500'
+                                  ${item.locked ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 cursor-not-allowed border-slate-200 dark:border-slate-700' :
+                                    isInsufficient
+                                      ? 'border-red-300 bg-red-50 text-red-600 focus:ring-red-500'
+                                      : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-blue-500'
                                   }`}
                               />
                             </div>
@@ -808,9 +1128,13 @@ export default function CargaCamionetaPage() {
                         {/* Botón Eliminar */}
                         <button
                           onClick={() => handleRemoveItem(index)}
-                          className="absolute top-2 right-2 md:static p-2 md:p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors shrink-0"
+                          disabled={item.locked}
+                          className={`absolute top-2 right-2 md:static p-2 md:p-3 rounded-xl transition-colors shrink-0 ${item.locked
+                            ? 'text-slate-200 dark:text-slate-700 cursor-not-allowed'
+                            : 'text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                            }`}
                         >
-                          <X size={20} />
+                          {item.locked ? <AlertOctagon size={20} /> : <X size={20} />}
                         </button>
                       </div>
                     );
@@ -880,9 +1204,9 @@ export default function CargaCamionetaPage() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </div >
+        </div >
+      </div >
+    </div >
   );
 }

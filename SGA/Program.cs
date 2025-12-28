@@ -39,6 +39,7 @@ builder.Services.AddScoped<IGalponService, GalponService>();
 builder.Services.AddScoped<ISiloService, SiloService>();
 builder.Services.AddScoped<IFabricaService, FabricaService>();
 builder.Services.AddScoped<ICierreCajaService, CierreCajaService>();
+builder.Services.AddScoped<IPedidoService, PedidoService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

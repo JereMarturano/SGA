@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, Truck, DollarSign, Package, Warehouse, AlertCircle } from 'lucide-react';
+import { TrendingUp, Truck, DollarSign, Package, Warehouse, AlertCircle, Settings, X, Users } from 'lucide-react';
 import KPICard from '@/components/KPICard';
 import SalesChart from '@/components/SalesChart';
 import Link from 'next/link';
@@ -53,6 +53,95 @@ export default function Dashboard() {
 
   const [chartData, setChartData] = useState<VentaPorFecha[]>([]);
   const [alertas, setAlertas] = useState<any[]>([]);
+
+  // --- CUSTOMIZATION STATE ---
+  interface Shortcut {
+    id: string;
+    name: string;
+    href: string;
+    color: string; // 'blue' | 'green' | 'red' | 'orange' | 'slate'
+    icon: string; // 'Truck' | 'Package' | 'DollarSign' | 'Users' | 'Warehouse'
+  }
+
+  interface DashboardConfig {
+    showWeather: boolean;
+    showKPIs: boolean;
+    showChart: boolean;
+    showAlerts: boolean;
+    shortcuts: Shortcut[];
+  }
+
+  const DEFAULT_CONFIG: DashboardConfig = {
+    showWeather: true,
+    showKPIs: true,
+    showChart: true,
+    showAlerts: true,
+    shortcuts: [
+      { id: '1', name: 'Cargar Camioneta', href: '/carga-camioneta', color: 'slate', icon: 'Truck' },
+      { id: '2', name: 'Cargar Inv. General', href: '/inventario-general', color: 'slate', icon: 'Warehouse' },
+      { id: '3', name: 'Pedidos', href: '/pedidos', icon: 'Package', color: 'slate' },
+      { id: '4', name: 'Nueva Venta', href: '/punto-venta', color: 'blue', icon: 'DollarSign' },
+      { id: '5', name: 'Gastos', href: '/gastos', color: 'slate', icon: 'DollarSign' },
+    ]
+  };
+
+  const SYSTEM_SHORTCUT_IDS = ['1', '2', '3', '4', '5'];
+
+  const [config, setConfig] = useState<DashboardConfig>(DEFAULT_CONFIG);
+  const [isEditing, setIsEditing] = useState(false);
+  const [newShortcut, setNewShortcut] = useState<Partial<Shortcut>>({ color: 'slate', icon: 'Package' });
+
+  useEffect(() => {
+    const saved = localStorage.getItem('dashboardConfig');
+    if (saved) {
+      try {
+        setConfig(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse saved config", e);
+      }
+    }
+  }, []);
+
+  const saveConfig = (newConfig: DashboardConfig) => {
+    setConfig(newConfig);
+    localStorage.setItem('dashboardConfig', JSON.stringify(newConfig));
+  };
+
+  const toggleWidget = (key: keyof DashboardConfig) => {
+    if (typeof config[key] === 'boolean') {
+      saveConfig({ ...config, [key]: !config[key] });
+    }
+  };
+
+  const addShortcut = () => {
+    if (!newShortcut.name || !newShortcut.href) return;
+    const shortcut: Shortcut = {
+      id: Date.now().toString(),
+      name: newShortcut.name,
+      href: newShortcut.href,
+      color: newShortcut.color || 'slate',
+      icon: newShortcut.icon || 'Package'
+    };
+    saveConfig({ ...config, shortcuts: [...config.shortcuts, shortcut] });
+    setNewShortcut({ color: 'slate', icon: 'Package', name: '', href: '' });
+  };
+
+  const removeShortcut = (id: string) => {
+    saveConfig({ ...config, shortcuts: config.shortcuts.filter(s => s.id !== id) });
+  };
+
+  const renderIcon = (iconName: string, size: number = 20, className?: string) => {
+    const props = { size, className };
+    switch (iconName) {
+      case 'Truck': return <Truck {...props} />;
+      case 'Package': return <Package {...props} />;
+      case 'DollarSign': return <DollarSign {...props} />;
+      case 'Users': return <Users {...props} />; // Imported below if needed, else assumes logic works
+      case 'Warehouse': return <Warehouse {...props} />;
+      default: return <Package {...props} />;
+    }
+  };
+
 
   useEffect(() => {
     if (authLoading) return;
@@ -316,154 +405,260 @@ export default function Dashboard() {
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
             <div className="space-y-4">
-              <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight">
-                Hola Santiago
-                <span className="block text-xl md:text-2xl font-medium text-slate-500 dark:text-slate-400 mt-1">
-                  la temperatura hoy en Molinari es:
-                </span>
-              </h2>
-              <div>
-                <WeatherWidget />
+              <div className="flex items-center gap-4">
+                <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight">
+                  Hola Santiago
+                </h2>
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`p-2 rounded-xl transition-all ${isEditing ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-blue-600'}`}
+                >
+                  <Settings size={20} />
+                </button>
               </div>
+
+              <span className="block text-xl md:text-2xl font-medium text-slate-500 dark:text-slate-400 mt-1">
+                la temperatura hoy en Molinari es:
+              </span>
+
+              {config.showWeather && (
+                <div className="relative group">
+                  <WeatherWidget />
+                  {isEditing && (
+                    <button
+                      onClick={() => toggleWidget('showWeather')}
+                      className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
+              {!config.showWeather && isEditing && (
+                <button onClick={() => toggleWidget('showWeather')} className="px-4 py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-400 hover:border-blue-500 hover:text-blue-500">
+                  + Mostrar Clima
+                </button>
+              )}
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/carga-camioneta"
-                className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3"
-              >
-                <div className="bg-white dark:bg-slate-600 p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                  <Truck size={20} className="text-blue-500 dark:text-blue-400" />
+            <div className="flex flex-wrap gap-3 max-w-xl justify-end">
+              {config.shortcuts.map((sc) => (
+                <div key={sc.id} className="relative group">
+                  <Link
+                    href={sc.href}
+                    className={`group ${sc.color === 'blue' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600'} px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3 relative`}
+                  >
+                    <div className={`${sc.color === 'blue' ? 'bg-white/20' : 'bg-white dark:bg-slate-600'} p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform`}>
+                      {renderIcon(sc.icon, 20, sc.color === 'blue' ? '' : 'text-blue-500 dark:text-blue-400')}
+                    </div>
+                    {sc.name}
+                  </Link>
+                  {isEditing && !SYSTEM_SHORTCUT_IDS.includes(sc.id) && (
+                    <button
+                      onClick={(e) => { e.preventDefault(); removeShortcut(sc.id); }}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full shadow-md z-10"
+                    >
+                      <X size={12} />
+                    </button>
+                  )}
                 </div>
-                Cargar Camioneta
-              </Link>
+              ))}
 
-              <Link
-                href="/inventario-general"
-                className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3"
-              >
-                <div className="bg-white dark:bg-slate-600 p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                  <Warehouse size={20} className="text-blue-500 dark:text-blue-400" />
+              {isEditing && (
+                <div className="flex flex-col gap-2 p-4 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 min-w-[200px]">
+                  <p className="text-xs font-bold text-slate-500">Nuevo Atajo</p>
+                  <input
+                    type="text"
+                    placeholder="Nombre (ej: Galpones)"
+                    className="text-xs p-2 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800"
+                    value={newShortcut.name}
+                    onChange={e => setNewShortcut({ ...newShortcut, name: e.target.value })}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Rutan (ej: /stock-general)"
+                    className="text-xs p-2 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800"
+                    value={newShortcut.href}
+                    onChange={e => setNewShortcut({ ...newShortcut, href: e.target.value })}
+                  />
+                  <select
+                    className="text-xs p-2 rounded border border-slate-300 dark:border-slate-600 dark:bg-slate-800"
+                    value={newShortcut.icon}
+                    onChange={e => setNewShortcut({ ...newShortcut, icon: e.target.value })}
+                  >
+                    <option value="Package">Paquete</option>
+                    <option value="Truck">Camión</option>
+                    <option value="DollarSign">Dinero</option>
+                    <option value="Warehouse">Galpón</option>
+                    <option value="Users">Usuarios</option>
+                  </select>
+                  <button onClick={addShortcut} className="text-xs bg-blue-600 text-white rounded p-2 font-bold hover:bg-blue-700">Agregar</button>
                 </div>
-                Cargar Inv. General
-              </Link>
+              )}
 
-              <Link
-                href="/punto-venta"
-                className="group bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-1 flex items-center gap-3"
-              >
-                <div className="bg-white/20 p-2 rounded-lg group-hover:rotate-12 transition-transform">
-                  <DollarSign size={20} />
-                </div>
-                Nueva Venta
-              </Link>
-
-              <Link
-                href="/gastos"
-                className="group bg-slate-50 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 px-6 py-4 rounded-2xl font-bold transition-all flex items-center gap-3"
-              >
-                <div className="bg-white dark:bg-slate-600 p-2 rounded-lg shadow-sm group-hover:scale-110 transition-transform">
-                  <DollarSign size={20} className="text-red-500 dark:text-red-400" />
-                </div>
-                Gastos
-              </Link>
             </div>
           </div>
         </div>
 
         {/* KPI Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <KPICard
-            title="Ventas del Día"
-            value={`$ ${stats.ventasDia.toLocaleString()}`}
-            icon={DollarSign}
-            trend={`${(stats.variacionVentas || 0) > 0 ? '+' : ''}${(stats.variacionVentas || 0).toFixed(1)}%`}
-            trendUp={stats.tendenciaVentasPositiva}
-            color="green"
-          />
-          <KPICard
-            title="Margen Neto"
-            value={`${(stats.margenNeto || 0).toFixed(1)}%`}
-            icon={TrendingUp}
-            trend={`${(stats.variacionMargen || 0) > 0 ? '+' : ''}${(stats.variacionMargen || 0).toFixed(1)}%`}
-            trendUp={stats.tendenciaMargenPositiva}
-            color="blue"
-          />
-          <KPICard
-            title="Gestión de Viaje"
-            value={`${stats.vehiculosEnRuta} En Ruta`}
-            icon={Truck}
-            color="orange"
-            href="/stock-calle"
-          />
-          <KPICard
-            title="Mermas (Roturas)"
-            value="Ver Historial"
-            icon={Package}
-            color="red"
-            href="/mermas"
-          />
-        </div>
+        {config.showKPIs ? (
+          <div className="relative group">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <KPICard
+                title="Ventas del Día"
+                value={`$ ${stats.ventasDia.toLocaleString()}`}
+                icon={DollarSign}
+                trend={`${(stats.variacionVentas || 0) > 0 ? '+' : ''}${(stats.variacionVentas || 0).toFixed(1)}%`}
+                trendUp={stats.tendenciaVentasPositiva}
+                color="green"
+              />
+              <KPICard
+                title="Margen Neto"
+                value={`${(stats.margenNeto || 0).toFixed(1)}%`}
+                icon={TrendingUp}
+                trend={`${(stats.variacionMargen || 0) > 0 ? '+' : ''}${(stats.variacionMargen || 0).toFixed(1)}%`}
+                trendUp={stats.tendenciaMargenPositiva}
+                color="blue"
+              />
+              <KPICard
+                title="Gestión de Viaje"
+                value={`${stats.vehiculosEnRuta} En Ruta`}
+                icon={Truck}
+                color="orange"
+                href="/stock-calle"
+              />
+              <KPICard
+                title="Mermas (Roturas)"
+                value="Ver Historial"
+                icon={Package}
+                color="red"
+                href="/mermas"
+              />
+            </div>
+            {isEditing && (
+              <button
+                onClick={() => toggleWidget('showKPIs')}
+                className="absolute -top-3 right-0 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-md z-10"
+              >
+                Ocultar KPIs
+              </button>
+            )}
+          </div>
+        ) : (
+          isEditing && (
+            <div className="border-2 border-dashed border-slate-300 rounded-2xl p-6 text-center">
+              <button onClick={() => toggleWidget('showKPIs')} className="text-slate-500 font-bold hover:text-blue-600">
+                + Mostrar KPIs
+              </button>
+            </div>
+          )
+        )}
+
 
         {/* Charts & Details */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700">
-            <SalesChart data={chartData} />
+          <div className="lg:col-span-2 relative group">
+            {config.showChart ? (
+              <>
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 h-full">
+                  <SalesChart data={chartData} />
+                </div>
+                {isEditing && (
+                  <button
+                    onClick={() => toggleWidget('showChart')}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </>
+            ) : (
+              isEditing && (
+                <div className="border-2 border-dashed border-slate-300 rounded-3xl p-6 text-center h-full flex items-center justify-center">
+                  <button onClick={() => toggleWidget('showChart')} className="text-slate-500 font-bold hover:text-blue-600">
+                    + Mostrar Gráfico
+                  </button>
+                </div>
+              )
+            )}
           </div>
 
           {/* Alerts Panel */}
-          <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col h-full max-h-[500px]">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                Alertas Operativas
-              </h3>
-              {alertas.length > 0 && (
-                <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-full animate-pulse">
-                  {alertas.length} Nuevas
-                </span>
-              )}
-            </div>
-
-            <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              {alertas.length === 0 ? (
-                <p className="text-sm text-slate-500 text-center py-4">No hay alertas recientes.</p>
-              ) : (
-                alertas.map((alerta) => (
-                  <div
-                    key={alerta.id}
-                    className={`flex gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 transition-all cursor-pointer group ${alerta.tipo === 'Warning' ? 'hover:border-red-200 dark:hover:border-red-900/50' : 'hover:border-blue-200 dark:hover:border-blue-900/50'}`}
-                  >
-                    <div
-                      className={`mt-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm group-hover:scale-110 transition-transform ${alerta.tipo === 'Warning' ? 'text-red-500' : 'text-blue-500'}`}
-                    >
-                      {alerta.icono === 'Package' ? (
-                        <Package size={20} />
-                      ) : alerta.icono === 'Truck' ? (
-                        <Truck size={20} />
-                      ) : alerta.icono === 'DollarSign' ? (
-                        <DollarSign size={20} />
-                      ) : (
-                        <TrendingUp size={20} />
-                      )}
-                    </div>
-                    <div>
-                      <p className="font-bold text-slate-800 dark:text-white text-sm">
-                        {alerta.titulo}
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                        {alerta.mensaje}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wide">
-                        {new Date(alerta.fecha).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </p>
-                    </div>
+          <div className="relative group h-full">
+            {config.showAlerts ? (
+              <>
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col h-full max-h-[500px]">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+                      Alertas Operativas
+                    </h3>
+                    {alertas.length > 0 && (
+                      <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                        {alertas.length} Nuevas
+                      </span>
+                    )}
                   </div>
-                ))
-              )}
-            </div>
+
+                  <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                    {alertas.length === 0 ? (
+                      <p className="text-sm text-slate-500 text-center py-4">No hay alertas recientes.</p>
+                    ) : (
+                      alertas.map((alerta) => (
+                        <div
+                          key={alerta.id}
+                          className={`flex gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 transition-all cursor-pointer group ${alerta.tipo === 'Warning' ? 'hover:border-red-200 dark:hover:border-red-900/50' : 'hover:border-blue-200 dark:hover:border-blue-900/50'}`}
+                        >
+                          <div
+                            className={`mt-1 p-2.5 bg-white dark:bg-slate-800 rounded-xl shadow-sm group-hover:scale-110 transition-transform ${alerta.tipo === 'Warning' ? 'text-red-500' : 'text-blue-500'}`}
+                          >
+                            {alerta.icono === 'Package' ? (
+                              <Package size={20} />
+                            ) : alerta.icono === 'Truck' ? (
+                              <Truck size={20} />
+                            ) : alerta.icono === 'DollarSign' ? (
+                              <DollarSign size={20} />
+                            ) : (
+                              <TrendingUp size={20} />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-800 dark:text-white text-sm">
+                              {alerta.titulo}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                              {alerta.mensaje}
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wide">
+                              {new Date(alerta.fecha).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+                {isEditing && (
+                  <button
+                    onClick={() => toggleWidget('showAlerts')}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full z-10 opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </>
+            ) : (
+              isEditing && (
+                <div className="border-2 border-dashed border-slate-300 rounded-3xl p-6 text-center h-full flex items-center justify-center">
+                  <button onClick={() => toggleWidget('showAlerts')} className="text-slate-500 font-bold hover:text-blue-600">
+                    + Mostrar Alertas
+                  </button>
+                </div>
+              )
+            )}
+
           </div>
         </div>
       </main>

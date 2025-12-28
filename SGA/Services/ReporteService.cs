@@ -387,4 +387,48 @@ public class ReporteService : IReporteService
             Motivo = m.Observaciones
         }).ToList();
     }
+    public async Task<List<ReporteVentaEmpleadoDto>> ObtenerVentasPorEmpleadoAsync(DateTime? fechaInicio, DateTime? fechaFin)
+    {
+        var query = _context.Ventas
+            .Include(v => v.Usuario)
+            .Include(v => v.Detalles)
+                .ThenInclude(d => d.Producto)
+            .AsQueryable();
+
+        if (fechaInicio.HasValue)
+            query = query.Where(v => v.Fecha >= fechaInicio.Value);
+        
+        if (fechaFin.HasValue)
+            query = query.Where(v => v.Fecha <= fechaFin.Value);
+
+        query = query.Where(v => v.Activa);
+
+        var ventas = await query.ToListAsync();
+
+        var reporte = ventas
+            .GroupBy(v => v.UsuarioId)
+            .Select(g => {
+                var usuario = g.First().Usuario;
+                var totalDinero = g.Sum(v => v.Total);
+                var cantidadViajes = g.Select(v => v.ViajeId).Where(id => id.HasValue).Distinct().Count();
+                
+                var cantidadHuevos = g.SelectMany(v => v.Detalles)
+                    .Where(d => d.Producto != null && d.Producto.EsHuevo)
+                    .Sum(d => d.Cantidad * (d.Producto!.UnidadesPorBulto > 0 ? d.Producto.UnidadesPorBulto : 1));
+
+                return new ReporteVentaEmpleadoDto
+                {
+                    UsuarioId = g.Key,
+                    NombreUsuario = usuario?.Nombre ?? "Desconocido",
+                    TotalDineroVentas = totalDinero,
+                    CantidadHuevosVendidos = cantidadHuevos,
+                    CantidadViajes = cantidadViajes,
+                    PromedioVentasPorViaje = cantidadViajes > 0 ? Math.Round(totalDinero / cantidadViajes, 2) : 0
+                };
+            })
+            .OrderByDescending(r => r.TotalDineroVentas)
+            .ToList();
+
+        return reporte;
+    }
 }

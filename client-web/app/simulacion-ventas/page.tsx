@@ -14,12 +14,14 @@ import {
   Search,
   X,
   AlertTriangle,
+  MapPin
 } from 'lucide-react';
 import Link from 'next/link';
 import api from '@/lib/axios';
 import Modal from '@/components/Modal';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
+import { Pedido, EstadoPedido } from '@/types/pedido';
 
 // Interfaces
 interface Vehiculo {
@@ -102,6 +104,21 @@ export default function SimulacionVentasPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // Pedidos Assigned
+  const [assignedPedidos, setAssignedPedidos] = useState<Pedido[]>([]);
+  const [activeViajeId, setActiveViajeId] = useState<number | null>(null);
+  const [selectedOrderToDeliver, setSelectedOrderToDeliver] = useState<Pedido | null>(null);
+  const [deliveryPaymentMethod, setDeliveryPaymentMethod] = useState<number>(0);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [deliveryItems, setDeliveryItems] = useState<{
+    detalleId: number;
+    productoId: number;
+    cantidad: number;
+    unidad: string;
+    precioUnitario: number;
+    productoNombre?: string;
+  }[]>([]);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!isAuthenticated) {
@@ -122,6 +139,13 @@ export default function SimulacionVentasPage() {
             if (tripRes.data && tripRes.data.vehiculoId) {
               setSelectedVehiculo(tripRes.data.vehiculoId);
               setIsChoferTrip(true);
+              setActiveViajeId(tripRes.data.viajeId);
+
+              // Fetch assigned orders
+              try {
+                const ordersRes = await api.get(`/pedidos/por-viaje/${tripRes.data.viajeId}`);
+                setAssignedPedidos(ordersRes.data.filter((p: Pedido) => p.estado === EstadoPedido.Asignado));
+              } catch (e) { console.error(e); }
             }
           } catch (err) {
             console.log("No active trip for chofer", err);
@@ -379,6 +403,85 @@ export default function SimulacionVentasPage() {
     }
   };
 
+  const handleDeliverOrder = (pedido: Pedido) => {
+    setSelectedOrderToDeliver(pedido);
+    setDeliveryPaymentMethod(0);
+
+    // Initialize delivery items with current prices or defaults
+    const items = pedido.detalles.map(d => {
+      const prod = productos.find(p => p.productoId === d.productoId);
+      let price = d.precioUnitario;
+      if (!price || price === 0) {
+        const factor = getNormalizedFactor(d.unidad, prod?.unidadDeMedida || 'UNIDAD');
+        if (prod?.precioSugerido) price = prod.precioSugerido * factor;
+        else if (prod?.precioMinimo) price = prod.precioMinimo * factor;
+      }
+      return {
+        detalleId: d.detalleId,
+        productoId: d.productoId,
+        cantidad: d.cantidad,
+        unidad: d.unidad,
+        precioUnitario: price || 0,
+        productoNombre: d.productoNombre || d.producto?.nombre
+      };
+    });
+    setDeliveryItems(items);
+
+    setShowDeliveryModal(true);
+  };
+
+  const calculateDeliveryTotal = () => {
+    return deliveryItems.reduce((acc, item) => acc + (item.cantidad * item.precioUnitario), 0);
+  }
+
+  const confirmDeliverOrder = async () => {
+    if (!selectedOrderToDeliver) return;
+
+    setSubmitting(true);
+    try {
+      // 1. Create Sale
+      // 1. Create Sale
+      const saleItems = deliveryItems.map(d => {
+        const prod = productos.find(p => p.productoId === d.productoId);
+        const factorToBase = getNormalizedFactor(d.unidad.toLowerCase(), prod?.unidadDeMedida || 'Unidad');
+
+        return {
+          productoId: d.productoId,
+          cantidad: d.cantidad * factorToBase, // Store in Base Unit (e.g. Maples)
+          precioUnitario: d.precioUnitario / factorToBase, // Store Unit Price (per Maple)
+        };
+      });
+
+      const payload = {
+        clienteId: selectedOrderToDeliver.clienteId,
+        usuarioId: user?.UsuarioId,
+        vehiculoId: Number(selectedVehiculo),
+        metodoPago: deliveryPaymentMethod, // Selected method
+        fecha: new Date().toISOString(),
+        items: saleItems,
+        viajeId: activeViajeId
+      };
+
+      await api.post('/ventas', payload);
+
+      // 2. Mark Delivered
+      await api.post(`/pedidos/${selectedOrderToDeliver.pedidoId}/entregado`);
+
+      setMessage({ type: 'success', text: 'Pedido entregado y venta registrada.' });
+
+      // Refresh list
+      setAssignedPedidos(prev => prev.filter(p => p.pedidoId !== selectedOrderToDeliver.pedidoId));
+      setShowDeliveryModal(false);
+      setSelectedOrderToDeliver(null);
+
+    } catch (error: any) {
+      console.error(error);
+      setMessage({ type: 'error', text: 'Error al entregar pedido: ' + error.message });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const { totalUnits, totalHuevosDisplay, unitPrice, totalAmount } = calculateTotals();
   const selectedProdData = productos.find((p) => p.productoId === selectedProducto);
 
@@ -409,6 +512,63 @@ export default function SimulacionVentasPage() {
             </p>
           </div>
         </div>
+
+        {/* Pending Orders Section */}
+        {assignedPedidos.length > 0 && (
+          <div className="mb-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl p-6 border border-indigo-100 dark:border-indigo-800 shadow-lg">
+            <h2 className="text-xl font-black text-indigo-900 dark:text-indigo-100 mb-4 flex items-center gap-2">
+              <Truck size={24} /> Pedidos Asignados ({assignedPedidos.length})
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {assignedPedidos.map(p => (
+                <div key={p.pedidoId} className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-indigo-100 dark:border-slate-700 flex flex-col justify-between h-full">
+                  <div>
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <span className="font-bold text-lg text-slate-800 dark:text-white block leading-tight">
+                          {p.clienteNombre || `Cliente ${p.clienteId}`}
+                        </span>
+                        {p.cliente?.direccion && (
+                          <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                            <MapPin size={12} className="shrink-0" />
+                            <span className="line-clamp-1">{p.cliente.direccion}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-lg font-bold">#{p.pedidoId}</span>
+                        {p.estaPagado ? (
+                          <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold border border-green-200 whitespace-nowrap">
+                            PAGADO
+                          </span>
+                        ) : (
+                          <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold border border-red-200 whitespace-nowrap">
+                            COBRAR: ${p.totalEstimado?.toLocaleString() ?? '0'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-1 mb-4">
+                      {p.detalles.map((d, i) => (
+                        <p key={i} className="text-sm text-slate-600 dark:text-slate-300">
+                          • <span className="font-bold">{d.cantidad} {d.unidad}</span> {d.productoNombre}
+                        </p>
+                      ))}
+                    </div>
+                    {p.observaciones && <p className="text-xs text-slate-400 italic mb-4">"{p.observaciones}"</p>}
+                  </div>
+                  <button
+                    onClick={() => handleDeliverOrder(p)}
+                    disabled={submitting}
+                    className="mt-auto w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                  >
+                    <CheckCircle size={18} /> Entregar Pedido
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700 p-8">
           <form onSubmit={handlePreSubmit} className="space-y-8">
@@ -750,6 +910,128 @@ export default function SimulacionVentasPage() {
           <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
             ¿Está seguro de registrar esta venta? Esto descontará stock del vehículo seleccionado.
           </p>
+        </div>
+      </Modal>
+      {/* Modal de Confirmación de Entrega */}
+      <Modal
+        isOpen={showDeliveryModal}
+        onClose={() => setShowDeliveryModal(false)}
+        title="Confirmar Entrega y Pago"
+      >
+        <div className="space-y-6">
+          <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl">
+            <p className="text-sm text-slate-500 mb-1">Cliente</p>
+            <p className="font-bold text-lg text-slate-800 dark:text-white">
+              {selectedOrderToDeliver?.clienteNombre || `Cliente #${selectedOrderToDeliver?.clienteId}`}
+            </p>
+            {selectedOrderToDeliver?.estaPagado && (
+              <div className="mt-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded inline-block font-bold mb-4">
+                PEDIDO YA PAGADO
+              </div>
+            )}
+
+            {/* If paid, simple confirmation text. If unpaid, show items and allow edit */}
+            {selectedOrderToDeliver?.estaPagado ? (
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 rounded-xl font-medium border border-blue-100 dark:border-blue-800">
+                ¿Seguro que quieres marcar el pedido como entregado?
+              </div>
+            ) : (
+              <div className="mt-4 space-y-4">
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Items (Puede ajustar precios)</p>
+                {deliveryItems.map((item, idx) => {
+                  const prod = productos.find(p => p.productoId === item.productoId);
+                  const factor = getNormalizedFactor(item.unidad, prod?.unidadDeMedida || 'UNIDAD');
+                  const minPrice = (prod?.precioMinimo || 0) * factor;
+                  const maxPrice = (prod?.precioMaximo || 0) * factor;
+                  const isBelowMin = minPrice > 0 && item.precioUnitario < minPrice;
+                  const isAboveMax = maxPrice > 0 && item.precioUnitario > maxPrice;
+
+                  return (
+                    <div key={idx} className="flex flex-col gap-1 p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{item.cantidad} {item.unidad}</span>
+                        <span className="text-xs text-slate-500">{item.productoNombre}</span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-sm text-slate-500">Precio: $</span>
+                        <input
+                          type="number"
+                          value={item.precioUnitario}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            const newItems = [...deliveryItems];
+                            newItems[idx].precioUnitario = val;
+                            setDeliveryItems(newItems);
+                          }}
+                          className={`w-full p-1 rounded border text-sm font-bold outline-none focus:ring-2 ${isBelowMin || isAboveMax
+                            ? 'border-red-300 bg-red-50 text-red-600 focus:ring-red-500'
+                            : 'border-slate-300 dark:border-slate-600 bg-transparent focus:ring-blue-500'
+                            }`}
+                        />
+                      </div>
+                      {isBelowMin && (
+                        <span className="text-[10px] text-red-500 font-bold">Mínimo sugerido: ${minPrice.toLocaleString()}</span>
+                      )}
+                      {isAboveMax && (
+                        <span className="text-[10px] text-red-500 font-bold">Máximo sugerido: ${maxPrice.toLocaleString()}</span>
+                      )}
+                    </div>
+                  )
+                })}
+
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-end">
+                  <p className="text-sm text-slate-500 mb-1">Total a cobrar</p>
+                  <p className="font-black text-2xl text-slate-800 dark:text-white">
+                    ${calculateDeliveryTotal().toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {!selectedOrderToDeliver?.estaPagado && (
+            <div className="space-y-3">
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300">
+                Forma de Pago
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 0, label: 'Efectivo' },
+                  { id: 1, label: 'MercadoPago' },
+                  { id: 3, label: 'Cta Corriente' }
+                ].map((mp) => (
+                  <button
+                    key={mp.id}
+                    type="button"
+                    onClick={() => setDeliveryPaymentMethod(mp.id)}
+                    className={`p-3 rounded-xl border text-sm font-bold transition-all ${deliveryPaymentMethod === mp.id
+                      ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+                      : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                  >
+                    {mp.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-4 flex gap-3">
+            <button
+              onClick={() => setShowDeliveryModal(false)}
+              className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmDeliverOrder}
+              disabled={submitting}
+              className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors flex justify-center items-center gap-2"
+            >
+              {submitting ? 'Registrando...' : (selectedOrderToDeliver?.estaPagado ? 'Confirmar Entrega' : 'Confirmar Cobro y Entrega')}
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

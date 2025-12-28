@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '../components/theme-provider';
 import { AuthProvider } from '../context/AuthContext';
+import Sidebar from '../components/Sidebar';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -34,7 +35,14 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
+            <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
+              <Sidebar />
+              <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
+                  {children}
+                </div>
+              </main>
+            </div>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -75,6 +75,30 @@ export default function ViajesPage() {
         }
     };
 
+    const [closingTrip, setClosingTrip] = useState<Viaje | null>(null);
+    const [reconciliationStock, setReconciliationStock] = useState<any[]>([]);
+
+    // When closingTrip changes, fetch stock
+    useEffect(() => {
+        if (!closingTrip) return;
+
+        const fetchStock = async () => {
+            try {
+                const res = await api.get(`/inventario/stock-vehiculo/${closingTrip.VehiculoId}`);
+                // Initialize real quantity with theoretical quantity
+                const initializedStock = res.data.map((item: any) => ({
+                    ...item,
+                    cantidadReal: item.cantidad // Default to theoretical
+                }));
+                setReconciliationStock(initializedStock);
+            } catch (err) {
+                console.error("Error fetching vehicle stock:", err);
+                alert("Error al cargar stock del vehículo para control.");
+            }
+        };
+        fetchStock();
+    }, [closingTrip]);
+
     const handleStartTrip = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -93,12 +117,28 @@ export default function ViajesPage() {
         }
     };
 
-    const handleEndTrip = async (id: number) => {
-        if (!confirm('¿Estás seguro de finalizar este viaje?')) return;
+    const handleInitiateCloseIndex = (trip: Viaje) => {
+        setClosingTrip(trip);
+    };
+
+    const handleConfirmClose = async () => {
+        if (!closingTrip) return;
+
+        // Build Adjustments List
+        const ajustes = reconciliationStock.map(item => ({
+            ProductoId: item.productoId,
+            CantidadTeorica: item.cantidad, // Original DB Value
+            // Convert back to DB Unit if it was Huevos/Units
+            CantidadReal: item.isHuevosUnit ? (Number(item.cantidadReal) * 30) : Number(item.cantidadReal)
+        }));
+
         try {
-            await api.post(`/viajes/finalizar/${id}`, {
-                Observaciones: 'Finalizado por administrador'
+            await api.post(`/viajes/finalizar/${closingTrip.ViajeId}`, {
+                Observaciones: 'Finalizado con control de stock',
+                Ajustes: ajustes
             });
+            setClosingTrip(null);
+            setReconciliationStock([]);
             fetchData();
         } catch (err: any) {
             alert(err.response?.data || 'Error al finalizar viaje');
@@ -172,7 +212,7 @@ export default function ViajesPage() {
                                     </div>
                                 </div>
                                 <button
-                                    onClick={() => handleEndTrip(trip.ViajeId)}
+                                    onClick={() => handleInitiateCloseIndex(trip)}
                                     className="w-full mt-2 py-2 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-sm font-medium"
                                 >
                                     Finalizar Viaje
@@ -274,7 +314,117 @@ export default function ViajesPage() {
                         </div>
                     )}
                 </AnimatePresence>
+
+                {/* Modal Cierre de Viaje (Control Stock) */}
+                <AnimatePresence>
+                    {closingTrip && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+                            >
+                                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-800 dark:text-white">Control de Cierre de Viaje</h3>
+                                        <p className="text-sm text-slate-500">Verificá el stock remanente en el vehículo</p>
+                                    </div>
+                                    <button
+                                        onClick={() => setClosingTrip(null)}
+                                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                <div className="p-6 overflow-y-auto flex-1">
+                                    {reconciliationStock.length === 0 ? (
+                                        <div className="text-center py-8 text-slate-500">
+                                            Cargando stock teórico...
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 p-4 rounded-xl text-sm flex gap-3">
+                                                <AlertTriangle size={20} className="shrink-0" />
+                                                <p>
+                                                    Por favor, confirmá las cantidades reales que quedan en el vehículo. Si hay diferencia con el teórico, se registrará como ajuste/merma.
+                                                </p>
+                                            </div>
+
+                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                                                <table className="w-full text-sm text-left">
+                                                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium border-b border-slate-200 dark:border-slate-700">
+                                                        <tr>
+                                                            <th className="px-4 py-3">Producto</th>
+                                                            <th className="px-4 py-3 text-center">Teórico</th>
+                                                            <th className="px-4 py-3 text-center bg-blue-50 dark:bg-blue-900/10">Real (Confirmar)</th>
+                                                            <th className="px-4 py-3 text-center">Diferencia</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                                                        {reconciliationStock.map((item, index) => {
+                                                            const diff = (Number(item.cantidadReal) || 0) - (item.isHuevosUnit ? item.cantidad / 30 : item.cantidad);
+                                                            return (
+                                                                <tr key={item.productoId} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                                                    <td className="px-4 py-3 font-medium text-slate-700 dark:text-slate-200">
+                                                                        {item.producto?.nombre}
+                                                                        <span className="text-xs font-normal text-slate-400 block">
+                                                                            {item.producto?.unidadDeMedida}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-center text-slate-500">
+                                                                        {item.cantidad}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-center bg-blue-50 dark:bg-blue-900/10">
+                                                                        <input
+                                                                            type="number"
+                                                                            value={item.cantidadReal}
+                                                                            onChange={(e) => {
+                                                                                const newVal = parseFloat(e.target.value);
+                                                                                const newStock = [...reconciliationStock];
+                                                                                newStock[index].cantidadReal = isNaN(newVal) ? 0 : newVal;
+                                                                                setReconciliationStock(newStock);
+                                                                            }}
+                                                                            className="w-20 px-2 py-1 text-center font-bold text-blue-600 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                                                            step="0.5"
+                                                                        />
+                                                                    </td>
+                                                                    <td className={`px-4 py-3 text-center font-bold ${diff < 0 ? 'text-red-500' : diff > 0 ? 'text-green-500' : 'text-slate-400'
+                                                                        }`}>
+                                                                        {diff > 0 ? `+${diff}` : diff}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="p-6 pt-0 flex gap-3">
+                                    <button
+                                        onClick={() => setClosingTrip(null)}
+                                        className="flex-1 px-4 py-3 border border-slate-300 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={handleConfirmClose}
+                                        className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold shadow-lg shadow-green-500/20 flex items-center justify-center gap-2 transition-colors"
+                                    >
+                                        <CheckCircle size={20} />
+                                        Confirmar y Cerrar
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
             </main>
         </div>
     );
 }
+

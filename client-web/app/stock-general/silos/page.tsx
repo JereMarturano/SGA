@@ -138,7 +138,7 @@ export default function SilosPage() {
             <Header />
             <main className="max-w-7xl mx-auto px-4 py-8">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard de Silos</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Panel de Control de Silos</h1>
                 </div>
 
                 {isLoading ? (
