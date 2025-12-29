@@ -106,18 +106,16 @@ app.MapControllers();
         var context = services.GetRequiredService<AppDbContext>();
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-        try
-        {
-            // FORCE RUN MIGRATION
-            // Console.WriteLine("Applying Data Migration...");
-            // var migrationService = services.GetRequiredService<DatabaseMigrationService>();
-            // await migrationService.MigrateAsync();
-            // Console.WriteLine("Data Migration Completed.");
+            // APPLY EF CORE MIGRATIONS PROPERLY
+            // This ensures the database schema exists on Supabase/Render
+            logger.LogInformation("Applying EF Core Migrations...");
+            context.Database.Migrate();
+            logger.LogInformation("Migrations Applied Successfully.");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred while migrating the database.");
-            // Continue to Initialize attempt
+            throw; // Stop startup if migration fails, otherwise the app is in bad state
         }
 
         try

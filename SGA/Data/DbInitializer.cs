@@ -10,8 +10,8 @@ public static class DbInitializer
 {
     public static void Initialize(AppDbContext context)
     {
-        // Ensure database is created
-        context.Database.EnsureCreated();
+        // Context is managed via Migrations in Program.cs
+        // context.Database.EnsureCreated();
 
         // Check if Kilometraje column exists in Vehiculos table and add it if missing
         // Check if Kilometraje column exists - HANDLED BY EF CORE MODEL
