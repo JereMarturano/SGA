@@ -106,8 +106,6 @@ app.MapControllers();
         var context = services.GetRequiredService<AppDbContext>();
         var logger = services.GetRequiredService<ILogger<Program>>();
 
-        try
-        {
             // APPLY EF CORE MIGRATIONS PROPERLY
             // This ensures the database schema exists on Supabase/Render
             logger.LogInformation("Applying EF Core Migrations...");
@@ -123,7 +121,6 @@ app.MapControllers();
                 logger.LogError(ex, "MIGRATION ERROR DETAILS: {Message} | {InnerException}", ex.Message, ex.InnerException?.Message);
                 // We continue to allow the app to run if possible
             }
-        }
 
         try
         {
