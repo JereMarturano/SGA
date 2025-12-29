@@ -111,13 +111,18 @@ app.MapControllers();
             // APPLY EF CORE MIGRATIONS PROPERLY
             // This ensures the database schema exists on Supabase/Render
             logger.LogInformation("Applying EF Core Migrations...");
-            context.Database.Migrate();
-            logger.LogInformation("Migrations Applied Successfully.");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "An error occurred while migrating the database.");
-            throw; // Stop startup if migration fails, otherwise the app is in bad state
+            try 
+            {
+                context.Database.Migrate();
+                logger.LogInformation("Migrations Applied Successfully.");
+            }
+            catch (Exception ex)
+            {
+                // Log full details but DO NOT THROW to avoid crashing the container loop (Error 139)
+                // Sometimes migration fails but DB is usable.
+                logger.LogError(ex, "MIGRATION ERROR DETAILS: {Message} | {InnerException}", ex.Message, ex.InnerException?.Message);
+                // We continue to allow the app to run if possible
+            }
         }
 
         try
