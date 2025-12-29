@@ -7,6 +7,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
 
+
+
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure Serilog
@@ -19,7 +23,9 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 // Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<DatabaseMigrationService>();
 
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IGastoVehiculoService, GastoVehiculoService>();
@@ -73,6 +79,8 @@ builder.Services.AddCors(options =>
         });
 });
 
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -100,7 +108,11 @@ app.MapControllers();
 
         try
         {
-            context.Database.Migrate();
+            // FORCE RUN MIGRATION
+            // Console.WriteLine("Applying Data Migration...");
+            // var migrationService = services.GetRequiredService<DatabaseMigrationService>();
+            // await migrationService.MigrateAsync();
+            // Console.WriteLine("Data Migration Completed.");
         }
         catch (Exception ex)
         {
@@ -117,5 +129,8 @@ app.MapControllers();
             logger.LogError(ex, "An error occurred while seeding the database.");
         }
     }
+    
+
+
 
 app.Run();

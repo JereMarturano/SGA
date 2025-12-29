@@ -51,8 +51,8 @@ public class AppDbContext : DbContext
         // Unique constraints
         modelBuilder.Entity<Cliente>()
             .HasIndex(c => c.DNI)
-            .IsUnique()
-            .HasFilter("[DNI] IS NOT NULL");
+            .IsUnique();
+
 
         modelBuilder.Entity<Vehiculo>()
             .HasIndex(v => v.Patente)
