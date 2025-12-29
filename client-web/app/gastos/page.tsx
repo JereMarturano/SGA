@@ -96,7 +96,7 @@ export default function GastosPage() {
     const fetchVehiculos = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/vehiculos`
+          '/api/vehiculos'
         );
         if (res.ok) {
           const data = await res.json();
@@ -111,7 +111,7 @@ export default function GastosPage() {
     const fetchEmpleados = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/inventario/usuarios`
+          '/api/inventario/usuarios'
         );
         if (res.ok) {
           const data = await res.json();
@@ -142,7 +142,7 @@ export default function GastosPage() {
       };
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/gastosvehiculos`,
+        '/api/gastosvehiculos',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
