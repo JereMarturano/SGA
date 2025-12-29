@@ -1,7 +1,11 @@
 import axios from 'axios';
 
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+// Ensure the base URL ends with /api, handling potential trailing slashes
+const baseURL = envUrl.replace(/\/$/, '').endsWith('/api')
+  ? envUrl
+  : `${envUrl.replace(/\/$/, '')}/api`;
 
 const api = axios.create({
   baseURL: baseURL,
