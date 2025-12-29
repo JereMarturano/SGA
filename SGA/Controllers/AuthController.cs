@@ -21,12 +21,20 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        var token = await _authService.LoginAsync(dto.DNI, dto.Password);
-        if (token == null)
+        try 
         {
-            return Unauthorized("Credenciales inválidas");
+            var token = await _authService.LoginAsync(dto.DNI, dto.Password);
+            if (token == null)
+            {
+                return Unauthorized("Credenciales inválidas");
+            }
+            return Ok(new { token });
         }
-        return Ok(new { token });
+        catch (Exception ex)
+        {
+            // Return validation error for debugging purposes
+            return StatusCode(500, new { message = ex.Message, stack = ex.StackTrace });
+        }
     }
 
     [Authorize(Roles = "Admin")]

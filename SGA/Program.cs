@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.HttpOverrides;
 
 
 
@@ -68,6 +69,14 @@ builder.Services.AddControllers().AddJsonOptions(x =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Configure Forwarded Headers for Render/Proxies
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll",
@@ -84,15 +93,23 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// UseForwardedHeaders must be first middleware to handle proxy headers correctly
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // In production, ensure we are logging errors visible in Render console
+    app.UseDeveloperExceptionPage(); // Temporary: Enable detailed errors for debugging this 500 issue
+}
 
 app.UseCors("AllowAll");
 
-app.UseHttpsRedirection();
+// app.UseHttpsRedirection(); // Disable HTTPS redirection behind proxy to avoid loops if misconfigured
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -100,39 +117,53 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Apply migrations at startup
-    using (var scope = app.Services.CreateScope())
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var config = services.GetRequiredService<IConfiguration>();
+
+    // DEBUG: Check Connection String
+    var connString = config.GetConnectionString("DefaultConnection");
+    if (string.IsNullOrEmpty(connString) || connString.Contains("127.0.0.1"))
     {
-        var services = scope.ServiceProvider;
-        var context = services.GetRequiredService<AppDbContext>();
-        var logger = services.GetRequiredService<ILogger<Program>>();
-
-            // APPLY EF CORE MIGRATIONS PROPERLY
-            // This ensures the database schema exists on Supabase/Render
-            logger.LogInformation("Applying EF Core Migrations...");
-            try 
-            {
-                context.Database.Migrate();
-                logger.LogInformation("Migrations Applied Successfully.");
-            }
-            catch (Exception ex)
-            {
-                // Log full details but DO NOT THROW to avoid crashing the container loop (Error 139)
-                // Sometimes migration fails but DB is usable.
-                logger.LogError(ex, "MIGRATION ERROR DETAILS: {Message} | {InnerException}", ex.Message, ex.InnerException?.Message);
-                // We continue to allow the app to run if possible
-            }
-
-        try
-        {
-            DbInitializer.Initialize(context);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "An error occurred while seeding the database.");
-        }
+        logger.LogWarning("WARNING: Using default/localhost connection string. This will fail on Render unless you invoke a local DB.");
+        if (connString != null)
+            logger.LogInformation("Connection String (First 20 chars): {ConnStr}", connString.Substring(0, Math.Min(20, connString.Length)));
+        else
+            logger.LogInformation("Connection String is NULL");
     }
-    
+    else
+    {
+        logger.LogInformation("Using Production Connection String.");
+    }
 
+    var context = services.GetRequiredService<AppDbContext>();
 
+    // APPLY EF CORE MIGRATIONS PROPERLY
+    // This ensures the database schema exists on Supabase/Render
+    logger.LogInformation("Applying EF Core Migrations...");
+    try 
+    {
+        context.Database.Migrate();
+        logger.LogInformation("Migrations Applied Successfully.");
+    }
+    catch (Exception ex)
+    {
+        // Log full details but DO NOT THROW to avoid crashing the container loop (Error 139)
+        // Sometimes migration fails but DB is usable.
+        logger.LogError(ex, "MIGRATION ERROR DETAILS: {Message} | {InnerException}", ex.Message, ex.InnerException?.Message);
+        // We continue to allow the app to run if possible
+    }
+
+    try
+    {
+        DbInitializer.Initialize(context);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
 
 app.Run();
