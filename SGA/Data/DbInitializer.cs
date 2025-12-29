@@ -14,15 +14,15 @@ public static class DbInitializer
         context.Database.EnsureCreated();
 
         // Check if Kilometraje column exists in Vehiculos table and add it if missing
-        try
-        {
-            var command = "IF COL_LENGTH('Vehiculos', 'Kilometraje') IS NULL BEGIN ALTER TABLE Vehiculos ADD Kilometraje decimal(18,2) NOT NULL DEFAULT 0 END";
-            context.Database.ExecuteSqlRaw(command);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating schema: {ex.Message}");
-        }
+        // Check if Kilometraje column exists - HANDLED BY EF CORE MODEL
+        // try
+        // {
+        //    // REMOVED MSSQL SPECIFIC CODE
+        // }
+        // catch (Exception ex)
+        // {
+        //     Console.WriteLine($"Error updating schema: {ex.Message}");
+        // }
 
         // Seed Productos if missing (Check for key products)
         if (!context.Productos.Any())
