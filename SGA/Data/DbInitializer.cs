@@ -225,7 +225,6 @@ public static class DbInitializer
                 context.Usuarios.Add(officialAdmin);
             }
         }
-        }
 
         // Ensure official user has correct Admin credentials (runs for both New and Existing)
         if (officialAdmin != null)
