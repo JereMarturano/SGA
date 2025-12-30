@@ -18,6 +18,36 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [HttpGet("debug-reset")]
+    public async Task<IActionResult> DebugReset()
+    {
+        // EMERGENCY TOOL: Force reset admin credentials
+        // This bypasses AuthService to interact with DB directly for diagnosis
+        var context = HttpContext.RequestServices.GetRequiredService<SGA.Data.AppDbContext>();
+        
+        var admin = context.Usuarios.FirstOrDefault(u => u.DNI == "33123456");
+        if (admin == null)
+        {
+            admin = new Usuario 
+            { 
+                Nombre = "Santiago Perez", 
+                DNI = "33123456",
+                Rol = Models.Enums.RolUsuario.Admin,
+                Estado = "Activo",
+                FechaIngreso = DateTime.UtcNow
+            };
+            context.Usuarios.Add(admin);
+        }
+        
+        // Force Password
+        admin.ContrasenaHash = SGA.Helpers.PasswordHelper.HashPassword("admin123");
+        admin.Nombre = "Santiago Perez"; // Ensure name is correct
+        
+        await context.SaveChangesAsync();
+        
+        return Ok(new { message = "Admin Reset Successfully", dni = admin.DNI, hashPrefix = admin.ContrasenaHash.Substring(0, 10) + "..." });
+    }
+
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
@@ -26,13 +56,13 @@ public class AuthController : ControllerBase
             var token = await _authService.LoginAsync(dto.DNI, dto.Password);
             if (token == null)
             {
-                return Unauthorized("Credenciales inválidas");
+                // Detailed debug response for 401
+                return Unauthorized(new { message = "Credenciales inválidas", debug_info = "Verifique DNI o Contraseña. Si el problema persiste, use /api/auth/debug-reset" });
             }
             return Ok(new { token });
         }
         catch (Exception ex)
         {
-            // Return validation error for debugging purposes
             return StatusCode(500, new { message = ex.Message, stack = ex.StackTrace });
         }
     }
