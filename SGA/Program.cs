@@ -46,6 +46,25 @@ static string BuildConnectionString(string? connectionUrl)
             TrustServerCertificate = true // Allow self-signed certificates common in cloud
         };
 
+        // Parse Query Parameters (e.g., ?sslmode=disable)
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        foreach (var key in query.AllKeys)
+        {
+            if (string.IsNullOrEmpty(key)) continue;
+            
+            // Map common URL parameters to Npgsql defaults if needed 
+            // (NpgsqlBuilder usually handles standard keys via TryGetValue if we looped string, but we are manual here)
+            // For now, let's specifically handle pooler optimizations
+        }
+
+        // SUPABASE POOLER OPTIMIZATION (Port 6543)
+        // Transaction Mode doesn't support prepared statements
+        if (uri.Port == 6543)
+        {
+            builder.MaxAutoPrepare = 0;
+            // builder.NoResetOnClose = true; // Often recommended for pgBouncer
+        }
+
         return builder.ToString();
     }
     catch 
