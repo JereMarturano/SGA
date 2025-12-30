@@ -23,8 +23,45 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
     .WriteTo.File("logs/sga-.txt", rollingInterval: RollingInterval.Day));
 
 // Add services to the container.
+// Helper to handle URI connection strings (Render/Supabase style)
+static string BuildConnectionString(string? connectionUrl)
+{
+    if (string.IsNullOrEmpty(connectionUrl)) return string.Empty;
+
+    try 
+    {
+        // If it's not a URI, return as is (assume key=value format)
+        if (!connectionUrl.Contains("://")) return connectionUrl;
+
+        var uri = new Uri(connectionUrl);
+        var userInfo = uri.UserInfo.Split(':');
+        var builder = new Npgsql.NpgsqlConnectionStringBuilder
+        {
+            Host = uri.Host,
+            Port = uri.Port,
+            Database = uri.AbsolutePath.TrimStart('/'),
+            Username = userInfo.FirstOrDefault(),
+            Password = userInfo.Length > 1 ? userInfo[1] : null,
+            SslMode = Npgsql.SslMode.Require,
+            TrustServerCertificate = true // Allow self-signed certificates common in cloud
+        };
+
+        return builder.ToString();
+    }
+    catch 
+    {
+        // Fallback if parsing fails
+        return connectionUrl;
+    }
+}
+
+// Add services to the container.
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    var connString = builder.Configuration.GetConnectionString("DefaultConnection");
+    var finalConnString = BuildConnectionString(connString);
+    options.UseNpgsql(finalConnString);
+});
 
 builder.Services.AddScoped<DatabaseMigrationService>();
 
