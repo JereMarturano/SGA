@@ -225,15 +225,15 @@ public static class DbInitializer
                 context.Usuarios.Add(officialAdmin);
             }
         }
-        else
-        {
-            // Ensure official is Admin
-             officialAdmin.Rol = RolUsuario.Admin;
+        }
 
-             // FORCE Fix bad password seed
-             officialAdmin.ContrasenaHash = PasswordHelper.HashPassword("admin123");
-             officialAdmin.DNI = "33123456";
-             Console.WriteLine("DEBUG: Admin password reset to 'admin123' and DNI to '33123456'");
+        // Ensure official user has correct Admin credentials (runs for both New and Existing)
+        if (officialAdmin != null)
+        {
+            officialAdmin.Rol = RolUsuario.Admin;
+            officialAdmin.ContrasenaHash = PasswordHelper.HashPassword("admin123");
+            officialAdmin.DNI = "33123456";
+            Console.WriteLine("DEBUG: Admin credentials enforced: DNI='33123456', Pass='admin123'");
         }
         
         context.SaveChanges(); // Ensure IDs are set
