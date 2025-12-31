@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SGA.Data;
 using SGA.Models;
 using SGA.Models.DTOs;
