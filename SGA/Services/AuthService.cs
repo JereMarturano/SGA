@@ -37,7 +37,15 @@ public class AuthService : IAuthService
 
         // Generate Token
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!);
+        var keyStr = _configuration["Jwt:Key"];
+        
+        if (string.IsNullOrEmpty(keyStr))
+            throw new Exception("Configuración 'Jwt:Key' no encontrada en el servidor.");
+            
+        if (keyStr.Length < 32)
+            throw new Exception($"La clave JWT es muy corta ({keyStr.Length} caracteres). Debe tener al menos 32.");
+
+        var key = Encoding.UTF8.GetBytes(keyStr);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]

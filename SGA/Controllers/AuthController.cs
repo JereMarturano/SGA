@@ -56,14 +56,14 @@ public class AuthController : ControllerBase
             var token = await _authService.LoginAsync(dto.DNI, dto.Password);
             if (token == null)
             {
-                // Detailed debug response for 401
-                return Unauthorized(new { message = "Credenciales inválidas", debug_info = "Verifique DNI o Contraseña. Si el problema persiste, use /api/auth/debug-reset" });
+                return Unauthorized("Credenciales inválidas. Verifique DNI y Contraseña.");
             }
             return Ok(new { token });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = ex.Message, stack = ex.StackTrace });
+            // Return plain text message so frontend doesn't crash trying to render an object
+            return StatusCode(500, $"Error Interno: {ex.Message}");
         }
     }
 
