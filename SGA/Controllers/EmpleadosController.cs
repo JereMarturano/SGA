@@ -27,42 +27,59 @@ public class EmpleadosController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<IEnumerable<UsuarioDTO>>> GetEmpleados()
     {
-        var users = _context.Usuarios.ToList();
-        var dtos = new List<UsuarioDTO>();
-
-        var firstDayOfMonth = new DateTime(TimeHelper.Now.Year, TimeHelper.Now.Month, 1);
-        var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
-
-        foreach (var u in users)
+        try 
         {
-            // Calculate sales for this month (Unit count of Eggs as per previous logic, or Total amount?)
-            // The prompt says "vincule con ventas". Let's show Total Money for now as it's more generic, or quantity if specific.
-            // But looking at GetEstadisticas, it calculates eggs.
-            // Let's use simple query here for performance, or call Service if needed.
-            // To be fast, we might want to do a GroupBy query outside loop, but for small number of employees loop is fine.
+            var users = await _context.Usuarios.AsNoTracking().ToListAsync();
+            var dtos = new List<UsuarioDTO>();
 
-            var stats = await _empleadoService.GetEstadisticasAsync(u.UsuarioId, firstDayOfMonth, lastDayOfMonth);
-            // Also need absences
-            var faltas = await _empleadoService.GetFaltasPorEmpleadoAsync(u.UsuarioId, firstDayOfMonth, lastDayOfMonth);
+            var firstDayOfMonth = new DateTime(TimeHelper.Now.Year, TimeHelper.Now.Month, 1);
+            var lastDayOfMonth = firstDayOfMonth.AddMonths(1).AddDays(-1);
 
-            dtos.Add(new UsuarioDTO
+            // Bulk fetch sales for the current month for all users
+            // We select only necessary fields to reduce data transfer if possible, 
+            // but projecting to anonymous type first is good.
+            // Using AsNoTracking for read-only speed.
+            var allSales = await _context.Ventas
+                .AsNoTracking()
+                .Where(v => v.Fecha >= firstDayOfMonth && v.Fecha <= lastDayOfMonth)
+                .Select(v => new { v.UsuarioId, v.Total, v.MetodoPago })
+                .ToListAsync();
+
+            // Bulk fetch absences
+            var allFaltas = await _context.Faltas
+                .AsNoTracking()
+                .Where(f => f.Fecha >= firstDayOfMonth && f.Fecha <= lastDayOfMonth)
+                .Select(f => new { f.UsuarioId })
+                .ToListAsync();
+
+            foreach (var u in users)
             {
-                UsuarioId = u.UsuarioId,
-                Nombre = u.Nombre,
-                Role = u.Rol.ToString(),
-                Telefono = u.Telefono,
-                FechaIngreso = u.FechaIngreso,
-                Estado = u.Estado,
-                DNI = u.DNI,
-                VentasDelMes = stats.TotalVentas, // Metric changed to Total Money ($) as requested
-                FaltasDelMes = faltas.Count,
-                TotalEfectivo = stats.TotalEfectivo,
-                TotalMercadoPago = stats.TotalMercadoPago,
-                TotalCuentaCorriente = stats.TotalCuentaCorriente
-            });
-        }
+                var userSales = allSales.Where(v => v.UsuarioId == u.UsuarioId).ToList();
+                var userFaltasCount = allFaltas.Count(f => f.UsuarioId == u.UsuarioId);
 
-        return Ok(dtos);
+                dtos.Add(new UsuarioDTO
+                {
+                    UsuarioId = u.UsuarioId,
+                    Nombre = u.Nombre,
+                    Role = u.Rol.ToString(),
+                    Telefono = u.Telefono,
+                    FechaIngreso = u.FechaIngreso,
+                    Estado = u.Estado,
+                    DNI = u.DNI,
+                    VentasDelMes = userSales.Sum(v => v.Total),
+                    FaltasDelMes = userFaltasCount,
+                    TotalEfectivo = userSales.Where(v => v.MetodoPago == SGA.Models.Enums.MetodoPago.Efectivo).Sum(v => v.Total),
+                    TotalMercadoPago = userSales.Where(v => v.MetodoPago == SGA.Models.Enums.MetodoPago.MercadoPago).Sum(v => v.Total),
+                    TotalCuentaCorriente = userSales.Where(v => v.MetodoPago == SGA.Models.Enums.MetodoPago.CuentaCorriente).Sum(v => v.Total)
+                });
+            }
+
+            return Ok(dtos);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error interno al obtener empleados", error = ex.Message });
+        }
     }
 
     [HttpPost]

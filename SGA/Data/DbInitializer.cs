@@ -231,8 +231,8 @@ public static class DbInitializer
         {
             officialAdmin.Rol = RolUsuario.Admin;
             officialAdmin.ContrasenaHash = PasswordHelper.HashPassword("admin123");
-            officialAdmin.DNI = "33123456";
-            Console.WriteLine("DEBUG: Admin credentials enforced: DNI='33123456', Pass='admin123'");
+            officialAdmin.DNI = "29877040";
+            Console.WriteLine("DEBUG: Admin credentials enforced: DNI='29877040', Pass='admin123'");
         }
         
         context.SaveChanges(); // Ensure IDs are set

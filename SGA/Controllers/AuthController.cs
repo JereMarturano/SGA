@@ -25,13 +25,15 @@ public class AuthController : ControllerBase
         // This bypasses AuthService to interact with DB directly for diagnosis
         var context = HttpContext.RequestServices.GetRequiredService<SGA.Data.AppDbContext>();
         
-        var admin = context.Usuarios.FirstOrDefault(u => u.DNI == "33123456");
+        // Find by Name OR New DNI OR Old DNI to ensure we catch the existing user
+        var admin = context.Usuarios.FirstOrDefault(u => u.Nombre == "Santiago Perez" || u.DNI == "29877040" || u.DNI == "33123456");
+        
         if (admin == null)
         {
             admin = new Usuario 
             { 
                 Nombre = "Santiago Perez", 
-                DNI = "33123456",
+                DNI = "29877040",
                 Rol = Models.Enums.RolUsuario.Admin,
                 Estado = "Activo",
                 FechaIngreso = DateTime.UtcNow
@@ -39,9 +41,10 @@ public class AuthController : ControllerBase
             context.Usuarios.Add(admin);
         }
         
-        // Force Password
+        // Force Password and DNI
         admin.ContrasenaHash = SGA.Helpers.PasswordHelper.HashPassword("admin123");
-        admin.Nombre = "Santiago Perez"; // Ensure name is correct
+        admin.Nombre = "Santiago Perez";
+        admin.DNI = "29877040"; 
         
         await context.SaveChangesAsync();
         
